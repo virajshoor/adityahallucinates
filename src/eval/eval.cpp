@@ -167,7 +167,8 @@ Value classical_evaluate(const Position& pos) {
       Square s = pop_lsb(b);
       Piece pc = pos.piece_on(s);
       PieceType pt = type_of(pc);
-      Square rel = relative_square(c, s);
+      // PSTs are stored rank-8-first (visual); board squares are a1=0 — flip ranks.
+      Square rel = Square(relative_square(c, s) ^ 56);
       mg[c] += PieceValueMg[pt] + MgPST[pt][rel];
       eg[c] += PieceValueEg[pt] + EgPST[pt][rel];
     }
@@ -229,16 +230,16 @@ Value classical_evaluate(const Position& pos) {
       Bitboard support = Bitboards::PawnAttacks[~c][s] & ourPawns;
       Bitboard phalanx = neighbors & rank_bb(rank_of(s));
       if (support | phalanx) {
-        mg[c] += 6 + 2 * int(r);
-        eg[c] += 4 + int(r);
+        mg[c] += 4 + int(r);
+        eg[c] += 3 + int(r) / 2;
       }
 
       // Backward pawn: no neighbor able to protect advance, enemy controls stop square
       Square stop = s + pawn_push(c);
       if (is_ok(stop) && !(neighbors & Bitboards::ForwardRanksBB[~c][rank_of(s)]) &&
           (Bitboards::PawnAttacks[c][stop] & enemyPawns) && !(ourPawns & square_bb(stop))) {
-        mg[c] -= 8;
-        eg[c] -= 12;
+        mg[c] -= 6;
+        eg[c] -= 10;
       }
 
       Bitboard forward = Bitboards::ForwardRanksBB[c][rank_of(s)];
@@ -383,24 +384,34 @@ Value classical_evaluate(const Position& pos) {
     // Open files near king amplify danger
     if (!(pos.pieces(PAWN) & file_bb(kf))) attackUnits += 2;
     if (attackerCount >= 2)
-      mg[c] -= attackUnits * attackUnits / 2 + 4 * attackerCount;
+      mg[c] -= attackUnits * attackUnits / 3 + 3 * attackerCount;
 
-    // Hanging / under-defended pieces (cheap attack approx)
+    // Hanging / under-defended pieces (pawns + knights + sliding approx)
     Bitboard ours = pos.pieces(c, KNIGHT) | pos.pieces(c, BISHOP) | pos.pieces(c, ROOK) | pos.pieces(c, QUEEN);
     Bitboard atk = pawn_attacks_bb(~c, pos.pieces(~c, PAWN));
     Bitboard enemyKn = pos.pieces(~c, KNIGHT);
     while (enemyKn) atk |= Bitboards::PseudoAttacks[KNIGHT][pop_lsb(enemyKn)];
+    Bitboard enemyBi = pos.pieces(~c, BISHOP) | pos.pieces(~c, QUEEN);
+    while (enemyBi) {
+      Square s = pop_lsb(enemyBi);
+      atk |= attacks_bb(BISHOP, s, occ);
+    }
+    Bitboard enemyRo = pos.pieces(~c, ROOK) | pos.pieces(~c, QUEEN);
+    while (enemyRo) {
+      Square s = pop_lsb(enemyRo);
+      atk |= attacks_bb(ROOK, s, occ);
+    }
     Bitboard hang = ours & atk;
     while (hang) {
       Square s = pop_lsb(hang);
       PieceType pt = type_of(pos.piece_on(s));
       bool byPawn = pawn_attacks_bb(~c, pos.pieces(~c, PAWN)) & square_bb(s);
       if (!pos.attackers_to(s, c)) {
-        int pen = PieceValueMg[pt] / 4;
+        int pen = PieceValueMg[pt] / 5;
         mg[c] -= pen;
         eg[c] -= pen / 2;
       } else if (byPawn) {
-        mg[c] -= PieceValueMg[pt] / 10;
+        mg[c] -= PieceValueMg[pt] / 12;
       }
     }
 

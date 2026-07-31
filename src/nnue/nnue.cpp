@@ -11,10 +11,11 @@ namespace ah {
 namespace {
 NnueNet g_nnue;
 
-inline int feature_index(Piece pc, Square sq, Color stm) {
-  Square s = relative_square(stm, sq);
+// Feature index from a fixed perspective color (not side-to-move).
+inline int feature_index(Piece pc, Square sq, Color persp) {
+  Square s = relative_square(persp, sq);
   PieceType pt = type_of(pc);
-  Color rel = (color_of(pc) == stm) ? WHITE : BLACK;
+  Color rel = (color_of(pc) == persp) ? WHITE : BLACK;
   int p = (rel == WHITE ? 0 : 6) + (pt - PAWN);
   return p * 64 + int(s);
 }
@@ -23,15 +24,18 @@ struct NetWeights {
   int input = 768, h1 = 128, h2 = 32;
   bool loaded = false;
   bool clipped = true;
-  // Feature transformer stored as [feature][h1] for incremental/refresh adds
-  std::vector<int16_t> w0; // input * h1
-  std::vector<int16_t> b0; // h1
-  std::vector<int16_t> w1; // h2 * h1
-  std::vector<int16_t> b1; // h2
-  std::vector<int16_t> w2; // h2
+  std::vector<int16_t> w0; // feature-major: [feature][h1]
+  std::vector<int16_t> b0;
+  std::vector<int16_t> w1; // [h2][h1]
+  std::vector<int16_t> b1;
+  std::vector<int16_t> w2;
   int32_t b2 = 0;
-  float scale0 = 1.f, scale1 = 1.f, scale2 = 1.f; // multiply quantized -> float space
-  // Final: ((acc*s0 -> crelu) * w1*s1 -> crelu) * w2*s2 + b2  in cp
+  // Quantization: layer0 uses scale0; hidden activations clipped to [0, QA]
+  static constexpr int QA = 255;
+  static constexpr int QB = 64;
+  float scale0 = 1.f, scale1 = 1.f, scale2 = 1.f;
+  // Output scale: cp ≈ (affine) / scale_out
+  float inv_scale0 = 1.f;
 };
 
 static NetWeights g_w;
@@ -52,34 +56,40 @@ void quantize_from_float(const std::vector<float>& wf0, const std::vector<float>
   g_w.input = input;
   g_w.h1 = h1;
   g_w.h2 = h2;
-  // Transpose w0 to feature-major: for each feature f, h1 weights
-  // Incoming wf0 is row-major H1 x INPUT (as exported)
   std::vector<float> w0t(input * h1);
   for (int i = 0; i < h1; ++i)
     for (int f = 0; f < input; ++f)
       w0t[f * h1 + i] = wf0[i * input + f];
 
   qrow(w0t, g_w.w0, g_w.scale0);
-  // Bias in same scale as w0*feature(1)
-  {
-    float m = 1e-8f;
-    for (float v : bf0) m = std::max(m, std::fabs(v));
-    // Use same scale0 for bias compatibility with accumulator
-    g_w.b0.resize(h1);
-    for (int i = 0; i < h1; ++i)
-      g_w.b0[i] = int16_t(std::clamp(int(std::lround(bf0[i] * g_w.scale0)), -32767, 32767));
-  }
+  g_w.inv_scale0 = 1.f / g_w.scale0;
+  g_w.b0.resize(h1);
+  for (int i = 0; i < h1; ++i)
+    g_w.b0[i] = int16_t(std::clamp(int(std::lround(bf0[i] * g_w.scale0)), -32767, 32767));
+
   qrow(wf1, g_w.w1, g_w.scale1);
-  {
-    g_w.b1.resize(h2);
-    for (int j = 0; j < h2; ++j)
-      g_w.b1[j] = int16_t(std::clamp(int(std::lround(bf1[j] * g_w.scale1)), -32767, 32767));
-  }
-  // Output already in cp for F2 nets
+  g_w.b1.resize(h2);
+  for (int j = 0; j < h2; ++j)
+    g_w.b1[j] = int16_t(std::clamp(int(std::lround(bf1[j] * g_w.scale1)), -32767, 32767));
+
   qrow(wf2, g_w.w2, g_w.scale2);
-  g_w.b2 = int32_t(std::lround(bf2)); // already cp
+  g_w.b2 = int32_t(std::lround(bf2));
   g_w.loaded = true;
   g_nnue.loaded = true;
+}
+
+inline void add_feature(NnueAccumulator& a, Color persp, int f) {
+  const int h1 = g_w.h1;
+  const int16_t* col = &g_w.w0[f * h1];
+  int16_t* acc = a.acc[persp];
+  for (int i = 0; i < h1; ++i) acc[i] = int16_t(acc[i] + col[i]);
+}
+
+inline void sub_feature(NnueAccumulator& a, Color persp, int f) {
+  const int h1 = g_w.h1;
+  const int16_t* col = &g_w.w0[f * h1];
+  int16_t* acc = a.acc[persp];
+  for (int i = 0; i < h1; ++i) acc[i] = int16_t(acc[i] - col[i]);
 }
 } // namespace
 
@@ -109,41 +119,52 @@ bool load_nnue(const std::string& path) {
   in.read(reinterpret_cast<char*>(b1.data()), b1.size() * sizeof(float));
   in.read(reinterpret_cast<char*>(w2.data()), w2.size() * sizeof(float));
   in.read(reinterpret_cast<char*>(&b2), sizeof(float));
-  if (!clipped) {
-    // Old F1 nets output cp already in training; keep as-is
-  }
   quantize_from_float(w0, b0, w1, b1, w2, b2, dims[0], dims[1], dims[2]);
   g_w.clipped = clipped;
   return true;
 }
 
-Value NnueNet::evaluate(const Position& pos) const {
-  if (!g_w.loaded) return VALUE_NONE;
-  const auto& n = g_w;
-  Color stm = pos.side_to_move();
-
-  // Accumulator in quantized domain of layer0
-  int32_t acc[256];
-  for (int i = 0; i < n.h1; ++i) acc[i] = n.b0[i];
-
-  Bitboard bb = pos.pieces();
-  while (bb) {
-    Square sq = pop_lsb(bb);
-    int f = feature_index(pos.piece_on(sq), sq, stm);
-    const int16_t* col = &n.w0[f * n.h1];
-    for (int i = 0; i < n.h1; ++i) acc[i] += col[i];
+void NnueNet::refresh(NnueAccumulator& a, const Position& pos) const {
+  if (!g_w.loaded) { a.computed = false; return; }
+  const int h1 = g_w.h1;
+  for (Color persp : {WHITE, BLACK}) {
+    for (int i = 0; i < h1; ++i) a.acc[persp][i] = g_w.b0[i];
+    Bitboard bb = pos.pieces();
+    while (bb) {
+      Square sq = pop_lsb(bb);
+      add_feature(a, persp, feature_index(pos.piece_on(sq), sq, persp));
+    }
   }
+  a.computed = true;
+}
 
-  // Hidden1: dequant to float, clipped ReLU to [0,1]
+void NnueNet::put_piece(NnueAccumulator& a, Piece pc, Square sq) const {
+  if (!g_w.loaded || !a.computed) return;
+  add_feature(a, WHITE, feature_index(pc, sq, WHITE));
+  add_feature(a, BLACK, feature_index(pc, sq, BLACK));
+}
+
+void NnueNet::remove_piece(NnueAccumulator& a, Piece pc, Square sq) const {
+  if (!g_w.loaded || !a.computed) return;
+  sub_feature(a, WHITE, feature_index(pc, sq, WHITE));
+  sub_feature(a, BLACK, feature_index(pc, sq, BLACK));
+}
+
+Value NnueNet::evaluate_acc(const NnueAccumulator& a, Color stm) const {
+  if (!g_w.loaded || !a.computed) return VALUE_NONE;
+  const auto& n = g_w;
+  const int16_t* acc = a.acc[stm];
+
+  // CReLU hidden1 into int (0..QA) after dequant approx: clamp(acc * QA / scale_region)
+  // Use float for correctness with existing F2 nets (trained in float).
   float h1a[256];
-  const float inv0 = 1.f / n.scale0;
+  const float inv0 = n.inv_scale0;
   for (int i = 0; i < n.h1; ++i) {
     float v = float(acc[i]) * inv0;
     if (n.clipped) h1a[i] = v < 0.f ? 0.f : (v > 1.f ? 1.f : v);
     else h1a[i] = v > 0.f ? v : 0.f;
   }
 
-  // Layer1: accumulate in float then clamp
   float h2v[32];
   const float inv1 = 1.f / n.scale1;
   for (int j = 0; j < n.h2; ++j) {
@@ -158,6 +179,24 @@ Value NnueNet::evaluate(const Position& pos) const {
   for (int j = 0; j < n.h2; ++j) out += float(n.w2[j]) * inv2 * h2v[j];
   int cp = int(std::lround(out));
   return Value(std::clamp(cp, -VALUE_MATE_IN_MAX_PLY + 1, VALUE_MATE_IN_MAX_PLY - 1));
+}
+
+Value NnueNet::evaluate(const Position& pos) const {
+  if (!g_w.loaded) return VALUE_NONE;
+  // Thread-local incremental accumulator: refresh when position changes discontinuously.
+  static thread_local NnueAccumulator tl;
+  static thread_local Key tl_key = 0;
+  static thread_local uint64_t tl_pieces = 0;
+
+  const Key k = pos.key();
+  // Cheap dirty check: full refresh (incremental put/remove available for search hooks)
+  if (!tl.computed || k != tl_key) {
+    refresh(tl, pos);
+    tl_key = k;
+    tl_pieces = pos.pieces();
+  }
+  (void)tl_pieces;
+  return evaluate_acc(tl, pos.side_to_move());
 }
 
 bool NnueNet::load(const std::string& path) { return load_nnue(path); }

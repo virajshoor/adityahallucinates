@@ -98,9 +98,32 @@ const BookEntry kBook[] = {
   // Caro-Kann: 1.e4 c6
   {"rnbqkbnr/pp1ppppp/2p5/8/4P3/8/PPPP1PPP/RNBQKBNR w", "d2d4", 75},
   {"rnbqkbnr/pp1ppppp/2p5/8/3PP3/8/PPP2PPP/RNBQKBNR b", "d7d5", 85},
+  {"rnbqkbnr/pp1ppppp/2p5/8/3PP3/8/PPP2PPP/RNBQKBNR b", "g7g6", 5},
   {"rnbqkbnr/pp2pppp/2p5/3p4/3PP3/8/PPP2PPP/RNBQKBNR w", "b1c3", 40},
   {"rnbqkbnr/pp2pppp/2p5/3p4/3PP3/8/PPP2PPP/RNBQKBNR w", "e4d5", 35},
   {"rnbqkbnr/pp2pppp/2p5/3p4/3PP3/8/PPP2PPP/RNBQKBNR w", "e4e5", 15},
+  // Caro-Kann Modern / Gurgenidze: 1.e4 c6 2.d4 g6 — avoid soft Bc4 lines
+  {"rnbqkbnr/pp1ppp1p/2p3p1/8/3PP3/8/PPP2PPP/RNBQKBNR w", "b1c3", 45},
+  {"rnbqkbnr/pp1ppp1p/2p3p1/8/3PP3/8/PPP2PPP/RNBQKBNR w", "c2c3", 25},
+  {"rnbqkbnr/pp1ppp1p/2p3p1/8/3PP3/8/PPP2PPP/RNBQKBNR w", "g1f3", 20},
+  {"rnbqkbnr/pp1ppp1p/2p3p1/8/2BPP3/8/PPP2PPP/RNBQK1NR b", "d7d5", 40},
+  {"rnbqkbnr/pp1ppp1p/2p3p1/8/2BPP3/8/PPP2PPP/RNBQK1NR b", "f8g7", 40},
+  {"rnbqk1nr/pp1pppbp/2p3p1/8/2BPP3/2N5/PPP2PPP/R1BQK1NR b", "d7d6", 50},
+  {"rnbqk1nr/pp1pppbp/2p3p1/8/2BPP3/2N5/PPP2PPP/R1BQK1NR b", "d7d5", 30},
+
+  // Ruy Lopez mainline continuation
+  {"r1bqkbnr/1ppp1ppp/p1n5/4p3/B3P3/5N2/PPPP1PPP/RNBQK2R b", "g8f6", 55},
+  {"r1bqkbnr/1ppp1ppp/p1n5/4p3/B3P3/5N2/PPPP1PPP/RNBQK2R b", "b7b5", 30},
+  {"r1bqkb1r/1ppp1ppp/p1n2n2/4p3/B3P3/5N2/PPPP1PPP/RNBQK2R w", "e1g1", 70},
+  {"r1bqkb1r/1ppp1ppp/p1n2n2/4p3/B3P3/5N2/PPPP1PPP/RNBQK2R w", "d2d3", 20},
+
+  // Sicilian Open after ...d6/Nc6/e6 xd4
+  {"rnbqkbnr/pp2pppp/3p4/8/3pP3/5N2/PPP2PPP/RNBQKB1R w", "f3d4", 85},
+  {"r1bqkbnr/pp1ppppp/2n5/8/3pP3/5N2/PPP2PPP/RNBQKB1R w", "f3d4", 85},
+  {"rnbqkbnr/pp1p1ppp/4p3/8/3pP3/5N2/PPP2PPP/RNBQKB1R w", "f3d4", 85},
+  {"rnbqkb1r/pp2pppp/3p1n2/8/3NP3/8/PPP2PPP/RNBQKB1R w", "b1c3", 70},
+  {"r1bqkbnr/pp2pppp/2np4/8/3NP3/8/PPP2PPP/RNBQKB1R w", "b1c3", 55},
+  {"r1bqkbnr/pp2pppp/2np4/8/3NP3/8/PPP2PPP/RNBQKB1R w", "c1e3", 25},
 
   // 1.d4 d5
   {"rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBQKBNR w", "c2c4", 50},

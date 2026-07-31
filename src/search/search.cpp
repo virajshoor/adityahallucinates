@@ -292,23 +292,31 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
         !pos.see_ge(m, -piece_value(PAWN) * depth))
       continue;
 
+    // Quiet moves that hang material (SEE < 0)
+    if (!rootNode && !pvNode && !capture && !givesCheck && depth <= 6 && moveCount > 1 &&
+        !pos.see_ge(m, 0))
+      continue;
+
     Depth newDepth = depth - 1;
     int extension = 0;
     if (!rootNode && givesCheck && pos.see_ge(m, 0)) extension = 1;
     if (!rootNode && ss->ply >= 1 && (ss - 1)->current &&
         m.to() == (ss - 1)->current.to() && capture)
       extension = std::max(extension, 1);
-    if (!rootNode && depth >= 6 && m == ttMove && ttHit && tte->depth >= depth - 3 &&
-        tte->flag != TT_UPPER)
-      extension = std::max(extension, 1);
+    // Conservative singular-style extension: only deep TT hits that failed high
+    if (!rootNode && !extension && depth >= 8 && m == ttMove && ttHit &&
+        tte->depth >= depth - 2 && tte->flag == TT_LOWER &&
+        ttValue >= beta - 20 && std::abs(int(ttValue)) < VALUE_MATE_IN_MAX_PLY)
+      extension = 1;
 
     Depth reduction = 0;
     if (depth >= 3 && moveCount > 1 + pvNode && !capture && !givesCheck) {
-      reduction = Depth(0.75 + std::log(double(depth)) * std::log(double(moveCount)) / 2.25);
+      reduction = Depth(0.70 + std::log(double(depth)) * std::log(double(moveCount)) / 2.35);
       if (cutNode) ++reduction;
       if (!improving) ++reduction;
       if (ss->killers[0] == m || ss->killers[1] == m) reduction = std::max(0, reduction - 1);
       if (history[pos.side_to_move()][m.from()][m.to()] > 4000) reduction = std::max(0, reduction - 1);
+      if (history[pos.side_to_move()][m.from()][m.to()] < -2000) ++reduction;
       reduction = std::clamp(reduction, 0, newDepth - 1 + extension);
     }
 
@@ -414,14 +422,14 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
 
   for (int depth = 1; depth <= maxDepth; ++depth) {
     if (depth >= 5) {
-      alpha = bestScore - 22;
-      beta = bestScore + 22;
+      alpha = bestScore - 28;
+      beta = bestScore + 28;
     } else {
       alpha = -VALUE_INFINITE;
       beta = VALUE_INFINITE;
     }
 
-    int delta = 22;
+    int delta = 28;
     while (true) {
       bestScore = search_node(pos, ss, alpha, beta, depth, false);
       if (info.stop) break;
@@ -429,6 +437,10 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
         beta = (alpha + beta) / 2;
         alpha = bestScore - delta;
         delta += delta / 2;
+        // Fail low: spend a bit more time
+        if (allocatedTime > 0) allocatedTime = std::min(allocatedTime + allocatedTime / 8,
+            limits.movetime > 0 ? std::max<int64_t>(8, limits.movetime - 5)
+                                : allocatedTime * 2);
         continue;
       }
       if (bestScore >= beta) {
