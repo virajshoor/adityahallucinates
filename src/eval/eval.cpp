@@ -178,19 +178,20 @@ Value classical_evaluate(const Position& pos) {
       eg[c] += 43;
     }
 
-    // Mobility
+    // Mobility (minors prefer squares not attacked by enemy pawns)
     Bitboard occ = pos.pieces();
     Bitboard safe = ~pos.pieces(c);
+    Bitboard pawnSafe = safe & ~pawn_attacks_bb(~c, pos.pieces(~c, PAWN));
     Bitboard kn = pos.pieces(c, KNIGHT);
     while (kn) {
-      int mob = popcount(Bitboards::PseudoAttacks[KNIGHT][pop_lsb(kn)] & safe);
-      mg[c] += 4 * mob;
+      int mob = popcount(Bitboards::PseudoAttacks[KNIGHT][pop_lsb(kn)] & pawnSafe);
+      mg[c] += 5 * mob;
       eg[c] += 4 * mob;
     }
     Bitboard bi = pos.pieces(c, BISHOP);
     while (bi) {
       Square s = pop_lsb(bi);
-      int mob = popcount(attacks_bb(BISHOP, s, occ) & safe);
+      int mob = popcount(attacks_bb(BISHOP, s, occ) & pawnSafe);
       mg[c] += 5 * mob;
       eg[c] += 5 * mob;
     }
@@ -372,18 +373,40 @@ Value classical_evaluate(const Position& pos) {
     if (attackerCount >= 2)
       mg[c] -= attackUnits * attackUnits / 2 + 4 * attackerCount;
 
-    // Hanging non-pawns (attacked by enemy pawn/knight and undefended)
-    Bitboard ours = pos.pieces(c, KNIGHT) | pos.pieces(c, BISHOP) | pos.pieces(c, ROOK) | pos.pieces(c, QUEEN);
-    Bitboard atk = pawn_attacks_bb(~c, pos.pieces(~c, PAWN));
-    Bitboard enemyKn = pos.pieces(~c, KNIGHT);
-    while (enemyKn) atk |= Bitboards::PseudoAttacks[KNIGHT][pop_lsb(enemyKn)];
-    Bitboard hang = ours & atk;
-    while (hang) {
-      Square s = pop_lsb(hang);
-      if (!pos.attackers_to(s, c)) {
-        int pen = PieceValueMg[type_of(pos.piece_on(s))] / 5;
+    // Threats / hanging pieces (value of attacked undefended or under-defended material)
+    Bitboard ours = pos.pieces(c) & ~pos.pieces(c, KING);
+    Bitboard enemyAtk = pawn_attacks_bb(~c, pos.pieces(~c, PAWN));
+    Bitboard ekn = pos.pieces(~c, KNIGHT);
+    while (ekn) enemyAtk |= Bitboards::PseudoAttacks[KNIGHT][pop_lsb(ekn)];
+    Bitboard ebi = pos.pieces(~c, BISHOP);
+    while (ebi) {
+      Square s = pop_lsb(ebi);
+      enemyAtk |= attacks_bb(BISHOP, s, occ);
+    }
+    Bitboard ero = pos.pieces(~c, ROOK);
+    while (ero) {
+      Square s = pop_lsb(ero);
+      enemyAtk |= attacks_bb(ROOK, s, occ);
+    }
+    Bitboard equ = pos.pieces(~c, QUEEN);
+    while (equ) {
+      Square s = pop_lsb(equ);
+      enemyAtk |= attacks_bb(QUEEN, s, occ);
+    }
+    enemyAtk |= Bitboards::PseudoAttacks[KING][pos.king_square(~c)];
+    Bitboard threatened = ours & enemyAtk;
+    while (threatened) {
+      Square s = pop_lsb(threatened);
+      PieceType pt = type_of(pos.piece_on(s));
+      bool defended = pos.attackers_to(s, c);
+      bool byPawn = pawn_attacks_bb(~c, pos.pieces(~c, PAWN)) & square_bb(s);
+      if (!defended) {
+        int pen = PieceValueMg[pt] / 4;
         mg[c] -= pen;
         eg[c] -= pen / 2;
+      } else if (byPawn && pt != PAWN) {
+        mg[c] -= PieceValueMg[pt] / 8;
+        eg[c] -= PieceValueMg[pt] / 12;
       }
     }
 
