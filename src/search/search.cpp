@@ -260,9 +260,13 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
     Depth newDepth = depth - 1;
     int extension = 0;
     if (!rootNode && givesCheck) extension = 1;
+    // Recapture extension
+    if (!rootNode && ss->ply >= 1 && (ss - 1)->current &&
+        m.to() == (ss - 1)->current.to() && capture)
+      extension = std::max(extension, 1);
     if (!rootNode && depth >= 6 && m == ttMove && ttHit && tte->depth >= depth - 3 &&
         tte->flag != TT_UPPER)
-      extension = std::max(extension, 1); // crude singular-ish
+      extension = std::max(extension, 1);
 
     Depth reduction = 0;
     if (depth >= 3 && moveCount > 1 + pvNode && !capture && !givesCheck) {

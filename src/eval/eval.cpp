@@ -151,8 +151,8 @@ int phase_weight(const Position& pos) {
 
 int isolated_penalty_mg = 5, isolated_penalty_eg = 15;
 int doubled_penalty_mg = 11, doubled_penalty_eg = 56;
-int passed_bonus_mg[8] = {0, 5, 10, 20, 35, 60, 100, 0};
-int passed_bonus_eg[8] = {0, 10, 20, 40, 70, 120, 200, 0};
+int passed_bonus_mg[8] = {0, 5, 12, 24, 40, 70, 110, 0};
+int passed_bonus_eg[8] = {0, 15, 30, 55, 90, 150, 260, 0};
 
 } // namespace
 
@@ -257,15 +257,25 @@ Value evaluate(const Position& pos) {
 
     // Castling rights / king shelter
     Square ksq = pos.king_square(c);
-    if (pos.can_castle(c == WHITE ? WHITE_OO : BLACK_OO) ||
-        pos.can_castle(c == WHITE ? WHITE_OOO : BLACK_OOO))
-      mg[c] += 15;
+    bool canOO = pos.can_castle(c == WHITE ? WHITE_OO : BLACK_OO);
+    bool canOOO = pos.can_castle(c == WHITE ? WHITE_OOO : BLACK_OOO);
+    if (canOO) mg[c] += 18;
+    if (canOOO) mg[c] += 8; // prefer kingside options
 
-    // Pawn shelter in front of king
+    // Pawn shelter in front of king (files around king)
+    File kf = file_of(ksq);
+    Bitboard shelterMask = file_bb(kf);
+    if (kf > FILE_A) shelterMask |= file_bb(File(kf - 1));
+    if (kf < FILE_H) shelterMask |= file_bb(File(kf + 1));
     Bitboard shelterPawns = pos.pieces(c, PAWN) &
-        Bitboards::ForwardRanksBB[c][rank_of(ksq)] &
-        (file_bb(file_of(ksq)) | Bitboards::AdjacentFilesBB[file_of(ksq)]);
-    mg[c] += 8 * std::min(3, popcount(shelterPawns));
+        Bitboards::ForwardRanksBB[c][rank_of(ksq)] & shelterMask;
+    int shelter = popcount(shelterPawns);
+    mg[c] += 10 * std::min(3, shelter);
+    // Exposed king after castling queenside / open files
+    if (kf <= FILE_C || kf >= FILE_G) {
+      if (shelter == 0) mg[c] -= 35;
+      else if (shelter == 1) mg[c] -= 12;
+    }
 
     // King safety: weighted attackers
     Bitboard zone = Bitboards::PseudoAttacks[KING][ksq] | square_bb(ksq);
@@ -321,10 +331,16 @@ Value evaluate(const Position& pos) {
   int mgw = 24 - phase;
   int score = ((mg[WHITE] - mg[BLACK]) * mgw + (eg[WHITE] - eg[BLACK]) * egw) / 24;
 
-  // Tempo + slight contempt to avoid needless draws
-  score += 22;
+  // Tempo + contempt to prefer decisive play over threefolds
+  score += 35;
 
-  // Scale down slight advantages in pure opposite-bishop draws-ish: skip for now
+  // Encourage castled king positions already via PST; discourage early king walks
+  for (Color c : {WHITE, BLACK}) {
+    Square ksq = pos.king_square(c);
+    if (relative_rank(c, ksq) >= RANK_3 && pos.non_pawn_material() > 2000)
+      mg[c] -= 40 * (relative_rank(c, ksq) - RANK_2);
+  }
+
   return Value(pos.side_to_move() == WHITE ? score : -score);
 }
 
