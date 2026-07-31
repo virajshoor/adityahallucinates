@@ -14,10 +14,11 @@ A from-scratch C++ chess engine (classical alpha-beta + handcrafted eval), stren
 | SF `UCI_Elo` 1700 | 92.5% (20 games) | pass |
 | SF `UCI_Elo` 1800 | 85% (20 games) | pass |
 | SF `UCI_Elo` **2000** | **78.1%** | **pass (75% target)** |
-| SF `UCI_Elo` 2100 | ~40–58% | next |
-| SF `UCI_Elo` 2200 | ~34% | — |
+| SF `UCI_Elo` 2100+ | climbing | in progress |
 
 **Primary 75% gate:** cleared at Stockfish `UCI_Elo` 2000 and Skill Level 4.
+
+**Note on “Elo 5000”:** Stockfish `UCI_Elo` only calibrates **1320–3190**; full unrestricted SF is ~3600. There is no Elo-5000 opponent on this ladder — the goal is to climb Skill / `UCI_Elo` / full SF as far as possible.
 
 ## Build
 
@@ -41,8 +42,9 @@ python3 scripts/match_stockfish.py --skill 4 --games 16 --movetime 0.25 --target
 
 - Bitboards + magic sliding attacks
 - Legal move generation (perft suite green)
-- PeSTO-style eval (material, PST, mobility, pawns, king safety)
-- PVS search: TT, NMP, LMR, futility, quiescence, killers/history
+- PeSTO-style eval (material, PST, mobility, pawns, king safety, outposts, space)
+- PVS search: TT, NMP, LMR, ProbCut, singular extensions, SEE pruning, killers/history/countermoves
+- Optional bootstrap NNUE (`ADITYA_USE_NNUE=1`, classical default — stronger for now)
 - Small weighted opening book
 - UCI protocol
 
