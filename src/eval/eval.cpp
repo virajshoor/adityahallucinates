@@ -292,13 +292,18 @@ Value evaluate(const Position& pos) {
     if (attackerCount >= 2)
       mg[c] -= attackUnits * attackUnits;
 
-    // Hanging pieces (undefended and attacked)
-    Bitboard ours = pos.pieces(c) & ~pos.pieces(c, KING) & ~pos.pieces(c, PAWN);
-    Bitboard tmp = ours;
-    while (tmp) {
-      Square s = pop_lsb(tmp);
-      if ((pos.attackers_to(s, ~c)) && !(pos.attackers_to(s, c))) {
-        int pen = PieceValueMg[type_of(pos.piece_on(s))] / 4;
+    // Hanging pieces (undefended and attacked) — sample non-pawns only, cheap check
+    Bitboard ours = pos.pieces(c, KNIGHT) | pos.pieces(c, BISHOP) | pos.pieces(c, ROOK) | pos.pieces(c, QUEEN);
+    Bitboard attacked = 0;
+    // rough: enemy pawn attacks + knight attacks as proxy for speed
+    attacked |= pawn_attacks_bb(~c, pos.pieces(~c, PAWN));
+    Bitboard ek = pos.pieces(~c, KNIGHT);
+    while (ek) attacked |= Bitboards::PseudoAttacks[KNIGHT][pop_lsb(ek)];
+    Bitboard hang = ours & attacked;
+    while (hang) {
+      Square s = pop_lsb(hang);
+      if (!(pos.attackers_to(s, c))) {
+        int pen = PieceValueMg[type_of(pos.piece_on(s))] / 5;
         mg[c] -= pen;
         eg[c] -= pen / 2;
       }
@@ -316,8 +321,8 @@ Value evaluate(const Position& pos) {
   int mgw = 24 - phase;
   int score = ((mg[WHITE] - mg[BLACK]) * mgw + (eg[WHITE] - eg[BLACK]) * egw) / 24;
 
-  // Tempo
-  score += 18;
+  // Tempo + slight contempt to avoid needless draws
+  score += 22;
 
   // Scale down slight advantages in pure opposite-bishop draws-ish: skip for now
   return Value(pos.side_to_move() == WHITE ? score : -score);

@@ -393,7 +393,7 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
     std::cout << std::endl;
 
     if (limits.depth && depth >= limits.depth) break;
-    if (allocatedTime > 0 && (now_ms() - startTime) > allocatedTime * 65 / 100) break;
+    if (allocatedTime > 0 && (now_ms() - startTime) > allocatedTime * 80 / 100) break;
     // Mate found
     if (std::abs(bestScore) > VALUE_MATE_IN_MAX_PLY) break;
   }
