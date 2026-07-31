@@ -1,0 +1,124 @@
+{
+  "label": "elo2600",
+  "movetime": 3.0,
+  "points": 11.5,
+  "games": 16,
+  "score": 0.71875,
+  "target": 0.75,
+  "passed": false,
+  "game_results": [
+    {
+      "game": 1,
+      "aditya_white": true,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 2,
+      "aditya_white": false,
+      "score": 0.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 3,
+      "aditya_white": true,
+      "score": 0.5,
+      "termination": "THREEFOLD_REPETITION",
+      "result": "1/2-1/2"
+    },
+    {
+      "game": 4,
+      "aditya_white": false,
+      "score": 0.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 5,
+      "aditya_white": true,
+      "score": 0.0,
+      "termination": "CHECKMATE",
+      "result": "0-1"
+    },
+    {
+      "game": 6,
+      "aditya_white": false,
+      "score": 0.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 7,
+      "aditya_white": true,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 8,
+      "aditya_white": false,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "0-1"
+    },
+    {
+      "game": 9,
+      "aditya_white": true,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 10,
+      "aditya_white": false,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "0-1"
+    },
+    {
+      "game": 11,
+      "aditya_white": true,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 12,
+      "aditya_white": false,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "0-1"
+    },
+    {
+      "game": 13,
+      "aditya_white": true,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 14,
+      "aditya_white": false,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "0-1"
+    },
+    {
+      "game": 15,
+      "aditya_white": true,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 16,
+      "aditya_white": false,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "0-1"
+    }
+  ],
+  "note": "failed 75% gate at 3.0s (71.9%); retrying at 5.0s"
+}

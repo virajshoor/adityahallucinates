@@ -11,7 +11,8 @@ Classical UCI engine `build/aditya` is runnable and strength-tested vs Stockfish
 | `UCI_Elo` 2100 | **1.5s/move** | **100% pass (16/16)** |
 | `UCI_Elo` 2200 | 3.0s/move | **100% pass (16/16)** |
 | `UCI_Elo` 2400 | 3.0s/move | **90.6% pass** |
-| `UCI_Elo` 2600 | 3.0s/move | **in progress** |
+| `UCI_Elo` 2600 | 3.0s/move | 71.9% fail |
+| `UCI_Elo` 2600 | 5.0s/move | **in progress** |
 
 **Default eval is classical.** Critical fix this session: PeSTO PSTs were rank-flipped (a1=0 vs rank-8-first tables), inflating scores by ~300–500cp and causing exchange blunders. SEE-based threat eval now punishes winning opponent captures (e.g. BxR on a “defended” rook).
 
