@@ -10,7 +10,8 @@ Classical UCI engine `build/aditya` is runnable and strength-tested vs Stockfish
 | `UCI_Elo` 2000 | 0.25s/move | **96.9% pass** (retest after PST fix) |
 | `UCI_Elo` 2100 | **1.5s/move** | **100% pass (16/16)** |
 | `UCI_Elo` 2200 | 3.0s/move | **100% pass (16/16)** |
-| `UCI_Elo` 2400 | 3.0s/move | **in progress** |
+| `UCI_Elo` 2400 | 3.0s/move | **90.6% pass** |
+| `UCI_Elo` 2600 | 3.0s/move | **in progress** |
 
 **Default eval is classical.** Critical fix this session: PeSTO PSTs were rank-flipped (a1=0 vs rank-8-first tables), inflating scores by ~300–500cp and causing exchange blunders. SEE-based threat eval now punishes winning opponent captures (e.g. BxR on a “defended” rook).
 
@@ -49,11 +50,11 @@ Play in a GUI: point Arena / Cute Chess / Nibbler at `build/aditya`.
 ## What to do next (priority order)
 
 ### 1. Confirm Elo 2400+
-- Elo 2200 @3.0s cleared **16/16**. Finish Elo 2400 @3.0s (running).
+- Elo 2200 @3.0s cleared **16/16**. Elo 2400 cleared **90.6%**. Finish Elo 2600 @3.0s (running).
 - Optionally retest Elo 2200 @1.5–2.0s; Skill 5 @≥1.5s.
 
 ### 2. Climb higher ladder toward max measurable SF
-After 2400: 2600 → 2800 → 3000 → 3190, then unrestricted Stockfish (no `UCI_LimitStrength`).
+After 2600: 2800 → 3000 → 3190, then unrestricted Stockfish (no `UCI_LimitStrength`).
 
 ### 3. Classical strength work (highest ROI until NNUE is fast)
 - Search: ProbCut is conservative (depth 5–9); keep SPRT’d. Singular extensions remain cautious after prior Elo 2000 regression.
