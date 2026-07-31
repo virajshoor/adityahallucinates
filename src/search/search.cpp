@@ -131,6 +131,17 @@ Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
     ExtMove* n = moves;
     for (ExtMove* m = moves; m != end; ++m)
       if (pos.is_legal(m->move)) *n++ = *m;
+    // Also try safe checking quiets (tactical sharpness)
+    ExtMove quiets[MAX_MOVES];
+    ExtMove* qend = generate<QUIETS>(pos, quiets);
+    int checksAdded = 0;
+    for (ExtMove* m = quiets; m != qend && checksAdded < 8; ++m) {
+      if (!pos.is_legal(m->move)) continue;
+      if (!pos.gives_check(m->move)) continue;
+      if (!pos.see_ge(m->move, 0)) continue;
+      *n++ = *m;
+      ++checksAdded;
+    }
     end = n;
   }
 
