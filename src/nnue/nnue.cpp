@@ -183,20 +183,56 @@ Value NnueNet::evaluate_acc(const NnueAccumulator& a, Color stm) const {
 
 Value NnueNet::evaluate(const Position& pos) const {
   if (!g_w.loaded) return VALUE_NONE;
-  // Thread-local incremental accumulator: refresh when position changes discontinuously.
-  static thread_local NnueAccumulator tl;
-  static thread_local Key tl_key = 0;
-  static thread_local uint64_t tl_pieces = 0;
+  NnueAccumulator a;
+  refresh(a, pos);
+  return evaluate_acc(a, pos.side_to_move());
+}
 
-  const Key k = pos.key();
-  // Cheap dirty check: full refresh (incremental put/remove available for search hooks)
-  if (!tl.computed || k != tl_key) {
-    refresh(tl, pos);
-    tl_key = k;
-    tl_pieces = pos.pieces();
+Value NnueNet::evaluate(const Position& pos, const NnueAccumulator& a) const {
+  if (!g_w.loaded || !a.computed) return evaluate(pos);
+  return evaluate_acc(a, pos.side_to_move());
+}
+
+void NnueNet::do_move(NnueAccumulator& child, const NnueAccumulator& parent,
+                      const Position& pos, Move m) const {
+  if (!g_w.loaded || !parent.computed) {
+    child.computed = false;
+    return;
   }
-  (void)tl_pieces;
-  return evaluate_acc(tl, pos.side_to_move());
+  child.copy_from(parent);
+  Color us = pos.side_to_move();
+  Square from = m.from(), to = m.to();
+  Piece pc = pos.piece_on(from);
+
+  if (m.type() == CASTLING) {
+    bool kingSide = to > from;
+    Square rfrom = pos.king_square(us); // unused; rook from via castling helper
+    // Match board.cpp castling encoding: to = king destination
+    Square kto = to;
+    Square rto = make_square(kingSide ? FILE_F : FILE_D, rank_of(from));
+    // Need rook from-square: king-side h-file, queen-side a-file
+    Square rookFrom = make_square(kingSide ? FILE_H : FILE_A, rank_of(from));
+    Piece rook = make_piece(us, ROOK);
+    remove_piece(child, pc, from);
+    remove_piece(child, rook, rookFrom);
+    put_piece(child, pc, kto);
+    put_piece(child, rook, rto);
+    (void)rfrom;
+    return;
+  }
+
+  Piece captured = m.type() == EN_PASSANT ? make_piece(~us, PAWN) : pos.piece_on(to);
+  if (captured) {
+    Square capsq = to;
+    if (m.type() == EN_PASSANT) capsq = Square(to - pawn_push(us));
+    remove_piece(child, captured, capsq);
+  }
+  remove_piece(child, pc, from);
+  if (m.type() == PROMOTION) {
+    put_piece(child, make_piece(us, m.promotion_type()), to);
+  } else {
+    put_piece(child, pc, to);
+  }
 }
 
 bool NnueNet::load(const std::string& path) { return load_nnue(path); }

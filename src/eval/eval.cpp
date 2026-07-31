@@ -454,6 +454,10 @@ Value classical_evaluate(const Position& pos) {
 }
 
 Value evaluate(const Position& pos) {
+  return evaluate(pos, nullptr);
+}
+
+Value evaluate(const Position& pos, const NnueAccumulator* acc) {
   // Classical is the strength default. NNUE only when ADITYA_USE_NNUE=1 and loaded.
   static int use_nnue = -1;
   static int blend = -1; // percent classical, default 70
@@ -464,7 +468,7 @@ Value evaluate(const Position& pos) {
     blend = b ? std::clamp(std::atoi(b), 0, 100) : 70;
   }
   if (use_nnue && nnue_ready()) {
-    Value net = nnue().evaluate(pos);
+    Value net = (acc && acc->computed) ? nnue().evaluate(pos, *acc) : nnue().evaluate(pos);
     if (net != VALUE_NONE) {
       Value classical = classical_evaluate(pos);
       if (blend >= 100) return classical;

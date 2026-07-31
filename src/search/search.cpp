@@ -2,11 +2,13 @@
 #include "eval/eval.hpp"
 #include "movegen/movegen.hpp"
 #include "search/book.hpp"
+#include "nnue/nnue.hpp"
 #include <chrono>
 #include <algorithm>
 #include <iostream>
 #include <cstring>
 #include <cmath>
+#include <cstdlib>
 
 namespace ah {
 
@@ -58,6 +60,11 @@ bool Search::time_up() const {
   if (limits.infinite || limits.depth) return false;
   if (allocatedTime <= 0) return false;
   return (now_ms() - startTime) >= allocatedTime;
+}
+
+Value Search::eval_pos(const Position& pos, Stack* ss) const {
+  if (useNnueAcc) return evaluate(pos, &ss->acc);
+  return evaluate(pos);
 }
 
 void Search::update_pv(Stack* ss, Move m) {
@@ -113,11 +120,11 @@ Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
   }
 
   ss->pv[0] = MOVE_NONE;
-  if (ss->ply >= MAX_PLY - 1) return evaluate(pos);
+  if (ss->ply >= MAX_PLY - 1) return eval_pos(pos, ss);
 
   if (pos.is_draw(ss->ply)) return VALUE_DRAW;
 
-  Value stand = evaluate(pos);
+  Value stand = eval_pos(pos, ss);
   if (stand >= beta) return stand;
   if (stand > alpha) alpha = stand;
 
@@ -159,6 +166,7 @@ Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
       if (!pos.see_ge(m, 0)) continue;
     }
 
+    if (useNnueAcc) nnue().do_move((ss + 1)->acc, ss->acc, pos, m);
     pos.do_move(m, st);
     Value score = -qsearch(pos, ss + 1, -beta, -alpha);
     pos.undo_move(m);
@@ -217,7 +225,7 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
   if (inCheck) {
     eval = ss->staticEval = VALUE_NONE;
   } else {
-    eval = ss->staticEval = ttHit && tte->eval != int16_t(VALUE_NONE) ? Value(tte->eval) : evaluate(pos);
+    eval = ss->staticEval = ttHit && tte->eval != int16_t(VALUE_NONE) ? Value(tte->eval) : eval_pos(pos, ss);
   }
 
   const bool improving = !inCheck && ss->ply >= 2 &&
@@ -239,6 +247,7 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
       ss->staticEval >= beta - 20 * depth + (improving ? 180 : 220)) {
     StateInfo st;
     int R = 3 + depth / 3 + std::min(2, (eval - beta) / 220);
+    if (useNnueAcc) (ss + 1)->acc.copy_from(ss->acc);
     pos.do_null_move(st);
     Value nullScore = -search_node(pos, ss + 1, -beta, -beta + 1, depth - R, !cutNode);
     pos.undo_null_move();
@@ -262,6 +271,7 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
     int pcCount = 0;
     for (ExtMove* em = pcm; em != n && pcCount < 3; ++em) {
       ++pcCount;
+      if (useNnueAcc) nnue().do_move((ss + 1)->acc, ss->acc, pos, em->move);
       pos.do_move(em->move, pst);
       Value sc = -search_node(pos, ss + 1, -rbeta, -rbeta + 1, rdepth, !cutNode);
       pos.undo_move(em->move);
@@ -343,6 +353,7 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
       reduction = std::clamp(reduction, 0, newDepth - 1 + extension);
     }
 
+    if (useNnueAcc) nnue().do_move((ss + 1)->acc, ss->acc, pos, m);
     pos.do_move(m, st);
     Value score;
     if (moveCount == 1) {
@@ -407,6 +418,8 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
   info.seldepth = 0;
   tt.new_search();
   bestRootMove = MOVE_NONE;
+  useNnueAcc = nnue_ready() && std::getenv("ADITYA_USE_NNUE") &&
+               std::getenv("ADITYA_USE_NNUE")[0] == '1';
 
   if (!limits.infinite && pos.game_ply() <= 8) {
     Move bookMove = probe_book(pos);
@@ -438,6 +451,7 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
   (ss - 1)->current = MOVE_NULL;
   (ss - 1)->staticEval = VALUE_NONE;
   (ss - 2)->staticEval = VALUE_NONE;
+  if (useNnueAcc) nnue().refresh(ss->acc, pos);
 
   int maxDepth = limits.depth > 0 ? limits.depth : MAX_PLY - 2;
   Value alpha = -VALUE_INFINITE, beta = VALUE_INFINITE;

@@ -54,11 +54,19 @@ void uci_loop() {
   Zobrist::init();
   Magics::init();
 
-  // NNUE is opt-in via EvalFile for now (bootstrap nets are weaker/slower than classical)
-  // Auto-load only if ADITYA_NNUE is set.
-  if (const char* env = std::getenv("ADITYA_NNUE")) {
-    if (load_nnue(env))
-      std::cerr << "info string loaded NNUE " << env << std::endl;
+  // NNUE is opt-in via ADITYA_USE_NNUE=1 (classical remains stronger/faster by default).
+  {
+    const char* use = std::getenv("ADITYA_USE_NNUE");
+    const char* env = std::getenv("ADITYA_NNUE");
+    std::string path;
+    if (env && env[0]) path = env;
+    else if (use && use[0] == '1') path = "nets/fast.nnue";
+    if (!path.empty()) {
+      if (load_nnue(path))
+        std::cerr << "info string loaded NNUE " << path << std::endl;
+      else
+        std::cerr << "info string failed NNUE " << path << std::endl;
+    }
   }
 
   Position pos;

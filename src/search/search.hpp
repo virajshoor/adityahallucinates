@@ -2,6 +2,7 @@
 
 #include "board/board.hpp"
 #include "search/tt.hpp"
+#include "nnue/nnue.hpp"
 #include <atomic>
 #include <string>
 #include <vector>
@@ -32,6 +33,7 @@ public:
     Move current = MOVE_NONE;
     int ply = 0;
     int staticEval = VALUE_NONE;
+    NnueAccumulator acc{};
   };
 
   Search();
@@ -52,6 +54,7 @@ private:
   void order_moves(Position& pos, ExtMove* begin, ExtMove* end, Move ttMove, Stack* ss);
   bool time_up() const;
   int64_t now_ms() const;
+  Value eval_pos(const Position& pos, Stack* ss) const;
 
   static constexpr int MAX_PV = MAX_PLY + 1;
   Move pv_table[MAX_PLY + 1][MAX_PV]{};
@@ -63,6 +66,7 @@ private:
   int64_t startTime = 0;
   int64_t allocatedTime = 0;
   SearchLimits limits{};
+  bool useNnueAcc = false;
 };
 
 } // namespace ah

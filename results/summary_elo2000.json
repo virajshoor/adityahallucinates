@@ -1,9 +1,9 @@
 {
   "label": "elo2000",
   "movetime": 0.25,
-  "points": 13.5,
+  "points": 15.5,
   "games": 16,
-  "score": 0.84375,
+  "score": 0.96875,
   "target": 0.75,
   "passed": true,
   "game_results": [
@@ -24,9 +24,9 @@
     {
       "game": 3,
       "aditya_white": true,
-      "score": 0.0,
+      "score": 1.0,
       "termination": "CHECKMATE",
-      "result": "0-1"
+      "result": "1-0"
     },
     {
       "game": 4,
@@ -38,16 +38,16 @@
     {
       "game": 5,
       "aditya_white": true,
-      "score": 0.5,
-      "termination": "INSUFFICIENT_MATERIAL",
-      "result": "1/2-1/2"
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
     },
     {
       "game": 6,
       "aditya_white": false,
-      "score": 0.0,
+      "score": 1.0,
       "termination": "CHECKMATE",
-      "result": "1-0"
+      "result": "0-1"
     },
     {
       "game": 7,
@@ -66,9 +66,9 @@
     {
       "game": 9,
       "aditya_white": true,
-      "score": 1.0,
-      "termination": "CHECKMATE",
-      "result": "1-0"
+      "score": 0.5,
+      "termination": "THREEFOLD_REPETITION",
+      "result": "1/2-1/2"
     },
     {
       "game": 10,
