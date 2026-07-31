@@ -1,6 +1,8 @@
 #include "eval/eval.hpp"
+#include "nnue/nnue.hpp"
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 
 namespace ah {
 
@@ -156,7 +158,7 @@ int passed_bonus_eg[8] = {0, 15, 30, 55, 90, 150, 260, 0};
 
 } // namespace
 
-Value evaluate(const Position& pos) {
+Value classical_evaluate(const Position& pos) {
   int mg[COLOR_NB] = {}, eg[COLOR_NB] = {};
 
   for (Color c : {WHITE, BLACK}) {
@@ -210,6 +212,7 @@ Value evaluate(const Position& pos) {
     // Pawn structure
     Bitboard pawns = pos.pieces(c, PAWN);
     Bitboard ourPawns = pawns;
+    Bitboard enemyPawns = pos.pieces(~c, PAWN);
     while (pawns) {
       Square s = pop_lsb(pawns);
       File f = file_of(s);
@@ -220,15 +223,39 @@ Value evaluate(const Position& pos) {
         mg[c] -= isolated_penalty_mg;
         eg[c] -= isolated_penalty_eg;
       }
-      if (more_than_one(ourPawns & file_bb(f))) {
-        // count once per file roughly
+
+      // Supported / phalanx
+      Bitboard support = Bitboards::PawnAttacks[~c][s] & ourPawns;
+      Bitboard phalanx = neighbors & rank_bb(rank_of(s));
+      if (support | phalanx) {
+        mg[c] += 6 + 2 * int(r);
+        eg[c] += 4 + int(r);
+      }
+
+      // Backward pawn: no neighbor able to protect advance, enemy controls stop square
+      Square stop = s + pawn_push(c);
+      if (is_ok(stop) && !(neighbors & Bitboards::ForwardRanksBB[~c][rank_of(s)]) &&
+          (Bitboards::PawnAttacks[c][stop] & enemyPawns) && !(ourPawns & square_bb(stop))) {
+        mg[c] -= 8;
+        eg[c] -= 12;
       }
 
       Bitboard forward = Bitboards::ForwardRanksBB[c][rank_of(s)];
       Bitboard passed_mask = forward & (file_bb(f) | Bitboards::AdjacentFilesBB[f]);
-      if (!(pos.pieces(~c, PAWN) & passed_mask)) {
-        mg[c] += passed_bonus_mg[r];
-        eg[c] += passed_bonus_eg[r];
+      if (!(enemyPawns & passed_mask)) {
+        int bonus_mg = passed_bonus_mg[r];
+        int bonus_eg = passed_bonus_eg[r];
+        if (support) {
+          bonus_mg += 8 + 4 * int(r);
+          bonus_eg += 12 + 8 * int(r);
+        }
+        // Rook behind passer
+        if (pos.pieces(c, ROOK) & file_bb(f) & Bitboards::ForwardRanksBB[~c][rank_of(s)]) {
+          bonus_mg += 10;
+          bonus_eg += 25;
+        }
+        mg[c] += bonus_mg;
+        eg[c] += bonus_eg;
       }
     }
     for (File f = FILE_A; f <= FILE_H; ++f) {
@@ -238,6 +265,42 @@ Value evaluate(const Position& pos) {
         eg[c] -= (cnt - 1) * doubled_penalty_eg;
       }
     }
+
+    // Knight / bishop outposts on protected central squares
+    Bitboard outpostMask = (c == WHITE)
+        ? (rank_bb(RANK_4) | rank_bb(RANK_5) | rank_bb(RANK_6))
+        : (rank_bb(RANK_5) | rank_bb(RANK_4) | rank_bb(RANK_3));
+    outpostMask &= (file_bb(FILE_C) | file_bb(FILE_D) | file_bb(FILE_E) | file_bb(FILE_F));
+    Bitboard knOut = pos.pieces(c, KNIGHT) & outpostMask;
+    while (knOut) {
+      Square s = pop_lsb(knOut);
+      if (Bitboards::PawnAttacks[~c][s] & ourPawns) {
+        // Not attackable by enemy pawn
+        Bitboard ahead = Bitboards::ForwardRanksBB[c][rank_of(s)] & Bitboards::AdjacentFilesBB[file_of(s)];
+        if (!(enemyPawns & ahead)) {
+          mg[c] += 28;
+          eg[c] += 18;
+        }
+      }
+    }
+    Bitboard biOut = pos.pieces(c, BISHOP) & outpostMask;
+    while (biOut) {
+      Square s = pop_lsb(biOut);
+      if (Bitboards::PawnAttacks[~c][s] & ourPawns) {
+        Bitboard ahead = Bitboards::ForwardRanksBB[c][rank_of(s)] & Bitboards::AdjacentFilesBB[file_of(s)];
+        if (!(enemyPawns & ahead)) {
+          mg[c] += 18;
+          eg[c] += 10;
+        }
+      }
+    }
+
+    // Space: friendly pawns controlling advanced central squares
+    Bitboard spaceArea = (c == WHITE)
+        ? (rank_bb(RANK_2) | rank_bb(RANK_3) | rank_bb(RANK_4))
+        : (rank_bb(RANK_7) | rank_bb(RANK_6) | rank_bb(RANK_5));
+    spaceArea &= (file_bb(FILE_C) | file_bb(FILE_D) | file_bb(FILE_E) | file_bb(FILE_F));
+    mg[c] += 2 * popcount(ourPawns & spaceArea);
 
     // Rook on open/semi-open file
     Bitboard rooks = pos.pieces(c, ROOK);
@@ -265,11 +328,22 @@ Value evaluate(const Position& pos) {
     Bitboard shelterPawns = pos.pieces(c, PAWN) &
         Bitboards::ForwardRanksBB[c][rank_of(ksq)] & shelterMask;
     int shelter = popcount(shelterPawns);
-    mg[c] += 8 * std::min(3, shelter);
+    mg[c] += 10 * std::min(3, shelter);
     if ((kf <= FILE_C || kf >= FILE_G) && shelter == 0 && relative_rank(c, ksq) == RANK_1)
-      mg[c] -= 20;
+      mg[c] -= 28;
 
-    // King safety: weighted attackers (cheaper zone check)
+    // Pawn storm against enemy king (computed from our pawns toward their king)
+    Square eks = pos.king_square(~c);
+    File ekf = file_of(eks);
+    Bitboard stormFiles = file_bb(ekf) | Bitboards::AdjacentFilesBB[ekf];
+    Bitboard stormers = ourPawns & stormFiles & Bitboards::ForwardRanksBB[~c][rank_of(eks)];
+    while (stormers) {
+      Square s = pop_lsb(stormers);
+      int dist = std::abs(int(relative_rank(c, s)) - int(RANK_7));
+      mg[c] += std::max(0, 18 - 4 * dist);
+    }
+
+    // King safety: weighted attackers on king ring
     Bitboard zone = Bitboards::PseudoAttacks[KING][ksq] | square_bb(ksq);
     int attackUnits = 0;
     int attackerCount = 0;
@@ -293,8 +367,10 @@ Value evaluate(const Position& pos) {
       if (attacks_bb(QUEEN, s, occ) & zone) { attackUnits += 5; ++attackerCount; }
     }
     if (pawn_attacks_bb(~c, pos.pieces(~c, PAWN)) & zone) { attackUnits += 1; ++attackerCount; }
+    // Open files near king amplify danger
+    if (!(pos.pieces(PAWN) & file_bb(kf))) attackUnits += 2;
     if (attackerCount >= 2)
-      mg[c] -= attackUnits * attackUnits / 2;
+      mg[c] -= attackUnits * attackUnits / 2 + 4 * attackerCount;
 
     // Hanging non-pawns (attacked by enemy pawn/knight and undefended)
     Bitboard ours = pos.pieces(c, KNIGHT) | pos.pieces(c, BISHOP) | pos.pieces(c, ROOK) | pos.pieces(c, QUEEN);
@@ -317,15 +393,6 @@ Value evaluate(const Position& pos) {
     eg[c] -= 4 * dist;
   }
 
-  // phase: 0 = middlegame-ish material present, 24 = bare kings
-  int phase = phase_weight(pos);
-  int egw = phase;
-  int mgw = 24 - phase;
-  int score = ((mg[WHITE] - mg[BLACK]) * mgw + (eg[WHITE] - eg[BLACK]) * egw) / 24;
-
-  // Tempo + contempt to prefer decisive play over threefolds
-  score += 35;
-
   // Encourage castled king positions already via PST; discourage early king walks
   for (Color c : {WHITE, BLACK}) {
     Square ksq = pos.king_square(c);
@@ -333,7 +400,46 @@ Value evaluate(const Position& pos) {
       mg[c] -= 40 * (relative_rank(c, ksq) - RANK_2);
   }
 
+  // phase: 0 = middlegame-ish material present, 24 = bare kings
+  int phase = phase_weight(pos);
+  int egw = phase;
+  int mgw = 24 - phase;
+  int score = ((mg[WHITE] - mg[BLACK]) * mgw + (eg[WHITE] - eg[BLACK]) * egw) / 24;
+
+  // Opposite-colored bishops: more drawish in endgames
+  if (popcount(pos.pieces(BISHOP)) == 2 &&
+      popcount(pos.pieces(WHITE, BISHOP)) == 1 &&
+      popcount(pos.pieces(BLACK, BISHOP)) == 1) {
+    Bitboard wb = pos.pieces(WHITE, BISHOP);
+    Bitboard bb = pos.pieces(BLACK, BISHOP);
+    Square ws = lsb(wb), bs = lsb(bb);
+    if (((int(file_of(ws)) + int(rank_of(ws))) & 1) != ((int(file_of(bs)) + int(rank_of(bs))) & 1)) {
+      if (pos.non_pawn_material() <= 2 * 365)
+        score = score * 2 / 3;
+    }
+  }
+
+  // Tempo + contempt to prefer decisive play over threefolds
+  score += 28;
+
   return Value(pos.side_to_move() == WHITE ? score : -score);
+}
+
+Value evaluate(const Position& pos) {
+  // Classical is the strength default. NNUE only when ADITYA_USE_NNUE=1 and loaded.
+  static int use_nnue = -1;
+  if (use_nnue < 0) {
+    const char* e = std::getenv("ADITYA_USE_NNUE");
+    use_nnue = (e && e[0] == '1') ? 1 : 0;
+  }
+  if (use_nnue && nnue_ready()) {
+    Value net = nnue().evaluate(pos);
+    if (net != VALUE_NONE) {
+      Value classical = classical_evaluate(pos);
+      return Value((int(classical) * 2 + int(net)) / 3);
+    }
+  }
+  return classical_evaluate(pos);
 }
 
 } // namespace ah

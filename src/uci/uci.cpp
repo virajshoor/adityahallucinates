@@ -3,10 +3,12 @@
 #include "board/bitboard.hpp"
 #include "board/zobrist.hpp"
 #include "movegen/magics.hpp"
+#include "nnue/nnue.hpp"
+#include "eval/eval.hpp"
 #include <iostream>
 #include <sstream>
-#include <thread>
 #include <string>
+#include <cstdlib>
 
 namespace ah {
 
@@ -38,10 +40,8 @@ Move parse_move(const Position& pos, const std::string& token) {
       }
     }
   }
-  // Also try constructing castling / ep
   Move cand(from, to, mt, promo);
   if (pos.is_legal(cand)) return cand;
-  // Castling UCI uses king to king-dest
   Move castle(from, to, CASTLING);
   if (pos.is_legal(castle)) return castle;
   Move ep(from, to, EN_PASSANT);
@@ -53,6 +53,13 @@ void uci_loop() {
   Bitboards::init();
   Zobrist::init();
   Magics::init();
+
+  // NNUE is opt-in via EvalFile for now (bootstrap nets are weaker/slower than classical)
+  // Auto-load only if ADITYA_NNUE is set.
+  if (const char* env = std::getenv("ADITYA_NNUE")) {
+    if (load_nnue(env))
+      std::cerr << "info string loaded NNUE " << env << std::endl;
+  }
 
   Position pos;
   StateInfo states[1024];
@@ -74,6 +81,7 @@ void uci_loop() {
       std::cout << "id author Viraj Shoor\n";
       std::cout << "option name Hash type spin default 128 min 1 max 65536\n";
       std::cout << "option name Threads type spin default 1 min 1 max 1\n";
+      std::cout << "option name EvalFile type string default nets/default.nnue\n";
       std::cout << "uciok" << std::endl;
     } else if (token == "isready") {
       std::cout << "readyok" << std::endl;
@@ -83,17 +91,28 @@ void uci_loop() {
       pos.set_startpos(states[0]);
     } else if (token == "setoption") {
       std::string name, value, tmp;
-      is >> tmp; // name
+      is >> tmp;
       is >> name;
       while (is >> tmp && tmp != "value") name += " " + tmp;
-      is >> value;
+      if (!(is >> value)) value.clear();
+      // read rest of line as value if needed
+      std::string rest;
+      std::getline(is, rest);
+      if (!rest.empty()) value += rest;
+      while (!value.empty() && value[0] == ' ') value.erase(0, 1);
       if (name == "Hash") search.set_hash(std::stoul(value));
+      else if (name == "EvalFile") {
+        if (load_nnue(value))
+          std::cout << "info string loaded NNUE " << value << std::endl;
+        else
+          std::cout << "info string failed to load NNUE " << value << std::endl;
+      }
     } else if (token == "position") {
       is >> token;
       stateIdx = 0;
       if (token == "startpos") {
         pos.set_startpos(states[0]);
-        is >> token; // maybe "moves"
+        is >> token;
       } else if (token == "fen") {
         std::string fen, part;
         while (is >> part && part != "moves") {
@@ -122,7 +141,7 @@ void uci_loop() {
         else if (token == "binc") is >> limits.binc;
         else if (token == "movestogo") is >> limits.movestogo;
         else if (token == "infinite") limits.infinite = true;
-        else if (token == "nodes") { /* ignore */ int n; is >> n; }
+        else if (token == "nodes") { int n; is >> n; }
         else if (token == "searchmoves") {
           std::string sm;
           while (is >> sm) {
@@ -144,8 +163,8 @@ void uci_loop() {
     } else if (token == "d") {
       std::cout << pos.fen() << std::endl;
     } else if (token == "eval") {
-      extern Value evaluate(const Position&);
-      // include already via search
+      std::cout << "info string eval " << evaluate(pos)
+                << (nnue_ready() ? " nnue" : " classical") << std::endl;
     }
   }
 }

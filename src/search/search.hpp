@@ -30,8 +30,10 @@ public:
     Move* pv = nullptr;
     Move killers[2] = {};
     Move current = MOVE_NONE;
+    Move excluded = MOVE_NONE;
     int ply = 0;
     int staticEval = VALUE_NONE;
+    int moveCount = 0;
   };
 
   Search();
@@ -56,6 +58,8 @@ private:
   static constexpr int MAX_PV = MAX_PLY + 1;
   Move pv_table[MAX_PLY + 1][MAX_PV]{};
   int history[COLOR_NB][64][64]{};
+  int captureHistory[PIECE_NB][64][PIECE_TYPE_NB]{};
+  Move countermove[PIECE_NB][64]{};
 
   Move bestRootMove = MOVE_NONE;
   int64_t startTime = 0;

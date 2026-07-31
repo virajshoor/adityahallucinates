@@ -22,6 +22,7 @@ set(ENGINE_SOURCES
   src/search/tt.cpp
   src/search/search.cpp
   src/search/book.cpp
+  src/nnue/nnue.cpp
   src/uci/uci.cpp
 )
 
