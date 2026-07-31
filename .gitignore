@@ -38,3 +38,13 @@ results/*.csv
 .vscode/
 .idea/
 .DS_Store
+
+# Vendored engines (download via scripts/fetch_stockfish.sh)
+third_party/stockfish/
+third_party/*.tar
+third_party/*.tar.gz
+third_party/*.zip
+
+# Training data (large)
+tools/datagen/output/
+*.bin

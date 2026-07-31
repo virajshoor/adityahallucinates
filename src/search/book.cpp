@@ -1,0 +1,187 @@
+#include "search/book.hpp"
+#include "movegen/movegen.hpp"
+#include <random>
+#include <string>
+#include <vector>
+
+namespace ah {
+
+namespace {
+
+struct BookEntry {
+  const char* fen;
+  const char* uci;
+  int weight;
+};
+
+// Weighted mainline book (piece placement + side to move)
+const BookEntry kBook[] = {
+  // Start — prefer classical central opens
+  {"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w", "e2e4", 55},
+  {"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w", "d2d4", 40},
+  {"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w", "g1f3", 8},
+  {"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w", "c2c4", 5},
+
+  // After 1.e4
+  {"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b", "e7e5", 40},
+  {"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b", "c7c5", 35},
+  {"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b", "e7e6", 12},
+  {"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b", "c7c6", 12},
+  {"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b", "d7d6", 5},
+  {"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b", "g8f6", 5},
+
+  // After 1.d4
+  {"rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b", "d7d5", 42},
+  {"rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b", "g8f6", 40},
+  {"rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b", "e7e6", 8},
+  {"rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b", "f7f5", 3},
+
+  // 1.e4 e5
+  {"rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w", "g1f3", 70},
+  {"rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w", "b1c3", 15},
+  {"rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w", "f1c4", 10},
+
+  // 1.e4 e5 2.Nf3
+  {"rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b", "b8c6", 55},
+  {"rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b", "g8f6", 30},
+  {"rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b", "d7d6", 10},
+
+  // 1.e4 e5 2.Nf3 Nc6
+  {"r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w", "f1b5", 40},
+  {"r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w", "f1c4", 35},
+  {"r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w", "d2d4", 20},
+
+  // Ruy Lopez: 1.e4 e5 2.Nf3 Nc6 3.Bb5
+  {"r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b", "a7a6", 50},
+  {"r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b", "g8f6", 30},
+  {"r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b", "f8c5", 10},
+  {"r1bqkbnr/1ppp1ppp/p1n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w", "b5a4", 70},
+  {"r1bqkbnr/1ppp1ppp/p1n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w", "b5c6", 20},
+
+  // Italian: 1.e4 e5 2.Nf3 Nc6 3.Bc4
+  {"r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b", "g8f6", 45},
+  {"r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b", "f8c5", 40},
+  {"r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w", "d2d3", 40},
+  {"r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w", "b1c3", 25},
+  {"r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w", "d2d4", 20},
+  {"r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w", "c2c3", 45},
+  {"r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w", "d2d3", 30},
+  {"r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w", "b1c3", 15},
+
+  // Scotch: 1.e4 e5 2.Nf3 Nc6 3.d4
+  {"r1bqkbnr/pppp1ppp/2n5/4p3/3PP3/5N2/PPP2PPP/RNBQKB1R b", "e5d4", 80},
+  {"r1bqkbnr/pppp1ppp/2n5/8/3pP3/5N2/PPP2PPP/RNBQKB1R w", "f3d4", 80},
+
+  // Petroff: 1.e4 e5 2.Nf3 Nf6
+  {"rnbqkb1r/pppp1ppp/5n2/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w", "f3e5", 45},
+  {"rnbqkb1r/pppp1ppp/5n2/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w", "d2d4", 30},
+  {"rnbqkb1r/pppp1ppp/5n2/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w", "b1c3", 15},
+
+  // Sicilian: 1.e4 c5
+  {"rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w", "g1f3", 65},
+  {"rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w", "b1c3", 15},
+  {"rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w", "c2c3", 12},
+  {"rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b", "d7d6", 35},
+  {"rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b", "b8c6", 35},
+  {"rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b", "e7e6", 25},
+  {"rnbqkbnr/pp2pppp/3p4/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R w", "d2d4", 75},
+  {"r1bqkbnr/pp1ppppp/2n5/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R w", "d2d4", 70},
+  {"rnbqkbnr/pp1p1ppp/4p3/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R w", "d2d4", 70},
+
+  // French: 1.e4 e6
+  {"rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w", "d2d4", 75},
+  {"rnbqkbnr/pppp1ppp/4p3/8/3PP3/8/PPP2PPP/RNBQKBNR b", "d7d5", 85},
+  {"rnbqkbnr/ppp2ppp/4p3/3p4/3PP3/8/PPP2PPP/RNBQKBNR w", "b1c3", 40},
+  {"rnbqkbnr/ppp2ppp/4p3/3p4/3PP3/8/PPP2PPP/RNBQKBNR w", "e4e5", 35},
+  {"rnbqkbnr/ppp2ppp/4p3/3p4/3PP3/8/PPP2PPP/RNBQKBNR w", "e4d5", 15},
+
+  // Caro-Kann: 1.e4 c6
+  {"rnbqkbnr/pp1ppppp/2p5/8/4P3/8/PPPP1PPP/RNBQKBNR w", "d2d4", 75},
+  {"rnbqkbnr/pp1ppppp/2p5/8/3PP3/8/PPP2PPP/RNBQKBNR b", "d7d5", 85},
+  {"rnbqkbnr/pp2pppp/2p5/3p4/3PP3/8/PPP2PPP/RNBQKBNR w", "b1c3", 40},
+  {"rnbqkbnr/pp2pppp/2p5/3p4/3PP3/8/PPP2PPP/RNBQKBNR w", "e4d5", 35},
+  {"rnbqkbnr/pp2pppp/2p5/3p4/3PP3/8/PPP2PPP/RNBQKBNR w", "e4e5", 15},
+
+  // 1.d4 d5
+  {"rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBQKBNR w", "c2c4", 50},
+  {"rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBQKBNR w", "g1f3", 30},
+  {"rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBQKBNR w", "c1f4", 12},
+  {"rnbqkbnr/ppp1pppp/8/3p4/2PP4/8/PP2PPPP/RNBQKBNR b", "e7e6", 35},
+  {"rnbqkbnr/ppp1pppp/8/3p4/2PP4/8/PP2PPPP/RNBQKBNR b", "c7c6", 35},
+  {"rnbqkbnr/ppp1pppp/8/3p4/2PP4/8/PP2PPPP/RNBQKBNR b", "d5c4", 20},
+  {"rnbqkbnr/ppp2ppp/4p3/3p4/2PP4/8/PP2PPPP/RNBQKBNR w", "b1c3", 50},
+  {"rnbqkbnr/ppp2ppp/4p3/3p4/2PP4/8/PP2PPPP/RNBQKBNR w", "g1f3", 30},
+  {"rnbqkbnr/pp2pppp/2p5/3p4/2PP4/8/PP2PPPP/RNBQKBNR w", "b1c3", 40},
+  {"rnbqkbnr/pp2pppp/2p5/3p4/2PP4/8/PP2PPPP/RNBQKBNR w", "g1f3", 35},
+  {"rnbqkbnr/pp2pppp/2p5/3p4/2PP4/8/PP2PPPP/RNBQKBNR w", "c4d5", 15},
+
+  // 1.d4 Nf6
+  {"rnbqkb1r/pppppppp/5n2/8/3P4/8/PPP1PPPP/RNBQKBNR w", "c2c4", 50},
+  {"rnbqkb1r/pppppppp/5n2/8/3P4/8/PPP1PPPP/RNBQKBNR w", "g1f3", 30},
+  {"rnbqkb1r/pppppppp/5n2/8/3P4/8/PPP1PPPP/RNBQKBNR w", "c1g5", 10},
+  {"rnbqkb1r/pppppppp/5n2/8/2PP4/8/PP2PPPP/RNBQKBNR b", "e7e6", 35},
+  {"rnbqkb1r/pppppppp/5n2/8/2PP4/8/PP2PPPP/RNBQKBNR b", "g7g6", 30},
+  {"rnbqkb1r/pppppppp/5n2/8/2PP4/8/PP2PPPP/RNBQKBNR b", "c7c5", 15},
+  {"rnbqkb1r/pppppppp/5n2/8/2PP4/8/PP2PPPP/RNBQKBNR b", "e7e5", 8},
+  {"rnbqkb1r/pppp1ppp/4pn2/8/2PP4/8/PP2PPPP/RNBQKBNR w", "b1c3", 50},
+  {"rnbqkb1r/pppp1ppp/4pn2/8/2PP4/8/PP2PPPP/RNBQKBNR w", "g1f3", 30},
+  {"rnbqkb1r/pppppp1p/5np1/8/2PP4/8/PP2PPPP/RNBQKBNR w", "b1c3", 45},
+  {"rnbqkb1r/pppppp1p/5np1/8/2PP4/8/PP2PPPP/RNBQKBNR w", "g1f3", 30},
+
+  // 1.Nf3
+  {"rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b", "d7d5", 35},
+  {"rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b", "g8f6", 35},
+  {"rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b", "c7c5", 15},
+
+  // 1.c4
+  {"rnbqkbnr/pppppppp/8/8/2P5/8/PP1PPPPP/RNBQKBNR b", "e7e5", 35},
+  {"rnbqkbnr/pppppppp/8/8/2P5/8/PP1PPPPP/RNBQKBNR b", "g8f6", 30},
+  {"rnbqkbnr/pppppppp/8/8/2P5/8/PP1PPPPP/RNBQKBNR b", "c7c5", 15},
+  {"rnbqkbnr/pppppppp/8/8/2P5/8/PP1PPPPP/RNBQKBNR b", "e7e6", 15},
+};
+
+std::string book_key(const Position& pos) {
+  std::string f = pos.fen();
+  auto sp1 = f.find(' ');
+  if (sp1 == std::string::npos) return f;
+  auto sp2 = f.find(' ', sp1 + 1);
+  if (sp2 == std::string::npos) return f;
+  return f.substr(0, sp2);
+}
+
+Move parse_uci_legal(const Position& pos, const std::string& u) {
+  MoveListWrapper list(pos);
+  for (const auto& em : list) {
+    if (move_to_uci(em.move) == u) return em.move;
+  }
+  return MOVE_NONE;
+}
+
+} // namespace
+
+Move probe_book(const Position& pos) {
+  if (pos.game_ply() > 12) return MOVE_NONE;
+  std::string key = book_key(pos);
+  std::vector<std::pair<Move, int>> choices;
+  int total = 0;
+  for (const auto& e : kBook) {
+    if (key == e.fen) {
+      Move m = parse_uci_legal(pos, e.uci);
+      if (m) {
+        choices.push_back({m, e.weight});
+        total += e.weight;
+      }
+    }
+  }
+  if (choices.empty() || total <= 0) return MOVE_NONE;
+  static thread_local std::mt19937 rng{std::random_device{}()};
+  std::uniform_int_distribution<int> dist(1, total);
+  int r = dist(rng);
+  for (auto& [m, w] : choices) {
+    r -= w;
+    if (r <= 0) return m;
+  }
+  return choices.back().first;
+}
+
+} // namespace ah
