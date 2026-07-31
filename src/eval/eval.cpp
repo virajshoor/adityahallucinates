@@ -386,32 +386,32 @@ Value classical_evaluate(const Position& pos) {
     if (attackerCount >= 2)
       mg[c] -= attackUnits * attackUnits / 3 + 3 * attackerCount;
 
-    // Hanging / under-defended pieces (pawns + knights + sliding approx)
-    Bitboard ours = pos.pieces(c, KNIGHT) | pos.pieces(c, BISHOP) | pos.pieces(c, ROOK) | pos.pieces(c, QUEEN);
-    Bitboard atk = pawn_attacks_bb(~c, pos.pieces(~c, PAWN));
-    Bitboard enemyKn = pos.pieces(~c, KNIGHT);
-    while (enemyKn) atk |= Bitboards::PseudoAttacks[KNIGHT][pop_lsb(enemyKn)];
-    Bitboard enemyBi = pos.pieces(~c, BISHOP) | pos.pieces(~c, QUEEN);
-    while (enemyBi) {
-      Square s = pop_lsb(enemyBi);
-      atk |= attacks_bb(BISHOP, s, occ);
-    }
-    Bitboard enemyRo = pos.pieces(~c, ROOK) | pos.pieces(~c, QUEEN);
-    while (enemyRo) {
-      Square s = pop_lsb(enemyRo);
-      atk |= attacks_bb(ROOK, s, occ);
-    }
-    Bitboard hang = ours & atk;
-    while (hang) {
-      Square s = pop_lsb(hang);
-      PieceType pt = type_of(pos.piece_on(s));
-      bool byPawn = pawn_attacks_bb(~c, pos.pieces(~c, PAWN)) & square_bb(s);
-      if (!pos.attackers_to(s, c)) {
-        int pen = PieceValueMg[pt] / 5;
-        mg[c] -= pen;
-        eg[c] -= pen / 2;
-      } else if (byPawn) {
-        mg[c] -= PieceValueMg[pt] / 12;
+    // Threats: opponent captures of our pieces that pass SEE (wins material / exchange)
+    Bitboard ours = pos.pieces(c, PAWN) | pos.pieces(c, KNIGHT) | pos.pieces(c, BISHOP)
+                  | pos.pieces(c, ROOK) | pos.pieces(c, QUEEN);
+    Bitboard opp = pos.pieces(~c) & ~pos.pieces(~c, KING);
+    while (opp) {
+      Square from = pop_lsb(opp);
+      PieceType apt = type_of(pos.piece_on(from));
+      Bitboard targets;
+      if (apt == PAWN) targets = Bitboards::PawnAttacks[~c][from] & ours;
+      else if (apt == KNIGHT) targets = Bitboards::PseudoAttacks[KNIGHT][from] & ours;
+      else if (apt == BISHOP) targets = attacks_bb(BISHOP, from, occ) & ours;
+      else if (apt == ROOK) targets = attacks_bb(ROOK, from, occ) & ours;
+      else if (apt == QUEEN) targets = attacks_bb(QUEEN, from, occ) & ours;
+      else continue;
+      while (targets) {
+        Square to = pop_lsb(targets);
+        PieceType vpt = type_of(pos.piece_on(to));
+        // Only flag when capturing equal/higher value (cheap filter before SEE)
+        if (PieceValueMg[vpt] < PieceValueMg[apt]) continue;
+        Move threat(from, to);
+        if (pos.see_ge(threat, 0)) {
+          int pen = (PieceValueMg[vpt] - PieceValueMg[apt] / 2) / 2;
+          pen = std::clamp(pen, 20, 180);
+          mg[c] -= pen;
+          eg[c] -= pen * 2 / 3;
+        }
       }
     }
 

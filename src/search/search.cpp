@@ -247,8 +247,31 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
       return nullScore >= VALUE_MATE_IN_MAX_PLY ? beta : nullScore;
   }
 
+  // Conservative ProbCut: shallow search verifies a big fail-high before cutting
+  if (!pvNode && !inCheck && depth >= 5 && depth < 10 &&
+      std::abs(int(beta)) < VALUE_MATE_IN_MAX_PLY && eval >= beta + 180) {
+    Value rbeta = std::min(beta + 180, VALUE_MATE_IN_MAX_PLY - 1);
+    Depth rdepth = depth - 4;
+    ExtMove pcm[MAX_MOVES];
+    ExtMove* pend = generate<CAPTURES>(pos, pcm);
+    ExtMove* n = pcm;
+    for (ExtMove* m = pcm; m != pend; ++m)
+      if (pos.is_legal(m->move) && pos.see_ge(m->move, 100)) *n++ = *m;
+    order_moves(pos, pcm, n, ttMove, ss);
+    StateInfo pst;
+    int pcCount = 0;
+    for (ExtMove* em = pcm; em != n && pcCount < 3; ++em) {
+      ++pcCount;
+      pos.do_move(em->move, pst);
+      Value sc = -search_node(pos, ss + 1, -rbeta, -rbeta + 1, rdepth, !cutNode);
+      pos.undo_move(em->move);
+      if (info.stop) return alpha;
+      if (sc >= rbeta) return sc;
+    }
+  }
+
   // Internal iterative reduction
-  if (!ttMove && depth >= 6 && pvNode)
+  if (!ttMove && depth >= 6)
     depth -= 1;
 
   ExtMove moves[MAX_MOVES];
