@@ -1,6 +1,7 @@
 #include "search/search.hpp"
 #include "eval/eval.hpp"
 #include "movegen/movegen.hpp"
+#include "search/book.hpp"
 #include <chrono>
 #include <algorithm>
 #include <iostream>
@@ -330,6 +331,15 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
   info.seldepth = 0;
   tt.new_search();
   bestRootMove = MOVE_NONE;
+
+  // Opening book for short time controls / early plies
+  if (!limits.infinite && pos.game_ply() <= 8) {
+    Move bookMove = probe_book(pos);
+    if (bookMove) {
+      std::cout << "info string book " << move_to_uci(bookMove) << std::endl;
+      return bookMove;
+    }
+  }
 
   startTime = now_ms();
   allocatedTime = 0;

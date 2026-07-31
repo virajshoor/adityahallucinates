@@ -1,11 +1,11 @@
 {
-  "label": "skill4",
-  "movetime": 0.25,
+  "label": "elo1600",
+  "movetime": 0.2,
   "points": 8.0,
-  "games": 16,
-  "score": 0.5,
+  "games": 10,
+  "score": 0.8,
   "target": 0.75,
-  "passed": false,
+  "passed": true,
   "game_results": [
     {
       "game": 1,
@@ -17,16 +17,16 @@
     {
       "game": 2,
       "aditya_white": false,
-      "score": 0.0,
+      "score": 1.0,
       "termination": "CHECKMATE",
-      "result": "1-0"
+      "result": "0-1"
     },
     {
       "game": 3,
       "aditya_white": true,
-      "score": 0.5,
-      "termination": "THREEFOLD_REPETITION",
-      "result": "1/2-1/2"
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
     },
     {
       "game": 4,
@@ -59,16 +59,16 @@
     {
       "game": 8,
       "aditya_white": false,
-      "score": 0.0,
+      "score": 1.0,
       "termination": "CHECKMATE",
-      "result": "1-0"
+      "result": "0-1"
     },
     {
       "game": 9,
       "aditya_white": true,
-      "score": 0.5,
-      "termination": "THREEFOLD_REPETITION",
-      "result": "1/2-1/2"
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
     },
     {
       "game": 10,
@@ -76,48 +76,6 @@
       "score": 1.0,
       "termination": "CHECKMATE",
       "result": "0-1"
-    },
-    {
-      "game": 11,
-      "aditya_white": true,
-      "score": 1.0,
-      "termination": "CHECKMATE",
-      "result": "1-0"
-    },
-    {
-      "game": 12,
-      "aditya_white": false,
-      "score": 1.0,
-      "termination": "CHECKMATE",
-      "result": "0-1"
-    },
-    {
-      "game": 13,
-      "aditya_white": true,
-      "score": 0.0,
-      "termination": "CHECKMATE",
-      "result": "0-1"
-    },
-    {
-      "game": 14,
-      "aditya_white": false,
-      "score": 0.5,
-      "termination": "THREEFOLD_REPETITION",
-      "result": "1/2-1/2"
-    },
-    {
-      "game": 15,
-      "aditya_white": true,
-      "score": 0.0,
-      "termination": "CHECKMATE",
-      "result": "0-1"
-    },
-    {
-      "game": 16,
-      "aditya_white": false,
-      "score": 0.5,
-      "termination": "THREEFOLD_REPETITION",
-      "result": "1/2-1/2"
     }
   ]
 }

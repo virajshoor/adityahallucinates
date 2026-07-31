@@ -257,25 +257,17 @@ Value evaluate(const Position& pos) {
 
     // Castling rights / king shelter
     Square ksq = pos.king_square(c);
-    bool canOO = pos.can_castle(c == WHITE ? WHITE_OO : BLACK_OO);
-    bool canOOO = pos.can_castle(c == WHITE ? WHITE_OOO : BLACK_OOO);
-    if (canOO) mg[c] += 18;
-    if (canOOO) mg[c] += 8; // prefer kingside options
+    if (pos.can_castle(c == WHITE ? WHITE_OO : BLACK_OO)) mg[c] += 20;
+    if (pos.can_castle(c == WHITE ? WHITE_OOO : BLACK_OOO)) mg[c] += 10;
 
-    // Pawn shelter in front of king (files around king)
     File kf = file_of(ksq);
-    Bitboard shelterMask = file_bb(kf);
-    if (kf > FILE_A) shelterMask |= file_bb(File(kf - 1));
-    if (kf < FILE_H) shelterMask |= file_bb(File(kf + 1));
+    Bitboard shelterMask = file_bb(kf) | Bitboards::AdjacentFilesBB[kf];
     Bitboard shelterPawns = pos.pieces(c, PAWN) &
         Bitboards::ForwardRanksBB[c][rank_of(ksq)] & shelterMask;
     int shelter = popcount(shelterPawns);
-    mg[c] += 10 * std::min(3, shelter);
-    // Exposed king after castling queenside / open files
-    if (kf <= FILE_C || kf >= FILE_G) {
-      if (shelter == 0) mg[c] -= 35;
-      else if (shelter == 1) mg[c] -= 12;
-    }
+    mg[c] += 8 * std::min(3, shelter);
+    if ((kf <= FILE_C || kf >= FILE_G) && shelter == 0 && relative_rank(c, ksq) == RANK_1)
+      mg[c] -= 20;
 
     // King safety: weighted attackers
     Bitboard zone = Bitboards::PseudoAttacks[KING][ksq] | square_bb(ksq);

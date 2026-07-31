@@ -18,53 +18,51 @@ STOCKFISH = ROOT / "third_party" / "stockfish" / "stockfish-ubuntu-x86-64-avx2"
 RESULTS = ROOT / "results"
 
 
-def play_game(aditya_white: bool, movetime: float, skill: int, elo: int, hash_mb: int):
-    aditya = chess.engine.SimpleEngine.popen_uci(str(ADITYA))
-    sf = chess.engine.SimpleEngine.popen_uci(str(STOCKFISH))
+def newgame(engine: chess.engine.SimpleEngine) -> None:
     try:
-        aditya.configure({"Hash": hash_mb})
-        sf.configure({"Hash": hash_mb, "Threads": 1})
-        if elo > 0:
-            sf.configure({"UCI_LimitStrength": True, "UCI_Elo": elo})
-        else:
-            sf.configure({"Skill Level": skill})
+        engine.protocol.send_line("ucinewgame")
+        engine.ping()
+    except Exception:
+        pass
 
-        board = chess.Board()
-        game = chess.pgn.Game()
-        game.headers["White"] = "Aditya" if aditya_white else "Stockfish"
-        game.headers["Black"] = "Stockfish" if aditya_white else "Aditya"
-        game.headers["Date"] = datetime.now(timezone.utc).strftime("%Y.%m.%d")
-        node = game
-        limit = chess.engine.Limit(time=movetime)
 
-        while not board.is_game_over(claim_draw=True):
-            engine = aditya if ((board.turn == chess.WHITE) == aditya_white) else sf
-            result = engine.play(board, limit)
-            if result.move is None:
-                break
-            board.push(result.move)
-            node = node.add_variation(result.move)
+def play_game(aditya, sf, aditya_white: bool, movetime: float):
+    newgame(aditya)
+    newgame(sf)
 
-        outcome = board.outcome(claim_draw=True)
-        if outcome is None:
-            return 0.5, game, "unfinished"
-        if outcome.winner is None:
-            score_white = 0.5
-            term = outcome.termination.name
-        elif outcome.winner == chess.WHITE:
-            score_white = 1.0
-            term = outcome.termination.name
-        else:
-            score_white = 0.0
-            term = outcome.termination.name
+    board = chess.Board()
+    game = chess.pgn.Game()
+    game.headers["White"] = "Aditya" if aditya_white else "Stockfish"
+    game.headers["Black"] = "Stockfish" if aditya_white else "Aditya"
+    game.headers["Date"] = datetime.now(timezone.utc).strftime("%Y.%m.%d")
+    node = game
+    limit = chess.engine.Limit(time=movetime)
 
-        aditya_score = score_white if aditya_white else (1.0 - score_white)
-        game.headers["Result"] = board.result(claim_draw=True)
-        game.headers["Termination"] = term
-        return aditya_score, game, term
-    finally:
-        aditya.quit()
-        sf.quit()
+    while not board.is_game_over(claim_draw=True):
+        engine = aditya if ((board.turn == chess.WHITE) == aditya_white) else sf
+        result = engine.play(board, limit)
+        if result.move is None:
+            break
+        board.push(result.move)
+        node = node.add_variation(result.move)
+
+    outcome = board.outcome(claim_draw=True)
+    if outcome is None:
+        return 0.5, game, "unfinished"
+    if outcome.winner is None:
+        score_white = 0.5
+        term = outcome.termination.name
+    elif outcome.winner == chess.WHITE:
+        score_white = 1.0
+        term = outcome.termination.name
+    else:
+        score_white = 0.0
+        term = outcome.termination.name
+
+    aditya_score = score_white if aditya_white else (1.0 - score_white)
+    game.headers["Result"] = board.result(claim_draw=True)
+    game.headers["Termination"] = term
+    return aditya_score, game, term
 
 
 def main() -> int:
@@ -84,50 +82,63 @@ def main() -> int:
 
     RESULTS.mkdir(exist_ok=True)
     label = f"elo{args.elo}" if args.elo > 0 else f"skill{args.skill}"
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    games_path = RESULTS / f"match_{label}_{stamp}.pgn"
+
+    aditya = chess.engine.SimpleEngine.popen_uci(str(ADITYA))
+    sf = chess.engine.SimpleEngine.popen_uci(str(STOCKFISH))
     game_results = []
     scores = []
 
-    with games_path.open("w", encoding="utf-8") as pgn_out:
-        for i in range(args.games):
-            aditya_white = (i % 2 == 0)
-            score, game, term = play_game(
-                aditya_white, args.movetime, args.skill, args.elo, args.hash
-            )
-            scores.append(score)
-            row = {
-                "game": i + 1,
-                "aditya_white": aditya_white,
-                "score": score,
-                "termination": term,
-                "result": game.headers.get("Result"),
-            }
-            game_results.append(row)
-            print(game, file=pgn_out, end="\n\n")
-            avg = sum(scores) / len(scores)
-            print(
-                f"game {i+1}/{args.games}: aditya={'W' if aditya_white else 'B'} "
-                f"score={score} term={term} running={avg:.3f}",
-                flush=True,
-            )
+    try:
+        aditya.configure({"Hash": args.hash})
+        sf.configure({"Hash": args.hash, "Threads": 1})
+        if args.elo > 0:
+            sf.configure({"UCI_LimitStrength": True, "UCI_Elo": args.elo})
+        else:
+            sf.configure({"Skill Level": args.skill})
 
-    avg = sum(scores) / len(scores)
-    summary = {
-        "label": label,
-        "movetime": args.movetime,
-        "points": sum(scores),
-        "games": len(scores),
-        "score": avg,
-        "target": args.target,
-        "passed": avg >= args.target,
-        "game_results": game_results,
-    }
-    out_json = RESULTS / f"summary_{label}.json"
-    out_json.write_text(json.dumps(summary, indent=2), encoding="utf-8")
-    print(json.dumps(summary, indent=2))
-    print(f"PGN: {games_path}")
-    return 0 if summary["passed"] else 2
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        games_path = RESULTS / f"match_{label}_{stamp}.pgn"
+
+        with games_path.open("w", encoding="utf-8") as pgn_out:
+            for i in range(args.games):
+                aditya_white = (i % 2 == 0)
+                score, game, term = play_game(aditya, sf, aditya_white, args.movetime)
+                scores.append(score)
+                row = {
+                    "game": i + 1,
+                    "aditya_white": aditya_white,
+                    "score": score,
+                    "termination": term,
+                    "result": game.headers.get("Result"),
+                }
+                game_results.append(row)
+                print(game, file=pgn_out, end="\n\n")
+                avg = sum(scores) / len(scores)
+                print(
+                    f"game {i+1}/{args.games}: aditya={'W' if aditya_white else 'B'} "
+                    f"score={score} term={term} running={avg:.3f}",
+                    flush=True,
+                )
+
+        avg = sum(scores) / len(scores)
+        summary = {
+            "label": label,
+            "movetime": args.movetime,
+            "points": sum(scores),
+            "games": len(scores),
+            "score": avg,
+            "target": args.target,
+            "passed": avg >= args.target,
+            "game_results": game_results,
+        }
+        out_json = RESULTS / f"summary_{label}.json"
+        out_json.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+        print(json.dumps(summary, indent=2))
+        print(f"PGN: {games_path}")
+        return 0 if summary["passed"] else 2
+    finally:
+        aditya.quit()
+        sf.quit()
 
 
 if __name__ == "__main__":

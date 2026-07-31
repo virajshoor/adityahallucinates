@@ -21,6 +21,7 @@ set(ENGINE_SOURCES
   src/eval/eval.cpp
   src/search/tt.cpp
   src/search/search.cpp
+  src/search/book.cpp
   src/uci/uci.cpp
 )
 
