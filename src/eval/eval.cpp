@@ -269,49 +269,49 @@ Value evaluate(const Position& pos) {
     if ((kf <= FILE_C || kf >= FILE_G) && shelter == 0 && relative_rank(c, ksq) == RANK_1)
       mg[c] -= 20;
 
-    // King safety: weighted attackers
+    // King safety: weighted attackers (cheaper zone check)
     Bitboard zone = Bitboards::PseudoAttacks[KING][ksq] | square_bb(ksq);
     int attackUnits = 0;
     int attackerCount = 0;
-    auto add_attacks = [&](PieceType pt, int weight) {
-      Bitboard bb = pos.pieces(~c, pt);
-      while (bb) {
-        Square s = pop_lsb(bb);
-        Bitboard atk = (pt == PAWN) ? Bitboards::PawnAttacks[~c][s]
-                     : (pt == KNIGHT || pt == KING) ? Bitboards::PseudoAttacks[pt][s]
-                     : attacks_bb(pt, s, pos.pieces());
-        if (atk & zone) {
-          attackUnits += weight;
-          ++attackerCount;
-        }
-      }
-    };
-    add_attacks(PAWN, 1);
-    add_attacks(KNIGHT, 2);
-    add_attacks(BISHOP, 2);
-    add_attacks(ROOK, 3);
-    add_attacks(QUEEN, 5);
+    Bitboard knA = pos.pieces(~c, KNIGHT);
+    while (knA) {
+      if (Bitboards::PseudoAttacks[KNIGHT][pop_lsb(knA)] & zone) { attackUnits += 2; ++attackerCount; }
+    }
+    Bitboard biA = pos.pieces(~c, BISHOP);
+    while (biA) {
+      Square s = pop_lsb(biA);
+      if (attacks_bb(BISHOP, s, occ) & zone) { attackUnits += 2; ++attackerCount; }
+    }
+    Bitboard roA = pos.pieces(~c, ROOK);
+    while (roA) {
+      Square s = pop_lsb(roA);
+      if (attacks_bb(ROOK, s, occ) & zone) { attackUnits += 3; ++attackerCount; }
+    }
+    Bitboard quA = pos.pieces(~c, QUEEN);
+    while (quA) {
+      Square s = pop_lsb(quA);
+      if (attacks_bb(QUEEN, s, occ) & zone) { attackUnits += 5; ++attackerCount; }
+    }
+    if (pawn_attacks_bb(~c, pos.pieces(~c, PAWN)) & zone) { attackUnits += 1; ++attackerCount; }
     if (attackerCount >= 2)
-      mg[c] -= attackUnits * attackUnits;
+      mg[c] -= attackUnits * attackUnits / 2;
 
-    // Hanging pieces (undefended and attacked) — sample non-pawns only, cheap check
+    // Hanging non-pawns (attacked by enemy pawn/knight and undefended)
     Bitboard ours = pos.pieces(c, KNIGHT) | pos.pieces(c, BISHOP) | pos.pieces(c, ROOK) | pos.pieces(c, QUEEN);
-    Bitboard attacked = 0;
-    // rough: enemy pawn attacks + knight attacks as proxy for speed
-    attacked |= pawn_attacks_bb(~c, pos.pieces(~c, PAWN));
-    Bitboard ek = pos.pieces(~c, KNIGHT);
-    while (ek) attacked |= Bitboards::PseudoAttacks[KNIGHT][pop_lsb(ek)];
-    Bitboard hang = ours & attacked;
+    Bitboard atk = pawn_attacks_bb(~c, pos.pieces(~c, PAWN));
+    Bitboard enemyKn = pos.pieces(~c, KNIGHT);
+    while (enemyKn) atk |= Bitboards::PseudoAttacks[KNIGHT][pop_lsb(enemyKn)];
+    Bitboard hang = ours & atk;
     while (hang) {
       Square s = pop_lsb(hang);
-      if (!(pos.attackers_to(s, c))) {
+      if (!pos.attackers_to(s, c)) {
         int pen = PieceValueMg[type_of(pos.piece_on(s))] / 5;
         mg[c] -= pen;
         eg[c] -= pen / 2;
       }
     }
 
-    // Endgame king activity toward center already in PST; nudge toward enemy king
+    // Endgame king activity toward enemy king
     Square eksq = pos.king_square(~c);
     int dist = std::abs(file_of(ksq) - file_of(eksq)) + std::abs(rank_of(ksq) - rank_of(eksq));
     eg[c] -= 4 * dist;
