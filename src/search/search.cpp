@@ -219,7 +219,7 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
   }
 
   // Internal iterative reduction / generate TT move hint
-  if (!ttMove && depth >= 4 && (pvNode || cutNode))
+  if (!ttMove && depth >= 6 && pvNode)
     depth -= 1;
 
   ExtMove moves[MAX_MOVES];
@@ -271,7 +271,7 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
 
     Depth reduction = 0;
     if (depth >= 3 && moveCount > 1 + pvNode && !capture && !givesCheck) {
-      reduction = Depth(0.75 + std::log(depth) * std::log(moveCount) / 2.25);
+      reduction = Depth(0.75 + std::log(double(depth)) * std::log(double(moveCount)) / 2.25);
       if (cutNode) ++reduction;
       if (ss->killers[0] == m || ss->killers[1] == m) reduction = std::max(0, reduction - 1);
       if (history[pos.side_to_move()][m.from()][m.to()] > 4000) reduction = std::max(0, reduction - 1);
