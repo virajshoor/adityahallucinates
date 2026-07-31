@@ -256,29 +256,7 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
       return nullScore >= VALUE_MATE_IN_MAX_PLY ? beta : nullScore;
   }
 
-  // Conservative ProbCut: shallow search verifies a big fail-high before cutting
-  if (!pvNode && !inCheck && depth >= 5 && depth < 10 &&
-      std::abs(int(beta)) < VALUE_MATE_IN_MAX_PLY && eval >= beta + 180) {
-    Value rbeta = std::min(beta + 180, VALUE_MATE_IN_MAX_PLY - 1);
-    Depth rdepth = depth - 4;
-    ExtMove pcm[MAX_MOVES];
-    ExtMove* pend = generate<CAPTURES>(pos, pcm);
-    ExtMove* n = pcm;
-    for (ExtMove* m = pcm; m != pend; ++m)
-      if (pos.is_legal(m->move) && pos.see_ge(m->move, 100)) *n++ = *m;
-    order_moves(pos, pcm, n, ttMove, ss);
-    StateInfo pst;
-    int pcCount = 0;
-    for (ExtMove* em = pcm; em != n && pcCount < 3; ++em) {
-      ++pcCount;
-      if (useNnueAcc) nnue().do_move((ss + 1)->acc, ss->acc, pos, em->move);
-      pos.do_move(em->move, pst);
-      Value sc = -search_node(pos, ss + 1, -rbeta, -rbeta + 1, rdepth, !cutNode);
-      pos.undo_move(em->move);
-      if (info.stop) return alpha;
-      if (sc >= rbeta) return sc;
-    }
-  }
+  // ProbCut disabled: earlier aggressive variants regressed Elo 2000; revisit with SPRT.
 
   // Internal iterative reduction
   if (!ttMove && depth >= 6)
@@ -332,7 +310,8 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
 
     Depth newDepth = depth - 1;
     int extension = 0;
-    if (!rootNode && givesCheck && pos.see_ge(m, 0)) extension = 1;
+    if (!rootNode && givesCheck && pos.see_ge(m, 0))
+      extension = depth <= 6 ? 1 : 1;
     if (!rootNode && ss->ply >= 1 && (ss - 1)->current &&
         m.to() == (ss - 1)->current.to() && capture)
       extension = std::max(extension, 1);
@@ -344,7 +323,7 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
 
     Depth reduction = 0;
     if (depth >= 3 && moveCount > 1 + pvNode && !capture && !givesCheck) {
-      reduction = Depth(0.70 + std::log(double(depth)) * std::log(double(moveCount)) / 2.35);
+      reduction = Depth(0.65 + std::log(double(depth)) * std::log(double(moveCount)) / 2.50);
       if (cutNode) ++reduction;
       if (!improving) ++reduction;
       if (ss->killers[0] == m || ss->killers[1] == m) reduction = std::max(0, reduction - 1);
@@ -503,7 +482,7 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
     std::cout << std::endl;
 
     if (limits.depth && depth >= limits.depth) break;
-    if (allocatedTime > 0 && (now_ms() - startTime) > allocatedTime * 90 / 100) break;
+    if (allocatedTime > 0 && (now_ms() - startTime) > allocatedTime * 95 / 100) break;
     if (std::abs(bestScore) > VALUE_MATE_IN_MAX_PLY) break;
   }
 
