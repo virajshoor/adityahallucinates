@@ -1,11 +1,11 @@
 {
   "label": "skill1",
-  "movetime": 0.08,
-  "points": 8.5,
-  "games": 12,
-  "score": 0.7083333333333334,
+  "movetime": 0.1,
+  "points": 14.5,
+  "games": 16,
+  "score": 0.90625,
   "target": 0.75,
-  "passed": false,
+  "passed": true,
   "game_results": [
     {
       "game": 1,
@@ -17,9 +17,9 @@
     {
       "game": 2,
       "aditya_white": false,
-      "score": 0.0,
+      "score": 1.0,
       "termination": "CHECKMATE",
-      "result": "1-0"
+      "result": "0-1"
     },
     {
       "game": 3,
@@ -31,9 +31,9 @@
     {
       "game": 4,
       "aditya_white": false,
-      "score": 1.0,
-      "termination": "CHECKMATE",
-      "result": "0-1"
+      "score": 0.5,
+      "termination": "THREEFOLD_REPETITION",
+      "result": "1/2-1/2"
     },
     {
       "game": 5,
@@ -45,9 +45,9 @@
     {
       "game": 6,
       "aditya_white": false,
-      "score": 1.0,
+      "score": 0.0,
       "termination": "CHECKMATE",
-      "result": "0-1"
+      "result": "1-0"
     },
     {
       "game": 7,
@@ -66,16 +66,16 @@
     {
       "game": 9,
       "aditya_white": true,
-      "score": 0.5,
-      "termination": "THREEFOLD_REPETITION",
-      "result": "1/2-1/2"
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
     },
     {
       "game": 10,
       "aditya_white": false,
-      "score": 0.0,
+      "score": 1.0,
       "termination": "CHECKMATE",
-      "result": "1-0"
+      "result": "0-1"
     },
     {
       "game": 11,
@@ -87,9 +87,37 @@
     {
       "game": 12,
       "aditya_white": false,
-      "score": 0.0,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "0-1"
+    },
+    {
+      "game": 13,
+      "aditya_white": true,
+      "score": 1.0,
       "termination": "CHECKMATE",
       "result": "1-0"
+    },
+    {
+      "game": 14,
+      "aditya_white": false,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "0-1"
+    },
+    {
+      "game": 15,
+      "aditya_white": true,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 16,
+      "aditya_white": false,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "0-1"
     }
   ]
 }

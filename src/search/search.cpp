@@ -4,17 +4,30 @@
 #include <chrono>
 #include <algorithm>
 #include <iostream>
+#include <cstring>
 #include <cmath>
 
 namespace ah {
 
 namespace {
-constexpr int FutilityMargin = 150;
-constexpr int RazorMargin = 300;
+constexpr int FutilityMargin = 120;
+constexpr int RazorMargin = 250;
+constexpr int ReverseFutilityMargin = 100;
+
+Value value_to_tt(Value v, int ply) {
+  if (v >= VALUE_MATE_IN_MAX_PLY) return v + ply;
+  if (v <= -VALUE_MATE_IN_MAX_PLY) return v - ply;
+  return v;
 }
+Value value_from_tt(Value v, int ply) {
+  if (v >= VALUE_MATE_IN_MAX_PLY) return v - ply;
+  if (v <= -VALUE_MATE_IN_MAX_PLY) return v + ply;
+  return v;
+}
+} // namespace
 
 Search::Search() {
-  tt.resize(64);
+  tt.resize(128);
   clear();
 }
 
@@ -33,7 +46,7 @@ int64_t Search::now_ms() const {
 }
 
 bool Search::time_up() const {
-  if (info.stop) return true;
+  if (info.stop.load(std::memory_order_relaxed)) return true;
   if (limits.infinite || limits.depth) return false;
   if (allocatedTime <= 0) return false;
   return (now_ms() - startTime) >= allocatedTime;
@@ -55,19 +68,21 @@ void Search::order_moves(Position& pos, ExtMove* begin, ExtMove* end, Move ttMov
   for (ExtMove* m = begin; m != end; ++m) {
     Move mv = m->move;
     if (mv == ttMove) {
-      m->score = 2000000;
+      m->score = 2'000'000;
     } else if (pos.piece_on(mv.to()) || mv.type() == EN_PASSANT) {
       int victim = mv.type() == EN_PASSANT ? PAWN : type_of(pos.piece_on(mv.to()));
       int attacker = type_of(pos.piece_on(mv.from()));
-      m->score = 1000000 + victim * 16 - attacker;
-      if (mv.type() == PROMOTION) m->score += 500 + mv.promotion_type() * 10;
+      m->score = 1'000'000 + victim * 100 - attacker;
+      if (mv.type() == PROMOTION) m->score += 800 + mv.promotion_type() * 20;
+      if (!pos.see_ge(mv, -50)) m->score -= 400'000;
+    } else if (mv.type() == PROMOTION) {
+      m->score = 950'000 + mv.promotion_type() * 1000;
     } else if (mv == ss->killers[0]) {
-      m->score = 900000;
+      m->score = 900'000;
     } else if (mv == ss->killers[1]) {
-      m->score = 800000;
+      m->score = 800'000;
     } else {
       m->score = history[pos.side_to_move()][mv.from()][mv.to()];
-      if (mv.type() == PROMOTION) m->score += 50000 + mv.promotion_type() * 1000;
     }
   }
   std::stable_sort(begin, end);
@@ -75,13 +90,15 @@ void Search::order_moves(Position& pos, ExtMove* begin, ExtMove* end, Move ttMov
 
 Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
   ++info.nodes;
-  if ((info.nodes & 2047) == 0 && time_up()) {
+  if ((info.nodes & 4095) == 0 && time_up()) {
     info.stop = true;
-    return 0;
+    return alpha;
   }
 
   ss->pv[0] = MOVE_NONE;
   if (ss->ply >= MAX_PLY - 1) return evaluate(pos);
+
+  if (pos.is_draw(ss->ply)) return VALUE_DRAW;
 
   Value stand = evaluate(pos);
   if (stand >= beta) return stand;
@@ -89,13 +106,11 @@ Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
 
   ExtMove moves[MAX_MOVES];
   ExtMove* end;
-  if (pos.checkers())
+  if (pos.checkers()) {
     end = generate<LEGAL>(pos, moves);
-  else
+    if (moves == end) return mated_in(ss->ply);
+  } else {
     end = generate<CAPTURES>(pos, moves);
-
-  // Filter captures to legal when not in check
-  if (!pos.checkers()) {
     ExtMove* n = moves;
     for (ExtMove* m = moves; m != end; ++m)
       if (pos.is_legal(m->move)) *n++ = *m;
@@ -107,12 +122,23 @@ Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
 
   for (ExtMove* em = moves; em != end; ++em) {
     Move m = em->move;
-    if (!pos.checkers() && !pos.see_ge(m, 0)) continue;
+    if (!pos.checkers()) {
+      // Delta pruning
+      int captureVal = m.type() == EN_PASSANT ? 100
+                     : (m.type() == PROMOTION ? 900 : 0);
+      if (m.type() != PROMOTION && pos.piece_on(m.to()))
+        captureVal = (type_of(pos.piece_on(m.to())) == PAWN ? 100 :
+                      type_of(pos.piece_on(m.to())) == KNIGHT ? 320 :
+                      type_of(pos.piece_on(m.to())) == BISHOP ? 330 :
+                      type_of(pos.piece_on(m.to())) == ROOK ? 500 : 900);
+      if (stand + captureVal + 150 < alpha) continue;
+      if (!pos.see_ge(m, 0)) continue;
+    }
 
     pos.do_move(m, st);
     Value score = -qsearch(pos, ss + 1, -beta, -alpha);
     pos.undo_move(m);
-    if (info.stop) return 0;
+    if (info.stop) return alpha;
 
     if (score > alpha) {
       alpha = score;
@@ -128,9 +154,9 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
   const bool pvNode = (beta - alpha) > 1;
   ++info.nodes;
 
-  if ((info.nodes & 2047) == 0 && time_up()) {
+  if ((info.nodes & 4095) == 0 && time_up()) {
     info.stop = true;
-    return 0;
+    return alpha;
   }
 
   ss->pv[0] = MOVE_NONE;
@@ -142,7 +168,6 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
       return VALUE_DRAW;
   }
 
-  // Mate distance pruning
   alpha = std::max(alpha, mated_in(ss->ply));
   beta = std::min(beta, mate_in(ss->ply + 1));
   if (alpha >= beta) return alpha;
@@ -154,46 +179,52 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
 
   bool ttHit = false;
   TTEntry* tte = tt.probe(pos.key(), ttHit);
-  Move ttMove = (ttHit ? tte->move : MOVE_NONE);
-  Value ttValue = ttHit ? Value(tte->score) : VALUE_NONE;
+  Move ttMove = ttHit ? tte->move : MOVE_NONE;
+  Value ttValue = ttHit ? value_from_tt(Value(tte->score), ss->ply) : VALUE_NONE;
 
-  if (!pvNode && ttHit && tte->depth >= depth) {
+  if (!pvNode && ttHit && int(tte->depth) >= depth && ttValue != VALUE_NONE) {
     if (tte->flag == TT_EXACT) return ttValue;
     if (tte->flag == TT_LOWER && ttValue >= beta) return ttValue;
     if (tte->flag == TT_UPPER && ttValue <= alpha) return ttValue;
   }
 
-  Value eval;
   const bool inCheck = pos.checkers();
+  Value eval;
   if (inCheck) {
     eval = ss->staticEval = VALUE_NONE;
   } else {
-    eval = ss->staticEval = (ttHit ? Value(tte->eval) : evaluate(pos));
-    if (!ttHit) tt.store(pos.key(), 0, VALUE_NONE, TT_NONE, MOVE_NONE, eval);
+    eval = ss->staticEval = ttHit && tte->eval != int16_t(VALUE_NONE) ? Value(tte->eval) : evaluate(pos);
   }
+
+  // Reverse futility pruning
+  if (!pvNode && !inCheck && depth <= 6 && eval - ReverseFutilityMargin * depth >= beta)
+    return eval;
 
   // Razoring
   if (!pvNode && !inCheck && depth <= 3 && eval + RazorMargin * depth < alpha)
     return qsearch(pos, ss, alpha, beta);
 
-  // Null move pruning
-  if (!pvNode && !inCheck && depth >= 3 && eval >= beta &&
-      pos.non_pawn_material(pos.side_to_move()) && ss->ply > 0) {
+  // Null move
+  if (!pvNode && !inCheck && depth >= 2 && eval >= beta &&
+      pos.non_pawn_material(pos.side_to_move()) && ss->staticEval >= beta - 20 * depth + 200) {
     StateInfo st;
-    int R = 3 + depth / 4;
+    int R = 3 + depth / 3;
     pos.do_null_move(st);
     Value nullScore = -search_node(pos, ss + 1, -beta, -beta + 1, depth - R, !cutNode);
     pos.undo_null_move();
-    if (info.stop) return 0;
+    if (info.stop) return alpha;
     if (nullScore >= beta)
       return nullScore >= VALUE_MATE_IN_MAX_PLY ? beta : nullScore;
   }
 
+  // Internal iterative reduction / generate TT move hint
+  if (!ttMove && depth >= 4 && (pvNode || cutNode))
+    depth -= 1;
+
   ExtMove moves[MAX_MOVES];
   ExtMove* end = generate<LEGAL>(pos, moves);
-  if (moves == end) {
+  if (moves == end)
     return inCheck ? mated_in(ss->ply) : VALUE_DRAW;
-  }
 
   order_moves(pos, moves, end, ttMove, ss);
 
@@ -207,7 +238,7 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
     Move m = em->move;
     if (rootNode && !limits.searchmoves.empty()) {
       bool found = false;
-      for (Move sm : limits.searchmoves) if (sm == m) found = true;
+      for (Move sm : limits.searchmoves) if (sm == m) { found = true; break; }
       if (!found) continue;
     }
 
@@ -217,26 +248,29 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
     bool capture = pos.piece_on(m.to()) || m.type() == EN_PASSANT || m.type() == PROMOTION;
 
     // Futility
-    if (!pvNode && !inCheck && !capture && !givesCheck && depth <= 5 &&
+    if (!rootNode && !pvNode && !inCheck && !capture && !givesCheck && depth <= 6 &&
         eval + FutilityMargin * depth <= alpha && moveCount > 1)
       continue;
 
     // Late move pruning
-    if (!pvNode && !capture && !givesCheck && depth <= 4 && moveCount > 3 + depth * depth)
+    if (!rootNode && !pvNode && !capture && !givesCheck && depth <= 5 &&
+        moveCount > 3 + depth * depth)
       continue;
 
     Depth newDepth = depth - 1;
     int extension = 0;
-    if (givesCheck && pos.see_ge(m)) extension = 1;
+    if (!rootNode && givesCheck) extension = 1;
+    if (!rootNode && depth >= 6 && m == ttMove && ttHit && tte->depth >= depth - 3 &&
+        tte->flag != TT_UPPER)
+      extension = std::max(extension, 1); // crude singular-ish
 
-    // LMR
     Depth reduction = 0;
-    if (depth >= 3 && moveCount > 2 + 2 * pvNode && !capture && !givesCheck) {
-      reduction = 1;
-      if (moveCount > 6) ++reduction;
+    if (depth >= 3 && moveCount > 1 + pvNode && !capture && !givesCheck) {
+      reduction = Depth(0.75 + std::log(depth) * std::log(moveCount) / 2.25);
       if (cutNode) ++reduction;
       if (ss->killers[0] == m || ss->killers[1] == m) reduction = std::max(0, reduction - 1);
-      reduction = std::min(reduction, newDepth - 1);
+      if (history[pos.side_to_move()][m.from()][m.to()] > 4000) reduction = std::max(0, reduction - 1);
+      reduction = std::clamp(reduction, 0, newDepth - 1 + extension);
     }
 
     pos.do_move(m, st);
@@ -247,11 +281,11 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
       score = -search_node(pos, ss + 1, -alpha - 1, -alpha, newDepth + extension - reduction, true);
       if (reduction && score > alpha)
         score = -search_node(pos, ss + 1, -alpha - 1, -alpha, newDepth + extension, !cutNode);
-      if (score > alpha && score < beta)
+      if (pvNode && score > alpha && (rootNode || score < beta))
         score = -search_node(pos, ss + 1, -beta, -alpha, newDepth + extension, false);
     }
     pos.undo_move(m);
-    if (info.stop) return 0;
+    if (info.stop) return alpha;
 
     if (score > bestScore) {
       bestScore = score;
@@ -267,15 +301,21 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
               ss->killers[1] = ss->killers[0];
               ss->killers[0] = m;
             }
-            history[pos.side_to_move()][m.from()][m.to()] += depth * depth;
+            int& h = history[pos.side_to_move()][m.from()][m.to()];
+            h += depth * depth - h * depth * depth / 16384;
           }
           break;
         }
       }
+    } else if (!capture) {
+      int& h = history[pos.side_to_move()][m.from()][m.to()];
+      h -= depth * depth / 2;
     }
   }
 
-  tt.store(pos.key(), depth, bestScore, flag, bestMove ? bestMove : ttMove, ss->staticEval);
+  if (!info.stop)
+    tt.store(pos.key(), depth, value_to_tt(bestScore, ss->ply), flag,
+             bestMove ? bestMove : ttMove, ss->staticEval);
   return bestScore;
 }
 
@@ -290,13 +330,13 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
   startTime = now_ms();
   allocatedTime = 0;
   if (limits.movetime > 0) {
-    allocatedTime = limits.movetime - 10;
+    allocatedTime = std::max(5, limits.movetime - 15);
   } else if (limits.wtime || limits.btime) {
     int time = pos.side_to_move() == WHITE ? limits.wtime : limits.btime;
     int inc = pos.side_to_move() == WHITE ? limits.winc : limits.binc;
-    int mtg = limits.movestogo > 0 ? limits.movestogo : 30;
+    int mtg = limits.movestogo > 0 ? limits.movestogo : 28;
     allocatedTime = time / mtg + inc * 3 / 4;
-    allocatedTime = std::max<int64_t>(10, std::min<int64_t>(allocatedTime, time / 2));
+    allocatedTime = std::max<int64_t>(15, std::min<int64_t>(allocatedTime, time * 4 / 5));
   }
 
   Stack stack[MAX_PLY + 5] = {};
@@ -310,39 +350,37 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
   int maxDepth = limits.depth > 0 ? limits.depth : MAX_PLY - 2;
   Value alpha = -VALUE_INFINITE, beta = VALUE_INFINITE;
   Value bestScore = 0;
-  Move lastBest = MOVE_NONE;
 
   for (int depth = 1; depth <= maxDepth; ++depth) {
-    // Aspiration
     if (depth >= 5) {
-      alpha = bestScore - 25;
-      beta = bestScore + 25;
+      alpha = bestScore - 20;
+      beta = bestScore + 20;
     } else {
       alpha = -VALUE_INFINITE;
       beta = VALUE_INFINITE;
     }
 
+    int delta = 20;
     while (true) {
       bestScore = search_node(pos, ss, alpha, beta, depth, false);
       if (info.stop) break;
       if (bestScore <= alpha) {
-        alpha = -VALUE_INFINITE;
+        beta = (alpha + beta) / 2;
+        alpha = bestScore - delta;
+        delta += delta / 2;
         continue;
       }
       if (bestScore >= beta) {
-        beta = VALUE_INFINITE;
+        beta = bestScore + delta;
+        delta += delta / 2;
         continue;
       }
       break;
     }
     if (info.stop && depth > 1) break;
 
-    if (ss->pv[0]) {
-      lastBest = ss->pv[0];
-      bestRootMove = lastBest;
-    }
+    if (ss->pv[0]) bestRootMove = ss->pv[0];
 
-    // UCI info
     int64_t elapsed = std::max<int64_t>(1, now_ms() - startTime);
     std::cout << "info depth " << depth
               << " seldepth " << info.seldepth
@@ -355,7 +393,9 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
     std::cout << std::endl;
 
     if (limits.depth && depth >= limits.depth) break;
-    if (allocatedTime > 0 && (now_ms() - startTime) > allocatedTime * 6 / 10) break;
+    if (allocatedTime > 0 && (now_ms() - startTime) > allocatedTime * 65 / 100) break;
+    // Mate found
+    if (std::abs(bestScore) > VALUE_MATE_IN_MAX_PLY) break;
   }
 
   if (!bestRootMove) {
