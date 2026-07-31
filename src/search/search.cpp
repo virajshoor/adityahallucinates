@@ -10,9 +10,9 @@
 namespace ah {
 
 namespace {
-constexpr int FutilityMargin = 120;
-constexpr int RazorMargin = 250;
-constexpr int ReverseFutilityMargin = 100;
+constexpr int FutilityMargin = 140;
+constexpr int RazorMargin = 280;
+constexpr int ReverseFutilityMargin = 120;
 
 Value value_to_tt(Value v, int ply) {
   if (v >= VALUE_MATE_IN_MAX_PLY) return v + ply;
@@ -253,8 +253,8 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
       continue;
 
     // Late move pruning
-    if (!rootNode && !pvNode && !capture && !givesCheck && depth <= 5 &&
-        moveCount > 3 + depth * depth)
+    if (!rootNode && !pvNode && !capture && !givesCheck && depth <= 4 &&
+        moveCount > 4 + depth * depth)
       continue;
 
     Depth newDepth = depth - 1;

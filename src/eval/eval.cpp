@@ -1,4 +1,6 @@
 #include "eval/eval.hpp"
+#include <algorithm>
+#include <cmath>
 
 namespace ah {
 
@@ -139,8 +141,6 @@ const int* MgPST[PIECE_TYPE_NB] = {nullptr, PawnMg, KnightMg, BishopMg, RookMg, 
 const int* EgPST[PIECE_TYPE_NB] = {nullptr, PawnEg, KnightEg, BishopEg, RookEg, QueenEg, KingEg};
 
 int phase_weight(const Position& pos) {
-  int npm = pos.non_pawn_material();
-  // Midgame npm roughly 4*knight+4*bishop+4*rook+2*queen values ~ 15258 for start with PeSTO? use simpler:
   int phase = 24;
   phase -= popcount(pos.pieces(KNIGHT));
   phase -= popcount(pos.pieces(BISHOP));
@@ -249,30 +249,77 @@ Value evaluate(const Position& pos) {
       } else if (!(pos.pieces(c, PAWN) & file_bb(f))) {
         mg[c] += 12; eg[c] += 6;
       }
+      // Rook on 7th
+      if (relative_rank(c, s) == RANK_7) {
+        mg[c] += 20; eg[c] += 30;
+      }
     }
 
-    // King safety: count attacks near king
+    // Castling rights / king shelter
     Square ksq = pos.king_square(c);
-    Bitboard zone = Bitboards::PseudoAttacks[KING][ksq];
+    if (pos.can_castle(c == WHITE ? WHITE_OO : BLACK_OO) ||
+        pos.can_castle(c == WHITE ? WHITE_OOO : BLACK_OOO))
+      mg[c] += 15;
+
+    // Pawn shelter in front of king
+    Bitboard shelterPawns = pos.pieces(c, PAWN) &
+        Bitboards::ForwardRanksBB[c][rank_of(ksq)] &
+        (file_bb(file_of(ksq)) | Bitboards::AdjacentFilesBB[file_of(ksq)]);
+    mg[c] += 8 * std::min(3, popcount(shelterPawns));
+
+    // King safety: weighted attackers
+    Bitboard zone = Bitboards::PseudoAttacks[KING][ksq] | square_bb(ksq);
     int attackUnits = 0;
-    Bitboard attackers = pos.attackers_to(ksq, ~c);
-    attackUnits += 2 * popcount(attackers);
-    attackUnits += popcount(zone & pos.pieces(~c));
-    mg[c] -= attackUnits * attackUnits;
+    int attackerCount = 0;
+    auto add_attacks = [&](PieceType pt, int weight) {
+      Bitboard bb = pos.pieces(~c, pt);
+      while (bb) {
+        Square s = pop_lsb(bb);
+        Bitboard atk = (pt == PAWN) ? Bitboards::PawnAttacks[~c][s]
+                     : (pt == KNIGHT || pt == KING) ? Bitboards::PseudoAttacks[pt][s]
+                     : attacks_bb(pt, s, pos.pieces());
+        if (atk & zone) {
+          attackUnits += weight;
+          ++attackerCount;
+        }
+      }
+    };
+    add_attacks(PAWN, 1);
+    add_attacks(KNIGHT, 2);
+    add_attacks(BISHOP, 2);
+    add_attacks(ROOK, 3);
+    add_attacks(QUEEN, 5);
+    if (attackerCount >= 2)
+      mg[c] -= attackUnits * attackUnits;
+
+    // Hanging pieces (undefended and attacked)
+    Bitboard ours = pos.pieces(c) & ~pos.pieces(c, KING) & ~pos.pieces(c, PAWN);
+    Bitboard tmp = ours;
+    while (tmp) {
+      Square s = pop_lsb(tmp);
+      if ((pos.attackers_to(s, ~c)) && !(pos.attackers_to(s, c))) {
+        int pen = PieceValueMg[type_of(pos.piece_on(s))] / 4;
+        mg[c] -= pen;
+        eg[c] -= pen / 2;
+      }
+    }
+
+    // Endgame king activity toward center already in PST; nudge toward enemy king
+    Square eksq = pos.king_square(~c);
+    int dist = std::abs(file_of(ksq) - file_of(eksq)) + std::abs(rank_of(ksq) - rank_of(eksq));
+    eg[c] -= 4 * dist;
   }
 
-  int phase = phase_weight(pos); // 0 = eg, 24 = opening material depleted? Wait we inverted
-  // phase above: starts 24 and decreases as pieces remain... actually we subtract remaining pieces from 24
-  // Start: 4+4+4+8=20? knights 2*2=4, bishops 4, rooks 4, queens 8 = 20. Use 24 max.
-  // We want mgWeight = phase remaining / 24. When many pieces, low phase number means... 
-  // I defined phase = 24 - pieces. At start phase ~= 4, at eg phase = 24. That's inverted for tapering.
+  // phase: 0 = middlegame-ish material present, 24 = bare kings
+  int phase = phase_weight(pos);
   int egw = phase;
   int mgw = 24 - phase;
   int score = ((mg[WHITE] - mg[BLACK]) * mgw + (eg[WHITE] - eg[BLACK]) * egw) / 24;
 
   // Tempo
-  score += 15;
+  score += 18;
 
+  // Scale down slight advantages in pure opposite-bishop draws-ish: skip for now
   return Value(pos.side_to_move() == WHITE ? score : -score);
 }
 
