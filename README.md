@@ -12,19 +12,21 @@ A from-scratch C++ chess engine (classical alpha-beta + handcrafted eval), stren
 | SF `UCI_Elo` 1400–1800 | ~0.25s | ≥80% | pass |
 | SF `UCI_Elo` **2000** | 0.25s | **75%** | **pass** |
 | SF `UCI_Elo` **2100** | **1.5s** | **78.1%** | **pass** |
-| SF `UCI_Elo` 2200+ | — | climbing | in progress |
+| SF `UCI_Elo` 2200 | 1.5s | ~41% | next climb |
 
 **Primary 75% gate:** cleared at Stockfish `UCI_Elo` 2000 (0.25s) and **2100 (1.5s)**, and Skill Level 4.
 
 **Note on “Elo 5000”:** Stockfish `UCI_Elo` only calibrates **1320–3190**; full unrestricted SF is ~3600. There is no Elo-5000 opponent on this ladder — the goal is to climb Skill / `UCI_Elo` / full SF as far as possible.
+
+**Continue later:** see [next.md](next.md) for the exact checkpoint, how to run, and the next strength steps.
 
 ## Build
 
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++
 cmake --build build -j
-./build/perft_tests
-./build/aditya               # UCI
+./scripts/smoke_run.sh       # perft + one UCI move
+./build/aditya               # UCI (stdin)
 ```
 
 ## Match Stockfish
