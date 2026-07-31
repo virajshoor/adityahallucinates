@@ -10,7 +10,7 @@ namespace ah {
 namespace {
 NnueNet g_nnue;
 
-inline float relu(float x) { return x > 0.f ? x : 0.f; }
+inline float crelu(float x) { return x < 0.f ? 0.f : (x > 1.f ? 1.f : x); }
 
 inline int feature_index(Piece pc, Square sq, Color stm) {
   Square s = relative_square(stm, sq);
@@ -19,17 +19,17 @@ inline int feature_index(Piece pc, Square sq, Color stm) {
   int p = (rel == WHITE ? 0 : 6) + (pt - PAWN);
   return p * 64 + int(s);
 }
-} // namespace
 
-// Keep float storage for correctness of bootstrap nets
 struct NnueNetFloat {
-  static constexpr int INPUT = 768, H1 = 256, H2 = 32;
+  int input = 768, h1 = 256, h2 = 32;
   bool loaded = false;
+  bool clipped = false;
   std::vector<float> w0, b0, w1, b1, w2;
   float b2 = 0.f;
 };
 
 static NnueNetFloat g_float;
+} // namespace
 
 NnueNet& nnue() { return g_nnue; }
 bool nnue_ready() { return g_float.loaded; }
@@ -39,17 +39,29 @@ bool load_nnue(const std::string& path) {
   if (!in) return false;
   char magic[8] = {};
   in.read(magic, 8);
-  if (std::memcmp(magic, "AHNNUEF1", 8) != 0) return false;
+  bool clipped = false;
+  if (std::memcmp(magic, "AHNNUEF1", 8) == 0) {
+    clipped = false;
+  } else if (std::memcmp(magic, "AHNNUEF2", 8) == 0) {
+    clipped = true;
+  } else {
+    return false;
+  }
   int32_t dims[3] = {};
   in.read(reinterpret_cast<char*>(dims), sizeof(dims));
-  if (dims[0] != NnueNetFloat::INPUT || dims[1] != NnueNetFloat::H1 || dims[2] != NnueNetFloat::H2)
-    return false;
+  if (dims[0] != 768 || dims[2] != 32) return false;
+  if (dims[1] != 256 && dims[1] != 128) return false;
+
   auto& n = g_float;
-  n.w0.resize(NnueNetFloat::H1 * NnueNetFloat::INPUT);
-  n.b0.resize(NnueNetFloat::H1);
-  n.w1.resize(NnueNetFloat::H2 * NnueNetFloat::H1);
-  n.b1.resize(NnueNetFloat::H2);
-  n.w2.resize(NnueNetFloat::H2);
+  n.input = dims[0];
+  n.h1 = dims[1];
+  n.h2 = dims[2];
+  n.clipped = clipped;
+  n.w0.resize(n.h1 * n.input);
+  n.b0.resize(n.h1);
+  n.w1.resize(n.h2 * n.h1);
+  n.b1.resize(n.h2);
+  n.w2.resize(n.h2);
   in.read(reinterpret_cast<char*>(n.w0.data()), n.w0.size() * sizeof(float));
   in.read(reinterpret_cast<char*>(n.b0.data()), n.b0.size() * sizeof(float));
   in.read(reinterpret_cast<char*>(n.w1.data()), n.w1.size() * sizeof(float));
@@ -65,26 +77,37 @@ Value NnueNet::evaluate(const Position& pos) const {
   if (!g_float.loaded) return VALUE_NONE;
   const auto& n = g_float;
   Color stm = pos.side_to_move();
-  float acc[NnueNetFloat::H1];
-  std::memcpy(acc, n.b0.data(), sizeof(float) * NnueNetFloat::H1);
+
+  // Stack buffers sized for max H1=256
+  float acc[256];
+  std::memcpy(acc, n.b0.data(), sizeof(float) * n.h1);
+
   Bitboard bb = pos.pieces();
   while (bb) {
     Square sq = pop_lsb(bb);
     int f = feature_index(pos.piece_on(sq), sq, stm);
-    for (int i = 0; i < NnueNetFloat::H1; ++i)
-      acc[i] += n.w0[i * NnueNetFloat::INPUT + f];
+    const float* col = &n.w0[0] + f; // will index as [i * input + f]
+    for (int i = 0; i < n.h1; ++i)
+      acc[i] += n.w0[i * n.input + f];
+    (void)col;
   }
-  float h1a[NnueNetFloat::H1];
-  for (int i = 0; i < NnueNetFloat::H1; ++i) h1a[i] = relu(acc[i]);
-  float h2v[NnueNetFloat::H2];
-  for (int j = 0; j < NnueNetFloat::H2; ++j) {
+
+  float h1a[256];
+  if (n.clipped) {
+    for (int i = 0; i < n.h1; ++i) h1a[i] = crelu(acc[i]);
+  } else {
+    for (int i = 0; i < n.h1; ++i) h1a[i] = acc[i] > 0.f ? acc[i] : 0.f;
+  }
+
+  float h2v[32];
+  for (int j = 0; j < n.h2; ++j) {
     float sum = n.b1[j];
-    const float* row = &n.w1[j * NnueNetFloat::H1];
-    for (int i = 0; i < NnueNetFloat::H1; ++i) sum += row[i] * h1a[i];
-    h2v[j] = relu(sum);
+    const float* row = &n.w1[j * n.h1];
+    for (int i = 0; i < n.h1; ++i) sum += row[i] * h1a[i];
+    h2v[j] = n.clipped ? crelu(sum) : (sum > 0.f ? sum : 0.f);
   }
   float out = n.b2;
-  for (int j = 0; j < NnueNetFloat::H2; ++j) out += n.w2[j] * h2v[j];
+  for (int j = 0; j < n.h2; ++j) out += n.w2[j] * h2v[j];
   int cp = int(std::lround(out));
   return Value(std::clamp(cp, -VALUE_MATE_IN_MAX_PLY + 1, VALUE_MATE_IN_MAX_PLY - 1));
 }

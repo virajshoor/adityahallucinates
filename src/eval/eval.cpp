@@ -250,6 +250,18 @@ Value classical_evaluate(const Position& pos) {
           bonus_mg += 8 + 4 * int(r);
           bonus_eg += 12 + 8 * int(r);
         }
+        // King proximity to passer (endgame)
+        Square ksq = pos.king_square(c);
+        Square eksq = pos.king_square(~c);
+        int ourDist = std::max(std::abs(file_of(ksq) - file_of(s)), std::abs(rank_of(ksq) - rank_of(s)));
+        int theirDist = std::max(std::abs(file_of(eksq) - file_of(s)), std::abs(rank_of(eksq) - rank_of(s)));
+        bonus_eg += (theirDist - ourDist) * (2 + int(r));
+        // Free path to promotion
+        Bitboard path = forward & file_bb(f);
+        if (!(pos.pieces() & path)) {
+          bonus_mg += 5 * int(r);
+          bonus_eg += 12 * int(r);
+        }
         // Rook behind passer
         if (pos.pieces(c, ROOK) & file_bb(f) & Bitboards::ForwardRanksBB[~c][rank_of(s)]) {
           bonus_mg += 10;
@@ -373,40 +385,22 @@ Value classical_evaluate(const Position& pos) {
     if (attackerCount >= 2)
       mg[c] -= attackUnits * attackUnits / 2 + 4 * attackerCount;
 
-    // Threats / hanging pieces (value of attacked undefended or under-defended material)
-    Bitboard ours = pos.pieces(c) & ~pos.pieces(c, KING);
-    Bitboard enemyAtk = pawn_attacks_bb(~c, pos.pieces(~c, PAWN));
-    Bitboard ekn = pos.pieces(~c, KNIGHT);
-    while (ekn) enemyAtk |= Bitboards::PseudoAttacks[KNIGHT][pop_lsb(ekn)];
-    Bitboard ebi = pos.pieces(~c, BISHOP);
-    while (ebi) {
-      Square s = pop_lsb(ebi);
-      enemyAtk |= attacks_bb(BISHOP, s, occ);
-    }
-    Bitboard ero = pos.pieces(~c, ROOK);
-    while (ero) {
-      Square s = pop_lsb(ero);
-      enemyAtk |= attacks_bb(ROOK, s, occ);
-    }
-    Bitboard equ = pos.pieces(~c, QUEEN);
-    while (equ) {
-      Square s = pop_lsb(equ);
-      enemyAtk |= attacks_bb(QUEEN, s, occ);
-    }
-    enemyAtk |= Bitboards::PseudoAttacks[KING][pos.king_square(~c)];
-    Bitboard threatened = ours & enemyAtk;
-    while (threatened) {
-      Square s = pop_lsb(threatened);
+    // Hanging / under-defended pieces (cheap attack approx)
+    Bitboard ours = pos.pieces(c, KNIGHT) | pos.pieces(c, BISHOP) | pos.pieces(c, ROOK) | pos.pieces(c, QUEEN);
+    Bitboard atk = pawn_attacks_bb(~c, pos.pieces(~c, PAWN));
+    Bitboard enemyKn = pos.pieces(~c, KNIGHT);
+    while (enemyKn) atk |= Bitboards::PseudoAttacks[KNIGHT][pop_lsb(enemyKn)];
+    Bitboard hang = ours & atk;
+    while (hang) {
+      Square s = pop_lsb(hang);
       PieceType pt = type_of(pos.piece_on(s));
-      bool defended = pos.attackers_to(s, c);
       bool byPawn = pawn_attacks_bb(~c, pos.pieces(~c, PAWN)) & square_bb(s);
-      if (!defended) {
+      if (!pos.attackers_to(s, c)) {
         int pen = PieceValueMg[pt] / 4;
         mg[c] -= pen;
         eg[c] -= pen / 2;
-      } else if (byPawn && pt != PAWN) {
-        mg[c] -= PieceValueMg[pt] / 8;
-        eg[c] -= PieceValueMg[pt] / 12;
+      } else if (byPawn) {
+        mg[c] -= PieceValueMg[pt] / 10;
       }
     }
 
@@ -442,8 +436,8 @@ Value classical_evaluate(const Position& pos) {
     }
   }
 
-  // Tempo + contempt to prefer decisive play over threefolds
-  score += 28;
+  // Tempo scales down in simplified endgames
+  score += (28 * mgw) / 24;
 
   return Value(pos.side_to_move() == WHITE ? score : -score);
 }
@@ -451,15 +445,20 @@ Value classical_evaluate(const Position& pos) {
 Value evaluate(const Position& pos) {
   // Classical is the strength default. NNUE only when ADITYA_USE_NNUE=1 and loaded.
   static int use_nnue = -1;
+  static int blend = -1; // percent classical, default 70
   if (use_nnue < 0) {
     const char* e = std::getenv("ADITYA_USE_NNUE");
     use_nnue = (e && e[0] == '1') ? 1 : 0;
+    const char* b = std::getenv("ADITYA_NNUE_BLEND");
+    blend = b ? std::clamp(std::atoi(b), 0, 100) : 70;
   }
   if (use_nnue && nnue_ready()) {
     Value net = nnue().evaluate(pos);
     if (net != VALUE_NONE) {
       Value classical = classical_evaluate(pos);
-      return Value((int(classical) * 2 + int(net)) / 3);
+      if (blend >= 100) return classical;
+      if (blend <= 0) return net;
+      return Value((int(classical) * blend + int(net) * (100 - blend)) / 100);
     }
   }
   return classical_evaluate(pos);
