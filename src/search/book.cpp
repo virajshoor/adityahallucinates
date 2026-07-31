@@ -183,10 +183,22 @@ const BookEntry kBook[] = {
   {"rnbqkb1r/pppppp1p/5np1/8/2PP4/8/PP2PPPP/RNBQKBNR w", "b1c3", 45},
   {"rnbqkb1r/pppppp1p/5np1/8/2PP4/8/PP2PPPP/RNBQKBNR w", "g1f3", 30},
 
-  // 1.Nf3
-  {"rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b", "d7d5", 35},
-  {"rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b", "g8f6", 35},
-  {"rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b", "c7c5", 15},
+  // 1.a3 / other rare first moves — respond classically
+  {"rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR b", "e7e5", 40},
+  {"rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR b", "d7d5", 35},
+  {"rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR b", "g8f6", 20},
+
+  // Pirc / Modern structures after 1.d4 d6
+  {"rnbqkbnr/ppp1pppp/3p4/8/3P4/8/PPP1PPPP/RNBQKBNR w", "c2c4", 35},
+  {"rnbqkbnr/ppp1pppp/3p4/8/3P4/8/PPP1PPPP/RNBQKBNR w", "g1f3", 35},
+  {"rnbqkbnr/ppp1pppp/3p4/8/3P4/8/PPP1PPPP/RNBQKBNR w", "e2e4", 25},
+  {"rnbqkb1r/ppp1pppp/3p1n2/8/3PP3/8/PPP2PPP/RNBQKBNR w", "b1c3", 70},
+  {"rnbqkb1r/ppp1pppp/3p1n2/8/3PP3/2N5/PPP2PPP/R1BQKBNR b", "g7g6", 50},
+  {"rnbqkb1r/ppp1pppp/3p1n2/8/3PP3/2N5/PPP2PPP/R1BQKBNR b", "e7e5", 30},
+  // Prefer keeping queens after ...e5 in Pirc-ish lines
+  {"rnbqkb1r/ppp2ppp/3p1n2/4p3/3PP3/2N5/PPP2PPP/R1BQKBNR w", "d4e5", 25},
+  {"rnbqkb1r/ppp2ppp/3p1n2/4p3/3PP3/2N5/PPP2PPP/R1BQKBNR w", "g1f3", 50},
+  {"rnbqkb1r/ppp2ppp/3p1n2/4p3/3PP3/2N5/PPP2PPP/R1BQKBNR w", "d4d5", 20},
 
   // 1.c4
   {"rnbqkbnr/pppppppp/8/8/2P5/8/PP1PPPPP/RNBQKBNR b", "e7e5", 35},
