@@ -137,8 +137,8 @@ inline std::string move_to_uci(Move m) {
   if (!m) return "0000";
   std::string s = square_to_string(m.from()) + square_to_string(m.to());
   if (m.type() == PROMOTION) {
-    constexpr char promo[] = " nbrq";
-    s += promo[m.promotion_type()];
+    constexpr char promo[] = {'n', 'b', 'r', 'q'};
+    s += promo[m.promotion_type() - KNIGHT];
   }
   return s;
 }
