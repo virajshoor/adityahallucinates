@@ -1,0 +1,40 @@
+# Build
+build/
+cmake-build-*/
+out/
+*.o
+*.obj
+*.exe
+*.dll
+*.dylib
+*.a
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+CTestTestfile.cmake
+cmake_install.cmake
+Makefile
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+# NNUE training artifacts
+*.pt
+*.ckpt
+*.nnue
+tools/train/data/
+tools/datagen/output/
+
+# Test/results output
+results/*.csv
+!results/.gitkeep
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
