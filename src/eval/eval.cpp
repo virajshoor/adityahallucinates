@@ -268,6 +268,10 @@ Value classical_evaluate(const Position& pos) {
           bonus_mg += 10;
           bonus_eg += 25;
         }
+        // Connected / protected passer
+        if (support) {
+          bonus_eg += 8 + 3 * int(r);
+        }
         mg[c] += bonus_mg;
         eg[c] += bonus_eg;
       }
@@ -418,7 +422,7 @@ Value classical_evaluate(const Position& pos) {
     // Endgame king activity toward enemy king
     Square eksq = pos.king_square(~c);
     int dist = std::abs(file_of(ksq) - file_of(eksq)) + std::abs(rank_of(ksq) - rank_of(eksq));
-    eg[c] -= 4 * dist;
+    eg[c] -= 6 * dist;
   }
 
   // Encourage castled king positions already via PST; discourage early king walks

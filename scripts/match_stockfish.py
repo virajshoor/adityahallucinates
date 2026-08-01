@@ -71,7 +71,7 @@ def main() -> int:
     ap.add_argument("--skill", type=int, default=5)
     ap.add_argument("--elo", type=int, default=0)
     ap.add_argument("--movetime", type=float, default=0.1)
-    ap.add_argument("--hash", type=int, default=128)
+    ap.add_argument("--hash", type=int, default=256)
     ap.add_argument("--target", type=float, default=0.75)
     args = ap.parse_args()
 
