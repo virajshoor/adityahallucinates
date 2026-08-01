@@ -13,20 +13,19 @@ Classical UCI engine `build/aditya` is runnable and strength-tested vs Stockfish
 | `UCI_Elo` 2200 | 3.0s/move | **100% pass (16/16)** |
 | `UCI_Elo` 2400 | 3.0s/move | **90.6% pass** |
 | `UCI_Elo` 2600 | **5.0s/move** | **75% pass** (71.9% near-miss @3s) |
-| `UCI_Elo` 2800 | 5.0s / 8.0s | **retesting** after tempo/SEE/qsearch/draw fixes (prior 65.6% / 59.4%) |
+| `UCI_Elo` 2800 | 5.0s / 8.0s | **retesting** recovered stack (prior 65.6%/59.4%; interim qsearch rewrite regressed Elo 2000) |
 
 **Default eval is classical.** Critical fixes this session:
 1. PeSTO PSTs were rank-flipped (a1=0 vs rank-8-first) — ~300–500cp inflation + exchange blunders
 2. SEE-based threat eval for winning opponent captures (e.g. BxR on “defended” rook)
-3. **Qsearch stand-pat while in check**; quiet promotions in qsearch
-4. **SEE mover color** (threat eval was wrong for non-STM); pin filtering; promotion next-victim
-5. Draws before TT; root contempt when ahead; book ply gate 8→14; full Hash TT capacity
-6. **Tempo polarity**: tempo was always added to White’s score → Black STM ~80cp too low
-7. Pawn `gives_check` (PseudoAttacks[PAWN] empty); null-move sets `MOVE_NULL`
+3. SEE mover color + pins + promotion next-victim; pawn `gives_check`
+4. Tempo polarity (Black STM was ~80cp too low)
+5. Draws before TT; book ply 14; full Hash TT; null-move `MOVE_NULL`
+6. **Reverted** aggressive qsearch quiet-check rewrite — it collapsed Elo 2000 to ~12–37%
 
 NNUE (`nets/fast.nnue`, `ADITYA_USE_NNUE=1`) has incremental int16 dual-perspective accumulators in search. Bootstrap net (~20k SF labels) loses heavily to classical in short self-play — **do not enable for matches** until it wins SPRT.
 
-**Elo 5000 is not a real ladder target.** Stockfish `UCI_Elo` only goes **1320–3190**; full SF ≈3600. Measurable progress: cleared through **2600**; **2800+** in retest.
+**Elo 5000 is not a real ladder target.** Stockfish `UCI_Elo` only goes **1320–3190**; full SF ≈3600. Measurable progress: cleared through **2600**; **2800+** in retest after recovery.
 
 Branch: `cursor/chess-engine-elo-climb-936e`  
 PR: https://github.com/virajshoor/adityahallucinates/pull/2

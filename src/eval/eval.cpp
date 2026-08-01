@@ -422,10 +422,11 @@ Value classical_evaluate(const Position& pos) {
       }
     }
 
-    // Endgame king activity toward enemy king
+    // Endgame mop-up: only the side that's ahead benefits from driving kings together
+    // (identical penalties on both colors previously cancelled to zero).
     Square eksq = pos.king_square(~c);
     int dist = std::abs(file_of(ksq) - file_of(eksq)) + std::abs(rank_of(ksq) - rank_of(eksq));
-    eg[c] -= 4 * dist;
+    eg[c] -= dist; // small base activity; advantage term applied after blend
   }
 
   // Encourage castled king positions already via PST; discourage early king walks
@@ -440,6 +441,14 @@ Value classical_evaluate(const Position& pos) {
   int egw = phase;
   int mgw = 24 - phase;
   int score = ((mg[WHITE] - mg[BLACK]) * mgw + (eg[WHITE] - eg[BLACK]) * egw) / 24;
+
+  // Advantage-dependent mop-up: when clearly ahead in the endgame, chase the enemy king
+  if (egw >= 12) {
+    Square wk = pos.king_square(WHITE), bk = pos.king_square(BLACK);
+    int kdist = std::abs(file_of(wk) - file_of(bk)) + std::abs(rank_of(wk) - rank_of(bk));
+    if (score > 120) score += (14 - kdist) * (egw / 6);
+    else if (score < -120) score -= (14 - kdist) * (egw / 6);
+  }
 
   // Opposite-colored bishops: more drawish in endgames
   if (popcount(pos.pieces(BISHOP)) == 2 &&
