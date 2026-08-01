@@ -244,7 +244,7 @@ Move parse_uci_legal(const Position& pos, const std::string& u) {
 } // namespace
 
 Move probe_book(const Position& pos) {
-  if (pos.game_ply() > 12) return MOVE_NONE;
+  if (pos.game_ply() > 14) return MOVE_NONE;
   std::string key = book_key(pos);
   std::vector<std::pair<Move, int>> choices;
   int total = 0;

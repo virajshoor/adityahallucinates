@@ -127,7 +127,11 @@ Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
   ss->pv[0] = MOVE_NONE;
   if (ss->ply >= MAX_PLY - 1) return eval_pos(pos, ss);
 
-  if (pos.is_draw(ss->ply)) return VALUE_DRAW;
+  if (pos.is_draw(ss->ply)) {
+    Value stand = eval_pos(pos, ss);
+    if (std::abs(int(stand)) > 80) return Value(stand / 5);
+    return VALUE_DRAW;
+  }
 
   Value stand = eval_pos(pos, ss);
   if (stand >= beta) return stand;
@@ -201,8 +205,7 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
   (ss + 1)->killers[0] = (ss + 1)->killers[1] = MOVE_NONE;
 
   if (!rootNode) {
-    if (pos.is_draw(ss->ply) || ss->ply >= MAX_PLY - 1)
-      return VALUE_DRAW;
+    if (ss->ply >= MAX_PLY - 1) return VALUE_DRAW;
   }
 
   alpha = std::max(alpha, mated_in(ss->ply));
@@ -231,6 +234,12 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
     eval = ss->staticEval = VALUE_NONE;
   } else {
     eval = ss->staticEval = ttHit && tte->eval != int16_t(VALUE_NONE) ? Value(tte->eval) : eval_pos(pos, ss);
+  }
+
+  // 2-fold / rule50 draw: soft-draw toward eval when clearly better/worse
+  if (!rootNode && pos.is_draw(ss->ply)) {
+    if (!inCheck && std::abs(int(eval)) > 80) return Value(eval / 5);
+    return VALUE_DRAW;
   }
 
   const bool improving = !inCheck && ss->ply >= 2 &&
