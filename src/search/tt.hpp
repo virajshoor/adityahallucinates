@@ -26,11 +26,8 @@ public:
   void resize(size_t mb) {
     size_t bytes = mb * 1024ULL * 1024ULL;
     size_t entries = std::max<size_t>(ClusterSize, bytes / sizeof(TTEntry));
-    // number of clusters as power of two
-    size_t clusters = entries / ClusterSize;
-    size_t pow2 = 1;
-    while (pow2 * 2 <= clusters) pow2 *= 2;
-    size_ = pow2;
+    // Keep full cluster count (not floored to power-of-two) for ~full Hash MB usage.
+    size_ = std::max<size_t>(1, entries / ClusterSize);
     table_.assign(size_ * ClusterSize, {});
     age_ = 0;
   }
@@ -43,7 +40,9 @@ public:
   void new_search() { age_ = uint8_t(age_ + 1); }
 
   TTEntry* probe(Key key, bool& hit) {
-    TTEntry* cluster = &table_[(key & (size_ - 1)) * ClusterSize];
+    // Multiply-high index into arbitrary cluster count
+    size_t idx = (size_t)((__uint128_t(key) * __uint128_t(size_)) >> 64);
+    TTEntry* cluster = &table_[idx * ClusterSize];
     for (size_t i = 0; i < ClusterSize; ++i) {
       if (cluster[i].key == key) {
         hit = true;
@@ -52,13 +51,16 @@ public:
       }
     }
     hit = false;
-    // Return replaceable slot: prefer empty, then oldest/shallowest
+    // Prefer empty, then generation-distance + shallower depth; protect exact entries.
     TTEntry* replace = &cluster[0];
     for (size_t i = 1; i < ClusterSize; ++i) {
       if (cluster[i].key == 0) { replace = &cluster[i]; break; }
-      int ri = (replace->age == age_ ? 256 : 0) + replace->depth;
-      int ci = (cluster[i].age == age_ ? 256 : 0) + cluster[i].depth;
-      if (ci < ri) replace = &cluster[i];
+      auto score_slot = [&](const TTEntry& e) {
+        int ageDist = uint8_t(age_ - e.age);
+        int protect = (e.flag == TT_EXACT ? 64 : 0) + int(e.depth);
+        return protect - 4 * ageDist;
+      };
+      if (score_slot(cluster[i]) < score_slot(*replace)) replace = &cluster[i];
     }
     return replace;
   }

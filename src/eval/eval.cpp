@@ -386,9 +386,10 @@ Value classical_evaluate(const Position& pos) {
     if (attackerCount >= 2)
       mg[c] -= attackUnits * attackUnits / 3 + 3 * attackerCount;
 
-    // Threats: opponent captures of our pieces that pass SEE (wins material / exchange)
+    // Threats: best winning opponent capture per our piece (mutually exclusive victims)
     Bitboard ours = pos.pieces(c, PAWN) | pos.pieces(c, KNIGHT) | pos.pieces(c, BISHOP)
                   | pos.pieces(c, ROOK) | pos.pieces(c, QUEEN);
+    int bestThreat[SQUARE_NB] = {};
     Bitboard opp = pos.pieces(~c) & ~pos.pieces(~c, KING);
     while (opp) {
       Square from = pop_lsb(opp);
@@ -403,15 +404,21 @@ Value classical_evaluate(const Position& pos) {
       while (targets) {
         Square to = pop_lsb(targets);
         PieceType vpt = type_of(pos.piece_on(to));
-        // Only flag when capturing equal/higher value (cheap filter before SEE)
         if (PieceValueMg[vpt] < PieceValueMg[apt]) continue;
         Move threat(from, to);
         if (pos.see_ge(threat, 0)) {
           int pen = (PieceValueMg[vpt] - PieceValueMg[apt] / 2) / 2;
           pen = std::clamp(pen, 20, 180);
-          mg[c] -= pen;
-          eg[c] -= pen * 2 / 3;
+          bestThreat[to] = std::max(bestThreat[to], pen);
         }
+      }
+    }
+    Bitboard threatened = ours;
+    while (threatened) {
+      Square to = pop_lsb(threatened);
+      if (bestThreat[to]) {
+        mg[c] -= bestThreat[to];
+        eg[c] -= bestThreat[to] * 2 / 3;
       }
     }
 
@@ -447,8 +454,33 @@ Value classical_evaluate(const Position& pos) {
     }
   }
 
-  // Tempo + mild contempt: prefer decisive play over sterile equality
+  // Tempo: side-to-move advantage (not draw contempt)
   score += (40 * mgw) / 24;
+
+  // Exact insufficient-material draws / near-draws
+  const int wp = popcount(pos.pieces(WHITE, PAWN));
+  const int bp = popcount(pos.pieces(BLACK, PAWN));
+  const int wn = popcount(pos.pieces(WHITE, KNIGHT));
+  const int bn = popcount(pos.pieces(BLACK, KNIGHT));
+  const int wb = popcount(pos.pieces(WHITE, BISHOP));
+  const int bb = popcount(pos.pieces(BLACK, BISHOP));
+  const int wr = popcount(pos.pieces(WHITE, ROOK));
+  const int br = popcount(pos.pieces(BLACK, ROOK));
+  const int wq = popcount(pos.pieces(WHITE, QUEEN));
+  const int bq = popcount(pos.pieces(BLACK, QUEEN));
+  if (!wp && !bp && !wr && !br && !wq && !bq) {
+    // K vs K, KB/KN vs K, KNN vs K
+    int minorsW = wn + wb, minorsB = bn + bb;
+    if (minorsW + minorsB <= 1) score = 0;
+    else if (minorsW == 2 && !minorsB && wb == 0 && wn == 2) score = 0;
+    else if (minorsB == 2 && !minorsW && bb == 0 && bn == 2) score = 0;
+    else if (minorsW <= 1 && minorsB <= 1) score = score / 8;
+  }
+
+  // Scale toward draw as fifty-move clock advances (no pawn/capture reset soon)
+  int r50 = pos.rule50_count();
+  if (r50 > 60 && std::abs(score) < 400)
+    score = score * (100 - r50) / 40;
 
   return Value(pos.side_to_move() == WHITE ? score : -score);
 }

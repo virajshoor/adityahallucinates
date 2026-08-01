@@ -127,19 +127,21 @@ Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
   ss->pv[0] = MOVE_NONE;
   if (ss->ply >= MAX_PLY - 1) return eval_pos(pos, ss);
 
-  if (pos.is_draw(ss->ply)) {
-    Value stand = eval_pos(pos, ss);
-    if (std::abs(int(stand)) > 80) return Value(stand / 5);
+  if (pos.is_draw(ss->ply))
     return VALUE_DRAW;
-  }
 
-  Value stand = eval_pos(pos, ss);
-  if (stand >= beta) return stand;
-  if (stand > alpha) alpha = stand;
+  const bool inCheckQS = pos.checkers();
+  Value stand = VALUE_NONE;
+  // Stand-pat is illegal while in check — must search evasions (or return mate).
+  if (!inCheckQS) {
+    stand = eval_pos(pos, ss);
+    if (stand >= beta) return stand;
+    if (stand > alpha) alpha = stand;
+  }
 
   ExtMove moves[MAX_MOVES];
   ExtMove* end;
-  if (pos.checkers()) {
+  if (inCheckQS) {
     end = generate<LEGAL>(pos, moves);
     if (moves == end) return mated_in(ss->ply);
   } else {
@@ -147,17 +149,25 @@ Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
     ExtMove* n = moves;
     for (ExtMove* m = moves; m != end; ++m)
       if (pos.is_legal(m->move)) *n++ = *m;
-    // Also try safe checking quiets (tactical sharpness)
+    // Quiet promotions are horizon events — always include in qsearch.
     ExtMove quiets[MAX_MOVES];
     ExtMove* qend = generate<QUIETS>(pos, quiets);
-    int checksAdded = 0;
-    for (ExtMove* m = quiets; m != qend && checksAdded < 8; ++m) {
+    ExtMove checkCands[MAX_MOVES];
+    ExtMove* checkEnd = checkCands;
+    for (ExtMove* m = quiets; m != qend; ++m) {
       if (!pos.is_legal(m->move)) continue;
-      if (!pos.gives_check(m->move)) continue;
-      if (!pos.see_ge(m->move, 0)) continue;
-      *n++ = *m;
-      ++checksAdded;
+      if (m->move.type() == PROMOTION) {
+        *n++ = *m;
+        continue;
+      }
+      if (pos.gives_check(m->move) && pos.see_ge(m->move, 0))
+        *checkEnd++ = *m;
     }
+    // Prefer higher-SEE / better-ordered checks: score then take top 8
+    order_moves(pos, checkCands, checkEnd, MOVE_NONE, ss);
+    int checksAdded = 0;
+    for (ExtMove* m = checkCands; m != checkEnd && checksAdded < 8; ++m, ++checksAdded)
+      *n++ = *m;
     end = n;
   }
 
@@ -166,13 +176,16 @@ Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
 
   for (ExtMove* em = moves; em != end; ++em) {
     Move m = em->move;
-    if (!pos.checkers()) {
+    if (!inCheckQS) {
       int captureVal = m.type() == EN_PASSANT ? 100
-                     : (m.type() == PROMOTION ? 900 : 0);
-      if (m.type() != PROMOTION && pos.piece_on(m.to()))
-        captureVal = piece_value(type_of(pos.piece_on(m.to())));
+                     : (m.type() == PROMOTION ? 800 : 0);
+      if (m.type() == PROMOTION)
+        captureVal += piece_value(m.promotion_type()) - piece_value(PAWN);
+      if (pos.piece_on(m.to()))
+        captureVal = piece_value(type_of(pos.piece_on(m.to())))
+                   + (m.type() == PROMOTION ? piece_value(m.promotion_type()) - piece_value(PAWN) : 0);
       if (stand + captureVal + 150 < alpha) continue;
-      if (!pos.see_ge(m, 0)) continue;
+      if (m.type() != PROMOTION && !pos.see_ge(m, 0)) continue;
     }
 
     if (useNnueAcc) nnue().do_move((ss + 1)->acc, ss->acc, pos, m);
@@ -217,6 +230,10 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
 
   info.seldepth = std::max(info.seldepth, ss->ply);
 
+  // Draws before TT: a TT score must not override an actual repetition / 50-move draw.
+  if (!rootNode && pos.is_draw(ss->ply))
+    return VALUE_DRAW;
+
   bool ttHit = false;
   TTEntry* tte = tt.probe(pos.key(), ttHit);
   Move ttMove = ttHit ? tte->move : MOVE_NONE;
@@ -234,12 +251,6 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
     eval = ss->staticEval = VALUE_NONE;
   } else {
     eval = ss->staticEval = ttHit && tte->eval != int16_t(VALUE_NONE) ? Value(tte->eval) : eval_pos(pos, ss);
-  }
-
-  // 2-fold / rule50 draw: soft-draw toward eval when clearly better/worse
-  if (!rootNode && pos.is_draw(ss->ply)) {
-    if (!inCheck && std::abs(int(eval)) > 80) return Value(eval / 5);
-    return VALUE_DRAW;
   }
 
   const bool improving = !inCheck && ss->ply >= 2 &&
@@ -326,23 +337,20 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
         !pos.see_ge(m, -piece_value(PAWN) * depth))
       continue;
 
-    // Quiet moves that hang material (SEE < 0)
-    if (!rootNode && !pvNode && !capture && !givesCheck && depth <= 6 && moveCount > 1 &&
+    // Quiet moves that hang material — only shallow; deeper SEE pruning was too blunt.
+    if (!rootNode && !pvNode && !capture && !givesCheck && depth <= 3 && moveCount > 1 &&
         !pos.see_ge(m, 0))
       continue;
 
     Depth newDepth = depth - 1;
     int extension = 0;
-    if (!rootNode && givesCheck && pos.see_ge(m, 0))
-      extension = depth <= 6 ? 1 : 1;
+    // Extend safe checks only at shallow-to-medium depth (was tautological depth<=6?1:1).
+    if (!rootNode && givesCheck && depth <= 8 && pos.see_ge(m, 0))
+      extension = 1;
     if (!rootNode && ss->ply >= 1 && (ss - 1)->current &&
         m.to() == (ss - 1)->current.to() && capture)
       extension = std::max(extension, 1);
-    // Conservative singular-style extension: only deep TT hits that failed high
-    if (!rootNode && !extension && depth >= 8 && m == ttMove && ttHit &&
-        tte->depth >= depth - 2 && tte->flag == TT_LOWER &&
-        ttValue >= beta - 20 && std::abs(int(ttValue)) < VALUE_MATE_IN_MAX_PLY)
-      extension = 1;
+    // Pseudo-singular removed: a near-beta LOWER TT hit is not proof of singularity.
 
     Depth reduction = 0;
     if (depth >= 3 && moveCount > 1 + pvNode && !capture && !givesCheck) {
@@ -350,8 +358,11 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
       if (cutNode) ++reduction;
       if (!improving) ++reduction;
       if (ss->killers[0] == m || ss->killers[1] == m) reduction = std::max(0, reduction - 1);
-      if (history[pos.side_to_move()][m.from()][m.to()] > 4000) reduction = std::max(0, reduction - 1);
-      if (history[pos.side_to_move()][m.from()][m.to()] < -2000) ++reduction;
+      int hist = history[pos.side_to_move()][m.from()][m.to()];
+      if (ss->ply > 0 && (ss - 1)->movedPiece)
+        hist += contHistory[(ss - 1)->movedPiece][(ss - 1)->current.to()][m.to()] / 4;
+      if (hist > 3000) reduction = std::max(0, reduction - 1);
+      if (hist < -1500) ++reduction;
       reduction = std::clamp(reduction, 0, newDepth - 1 + extension);
     }
 
@@ -426,7 +437,8 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
   useNnueAcc = nnue_ready() && std::getenv("ADITYA_USE_NNUE") &&
                std::getenv("ADITYA_USE_NNUE")[0] == '1';
 
-  if (!limits.infinite && pos.game_ply() <= 8) {
+  // Match probe_book's ply-14 ceiling (was gated at ply 8, discarding deeper book).
+  if (!limits.infinite && pos.game_ply() <= 14) {
     Move bookMove = probe_book(pos);
     if (bookMove) {
       std::cout << "info string book " << move_to_uci(bookMove) << std::endl;
