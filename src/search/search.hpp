@@ -31,6 +31,7 @@ public:
     Move* pv = nullptr;
     Move killers[2] = {};
     Move current = MOVE_NONE;
+    Piece movedPiece = NO_PIECE;
     int ply = 0;
     int staticEval = VALUE_NONE;
     NnueAccumulator acc{};
@@ -60,6 +61,7 @@ private:
   Move pv_table[MAX_PLY + 1][MAX_PV]{};
   int history[COLOR_NB][64][64]{};
   int captureHistory[PIECE_NB][64][PIECE_TYPE_NB]{};
+  int contHistory[PIECE_NB][64][64]{}; // prev piece-to → current from-to
   Move countermove[PIECE_NB][64]{};
 
   Move bestRootMove = MOVE_NONE;

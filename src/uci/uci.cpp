@@ -75,7 +75,7 @@ void uci_loop() {
   pos.set_startpos(states[0]);
 
   Search search;
-  search.set_hash(128);
+  search.set_hash(256);
 
   std::string line;
   while (std::getline(std::cin, line)) {
@@ -87,7 +87,7 @@ void uci_loop() {
     if (token == "uci") {
       std::cout << "id name AdityaHallucinates\n";
       std::cout << "id author Viraj Shoor\n";
-      std::cout << "option name Hash type spin default 128 min 1 max 65536\n";
+      std::cout << "option name Hash type spin default 256 min 1 max 65536\n";
       std::cout << "option name Threads type spin default 1 min 1 max 1\n";
       std::cout << "option name EvalFile type string default nets/default.nnue\n";
       std::cout << "uciok" << std::endl;

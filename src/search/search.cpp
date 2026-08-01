@@ -13,9 +13,9 @@
 namespace ah {
 
 namespace {
-constexpr int FutilityMargin = 130;
-constexpr int RazorMargin = 270;
-constexpr int ReverseFutilityMargin = 110;
+constexpr int FutilityMargin = 150;
+constexpr int RazorMargin = 300;
+constexpr int ReverseFutilityMargin = 145;
 
 Value value_to_tt(Value v, int ply) {
   if (v >= VALUE_MATE_IN_MAX_PLY) return v + ply;
@@ -43,6 +43,7 @@ void Search::clear() {
   tt.clear();
   std::memset(history, 0, sizeof(history));
   std::memset(captureHistory, 0, sizeof(captureHistory));
+  std::memset(contHistory, 0, sizeof(contHistory));
   std::memset(countermove, 0, sizeof(countermove));
   std::memset(pv_table, 0, sizeof(pv_table));
   info.nodes = 0;
@@ -81,9 +82,12 @@ void Search::update_pv(Stack* ss, Move m) {
 
 void Search::order_moves(Position& pos, ExtMove* begin, ExtMove* end, Move ttMove, Stack* ss) {
   Move cm = MOVE_NONE;
-  if (ss->ply > 0 && (ss - 1)->current) {
-    Piece onTo = pos.piece_on((ss - 1)->current.to());
-    if (onTo) cm = countermove[onTo][(ss - 1)->current.to()];
+  Piece prevPc = NO_PIECE;
+  Square prevTo = SQ_NONE;
+  if (ss->ply > 0 && (ss - 1)->current && (ss - 1)->movedPiece) {
+    prevPc = (ss - 1)->movedPiece;
+    prevTo = (ss - 1)->current.to();
+    cm = countermove[prevPc][prevTo];
   }
 
   for (ExtMove* m = begin; m != end; ++m) {
@@ -107,6 +111,7 @@ void Search::order_moves(Position& pos, ExtMove* begin, ExtMove* end, Move ttMov
       m->score = 750'000;
     } else {
       m->score = history[pos.side_to_move()][mv.from()][mv.to()];
+      if (prevPc) m->score += contHistory[prevPc][prevTo][mv.to()] / 4;
     }
   }
   std::stable_sort(begin, end);
@@ -258,9 +263,16 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
 
   // ProbCut disabled: earlier aggressive variants regressed Elo 2000; revisit with SPRT.
 
-  // Internal iterative reduction
-  if (!ttMove && depth >= 6)
-    depth -= 1;
+  // Internal iterative deepening: shallow search to get a TT move (PV only)
+  if (pvNode && !ttMove && depth >= 6) {
+    search_node(pos, ss, alpha, beta, depth - 2, false);
+    if (info.stop) return alpha;
+    tte = tt.probe(pos.key(), ttHit);
+    ttMove = ttHit ? tte->move : MOVE_NONE;
+    ttValue = ttHit ? value_from_tt(Value(tte->score), ss->ply) : VALUE_NONE;
+  } else if (!ttMove && depth >= 7) {
+    depth -= 1; // IIR on non-PV
+  }
 
   ExtMove moves[MAX_MOVES];
   ExtMove* end = generate<LEGAL>(pos, moves);
@@ -285,6 +297,8 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
 
     ++moveCount;
     ss->current = m;
+    ss->movedPiece = pos.piece_on(m.from());
+    if (m.type() == PROMOTION) ss->movedPiece = make_piece(pos.side_to_move(), m.promotion_type());
     bool givesCheck = pos.gives_check(m);
     bool capture = pos.piece_on(m.to()) || m.type() == EN_PASSANT || m.type() == PROMOTION;
 
@@ -293,9 +307,9 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
         eval + FutilityMargin * depth <= alpha && moveCount > 1)
       continue;
 
-    // Late move pruning
+    // Late move pruning (less aggressive — accuracy over NPS at long TC)
     if (!rootNode && !pvNode && !capture && !givesCheck && depth <= 4 &&
-        moveCount > (improving ? 4 : 3) + depth * depth)
+        moveCount > (improving ? 5 : 4) + depth * depth + depth)
       continue;
 
     // Bad-capture SEE pruning
@@ -364,9 +378,12 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
             int bonus = depth * depth;
             int& h = history[pos.side_to_move()][m.from()][m.to()];
             h += bonus - h * bonus / 16384;
-            if (ss->ply > 0 && (ss - 1)->current) {
-              Piece onTo = pos.piece_on((ss - 1)->current.to());
-              if (onTo) countermove[onTo][(ss - 1)->current.to()] = m;
+            if (ss->ply > 0 && (ss - 1)->movedPiece) {
+              Piece prev = (ss - 1)->movedPiece;
+              Square prevTo = (ss - 1)->current.to();
+              countermove[prev][prevTo] = m;
+              int& ch = contHistory[prev][prevTo][m.to()];
+              ch += bonus - ch * bonus / 16384;
             }
           } else if (pos.piece_on(m.to()) || m.type() == EN_PASSANT) {
             Piece attacker = pos.piece_on(m.from());

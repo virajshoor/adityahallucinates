@@ -447,8 +447,8 @@ Value classical_evaluate(const Position& pos) {
     }
   }
 
-  // Tempo scales down in simplified endgames
-  score += (28 * mgw) / 24;
+  // Tempo + mild contempt: prefer decisive play over sterile equality
+  score += (40 * mgw) / 24;
 
   return Value(pos.side_to_move() == WHITE ? score : -score);
 }
