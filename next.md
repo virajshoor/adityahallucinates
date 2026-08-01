@@ -7,7 +7,7 @@ Classical UCI engine `build/aditya` is runnable and strength-tested vs Stockfish
 | Gate | TC | Result |
 |------|-----|--------|
 | Skill 4 | 0.25s/move | **78.1% pass** (prior) |
-| Skill 5 | 1.5s/move | **running / TBD** |
+| Skill 5 | 1.5s/move | **90.6% pass** |
 | `UCI_Elo` 2000 | 0.25s/move | **96.9% pass** |
 | `UCI_Elo` 2100 | 1.5s/move | **100% pass (16/16)** |
 | `UCI_Elo` 2200 | 3.0s/move | **100% pass (16/16)** |
@@ -51,8 +51,8 @@ python3 scripts/match_stockfish.py --elo 2400 --games 16 --movetime 3.0 --target
 - Try 2800 @5–8s again after each SPRT’d patch
 - Then 3000 → 3190 → unrestricted SF
 
-### 2. Skill 5
-- Finish / confirm Skill 5 @ ≥1.5s (≥75%)
+### 2. Skill 5 — done
+- Cleared Skill 5 @1.5s (**90.6%**)
 
 ### 3. NNUE that beats classical
 ```bash

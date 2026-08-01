@@ -8,7 +8,7 @@ A from-scratch C++ chess engine (classical alpha-beta + handcrafted eval), stren
 |----------|----------:|------:|--------|
 | SF Skill 0–3 | ~0.25s | ≥75–90% | pass |
 | SF Skill **4** | 0.25s | **78.1%** | **pass** |
-| SF Skill 5 | 0.5s+ | iterating | next |
+| SF Skill **5** | **1.5s** | **90.6%** | **pass** |
 | SF `UCI_Elo` 1400–1800 | ~0.25s | ≥80% | pass |
 | SF `UCI_Elo` **2000** | 0.25s | **96.9%** | **pass** |
 | SF `UCI_Elo` **2100** | **1.5s** | **100%** | **pass** |
