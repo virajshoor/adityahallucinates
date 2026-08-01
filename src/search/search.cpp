@@ -127,15 +127,15 @@ Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
   ss->pv[0] = MOVE_NONE;
   if (ss->ply >= MAX_PLY - 1) return eval_pos(pos, ss);
 
-  if (pos.is_draw(ss->ply))
+  if (pos.is_draw(ss->ply)) {
+    Value stand = eval_pos(pos, ss);
+    if (std::abs(int(stand)) > 80) return Value(stand / 5);
     return VALUE_DRAW;
+  }
 
   Value stand = eval_pos(pos, ss);
-  // Stand-pat illegal in check — do not fail high or raise alpha from static eval.
-  if (!pos.checkers()) {
-    if (stand >= beta) return stand;
-    if (stand > alpha) alpha = stand;
-  }
+  if (stand >= beta) return stand;
+  if (stand > alpha) alpha = stand;
 
   ExtMove moves[MAX_MOVES];
   ExtMove* end;
@@ -153,10 +153,6 @@ Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
     int checksAdded = 0;
     for (ExtMove* m = quiets; m != qend && checksAdded < 8; ++m) {
       if (!pos.is_legal(m->move)) continue;
-      if (m->move.type() == PROMOTION) {
-        *n++ = *m; // quiet promotions are horizon events
-        continue;
-      }
       if (!pos.gives_check(m->move)) continue;
       if (!pos.see_ge(m->move, 0)) continue;
       *n++ = *m;
@@ -175,9 +171,8 @@ Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
                      : (m.type() == PROMOTION ? 900 : 0);
       if (m.type() != PROMOTION && pos.piece_on(m.to()))
         captureVal = piece_value(type_of(pos.piece_on(m.to())));
-      // Quiet checks have ~0 captureVal — do not delta-prune them.
-      if (!pos.gives_check(m) && stand + captureVal + 150 < alpha) continue;
-      if (m.type() != PROMOTION && !pos.see_ge(m, 0)) continue;
+      if (stand + captureVal + 150 < alpha) continue;
+      if (!pos.see_ge(m, 0)) continue;
     }
 
     if (useNnueAcc) nnue().do_move((ss + 1)->acc, ss->acc, pos, m);
@@ -222,10 +217,6 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
 
   info.seldepth = std::max(info.seldepth, ss->ply);
 
-  // Draws before TT so a TT score cannot override repetition / 50-move.
-  if (!rootNode && pos.is_draw(ss->ply))
-    return VALUE_DRAW;
-
   bool ttHit = false;
   TTEntry* tte = tt.probe(pos.key(), ttHit);
   Move ttMove = ttHit ? tte->move : MOVE_NONE;
@@ -243,6 +234,12 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
     eval = ss->staticEval = VALUE_NONE;
   } else {
     eval = ss->staticEval = ttHit && tte->eval != int16_t(VALUE_NONE) ? Value(tte->eval) : eval_pos(pos, ss);
+  }
+
+  // 2-fold / rule50 draw: soft-draw toward eval when clearly better/worse
+  if (!rootNode && pos.is_draw(ss->ply)) {
+    if (!inCheck && std::abs(int(eval)) > 80) return Value(eval / 5);
+    return VALUE_DRAW;
   }
 
   const bool improving = !inCheck && ss->ply >= 2 &&

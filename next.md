@@ -13,7 +13,7 @@ Classical UCI engine `build/aditya` is runnable and strength-tested vs Stockfish
 | `UCI_Elo` 2200 | 3.0s/move | **100% pass (16/16)** |
 | `UCI_Elo` 2400 | 3.0s/move | **90.6% pass** |
 | `UCI_Elo` 2600 | **5.0s/move** | **75% pass** (71.9% near-miss @3s) |
-| `UCI_Elo` 2800 | 5.0s / 8.0s | **retesting** recovered stack (prior 65.6%/59.4%; interim qsearch rewrite regressed Elo 2000) |
+| `UCI_Elo` 2800 | 5.0s / 8.0s | **retesting** — search restored to 9848fe5 (+null/book); board SEE/tempo/TT kept (prior 65.6%/59.4%) |
 
 **Default eval is classical.** Critical fixes this session:
 1. PeSTO PSTs were rank-flipped (a1=0 vs rank-8-first) — ~300–500cp inflation + exchange blunders
@@ -21,7 +21,8 @@ Classical UCI engine `build/aditya` is runnable and strength-tested vs Stockfish
 3. SEE mover color + pins + promotion next-victim; pawn `gives_check`
 4. Tempo polarity (Black STM was ~80cp too low)
 5. Draws before TT; book ply 14; full Hash TT; null-move `MOVE_NULL`
-6. **Reverted** aggressive qsearch quiet-check rewrite — it collapsed Elo 2000 to ~12–37%
+6. Search patches (stand-pat/draw/qsearch) regressed Elo 2400+ — **restored 9848fe5 search** (+ null-move marker, book ply 14 only)
+7. Kept: SEE mover/pins/promotions, tempo polarity, mop-up, full Hash TT, threat aggregation
 
 NNUE (`nets/fast.nnue`, `ADITYA_USE_NNUE=1`) has incremental int16 dual-perspective accumulators in search. Bootstrap net (~20k SF labels) loses heavily to classical in short self-play — **do not enable for matches** until it wins SPRT.
 
