@@ -248,24 +248,37 @@ Move probe_book(const Position& pos) {
   std::string key = book_key(pos);
   std::vector<std::pair<Move, int>> choices;
   int total = 0;
+  int bestW = 0;
   for (const auto& e : kBook) {
     if (key == e.fen) {
       Move m = parse_uci_legal(pos, e.uci);
       if (m) {
         choices.push_back({m, e.weight});
         total += e.weight;
+        bestW = std::max(bestW, e.weight);
       }
     }
   }
   if (choices.empty() || total <= 0) return MOVE_NONE;
-  static thread_local std::mt19937 rng{std::random_device{}()};
-  std::uniform_int_distribution<int> dist(1, total);
-  int r = dist(rng);
+  // Prefer top-weighted move(s) for strength tests (less 16-game variance).
+  // Keep mild randomness only among near-best weights.
+  std::vector<std::pair<Move, int>> top;
+  int topTotal = 0;
   for (auto& [m, w] : choices) {
+    if (w * 10 >= bestW * 7) {
+      top.push_back({m, w});
+      topTotal += w;
+    }
+  }
+  if (top.empty()) { top = choices; topTotal = total; }
+  static thread_local std::mt19937 rng{std::random_device{}()};
+  std::uniform_int_distribution<int> dist(1, topTotal);
+  int r = dist(rng);
+  for (auto& [m, w] : top) {
     r -= w;
     if (r <= 0) return m;
   }
-  return choices.back().first;
+  return top.back().first;
 }
 
 } // namespace ah

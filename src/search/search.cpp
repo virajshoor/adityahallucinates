@@ -34,6 +34,15 @@ int piece_value(PieceType pt) {
 }
 } // namespace
 
+Value Search::draw_score(const Position& pos) const {
+  // Fifty-move / insufficient material already folded into is_draw; apply root contempt
+  // so the engine avoids repeating when ahead and accepts draws when behind.
+  int c = DrawContempt;
+  if (std::abs(int(rootScore)) > 120) c += 12;
+  // Score from STM perspective: root side sees draws as slightly negative.
+  return pos.side_to_move() == rootColor ? Value(-c) : Value(c);
+}
+
 Search::Search() {
   tt.resize(256);
   clear();
@@ -128,7 +137,7 @@ Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
   if (ss->ply >= MAX_PLY - 1) return eval_pos(pos, ss);
 
   if (pos.is_draw(ss->ply))
-    return VALUE_DRAW;
+    return draw_score(pos);
 
   const bool inCheckQS = pos.checkers();
   Value stand = VALUE_NONE;
@@ -232,7 +241,7 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
 
   // Draws before TT: a TT score must not override an actual repetition / 50-move draw.
   if (!rootNode && pos.is_draw(ss->ply))
-    return VALUE_DRAW;
+    return draw_score(pos);
 
   bool ttHit = false;
   TTEntry* tte = tt.probe(pos.key(), ttHit);
@@ -395,7 +404,7 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
               ss->killers[1] = ss->killers[0];
               ss->killers[0] = m;
             }
-            int bonus = depth * depth;
+            int bonus = std::min(depth * depth + 2 * depth - 2, 1200);
             int& h = history[pos.side_to_move()][m.from()][m.to()];
             h += bonus - h * bonus / 16384;
             if (ss->ply > 0 && (ss - 1)->movedPiece) {
@@ -405,11 +414,20 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
               int& ch = contHistory[prev][prevTo][m.to()];
               ch += bonus - ch * bonus / 16384;
             }
+            // Malus quiet moves that failed to cause the cutoff
+            for (ExtMove* qm = moves; qm != em; ++qm) {
+              Move failed = qm->move;
+              if (pos.piece_on(failed.to()) || failed.type() == EN_PASSANT || failed.type() == PROMOTION)
+                continue;
+              int& fh = history[pos.side_to_move()][failed.from()][failed.to()];
+              int malus = bonus / 2;
+              fh -= malus + fh * malus / 16384;
+            }
           } else if (pos.piece_on(m.to()) || m.type() == EN_PASSANT) {
             Piece attacker = pos.piece_on(m.from());
             int victim = m.type() == EN_PASSANT ? PAWN : type_of(pos.piece_on(m.to()));
             int& ch = captureHistory[attacker][m.to()][victim];
-            int bonus = depth * depth;
+            int bonus = std::min(depth * depth + 2 * depth - 2, 1200);
             ch += bonus - ch * bonus / 16384;
           }
           break;
@@ -434,6 +452,8 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
   info.seldepth = 0;
   tt.new_search();
   bestRootMove = MOVE_NONE;
+  rootColor = pos.side_to_move();
+  rootScore = 0;
   useNnueAcc = nnue_ready() && std::getenv("ADITYA_USE_NNUE") &&
                std::getenv("ADITYA_USE_NNUE")[0] == '1';
 
@@ -507,6 +527,7 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
     if (info.stop && depth > 1) break;
 
     if (ss->pv[0]) bestRootMove = ss->pv[0];
+    rootScore = bestScore;
 
     int64_t elapsed = std::max<int64_t>(1, now_ms() - startTime);
     std::cout << "info depth " << depth

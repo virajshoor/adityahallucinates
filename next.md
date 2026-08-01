@@ -13,15 +13,18 @@ Classical UCI engine `build/aditya` is runnable and strength-tested vs Stockfish
 | `UCI_Elo` 2200 | 3.0s/move | **100% pass (16/16)** |
 | `UCI_Elo` 2400 | 3.0s/move | **90.6% pass** |
 | `UCI_Elo` 2600 | **5.0s/move** | **75% pass** (71.9% near-miss @3s) |
-| `UCI_Elo` 2800 | 5.0s / 8.0s | **65.6% / 59.4% fail** — current ceiling |
+| `UCI_Elo` 2800 | 5.0s / 8.0s | **retesting** after qsearch/SEE/draw/TT/book fixes (prior 65.6% / 59.4%) |
 
 **Default eval is classical.** Critical fixes this session:
 1. PeSTO PSTs were rank-flipped (a1=0 vs rank-8-first) — ~300–500cp inflation + exchange blunders
 2. SEE-based threat eval for winning opponent captures (e.g. BxR on “defended” rook)
+3. **Qsearch stand-pat while in check** (tactical correctness); quiet promotions in qsearch
+4. **SEE mover color** (threat eval was wrong for non-STM); pin filtering; promotion gain
+5. Draws before TT; removed inverted soft-draw; book ply gate 8→14; full Hash TT capacity
 
 NNUE (`nets/fast.nnue`, `ADITYA_USE_NNUE=1`) has incremental int16 dual-perspective accumulators in search. Bootstrap net (~20k SF labels) loses heavily to classical in short self-play — **do not enable for matches** until it wins SPRT.
 
-**Elo 5000 is not a real ladder target.** Stockfish `UCI_Elo` only goes **1320–3190**; full SF ≈3600. Measurable progress: cleared through **2600**; **2800+** needs more classical strength and/or a winning NNUE.
+**Elo 5000 is not a real ladder target.** Stockfish `UCI_Elo` only goes **1320–3190**; full SF ≈3600. Measurable progress: cleared through **2600**; **2800+** in retest.
 
 Branch: `cursor/chess-engine-elo-climb-936e`  
 PR: https://github.com/virajshoor/adityahallucinates/pull/2
