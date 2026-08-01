@@ -51,7 +51,6 @@ public:
 private:
   Value search_node(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode);
   Value qsearch(Position& pos, Stack* ss, Value alpha, Value beta);
-  Value draw_score(const Position& pos) const;
   void update_pv(Stack* ss, Move m);
   void order_moves(Position& pos, ExtMove* begin, ExtMove* end, Move ttMove, Stack* ss);
   bool time_up() const;
@@ -70,9 +69,6 @@ private:
   int64_t allocatedTime = 0;
   SearchLimits limits{};
   bool useNnueAcc = false;
-  Color rootColor = WHITE;
-  Value rootScore = 0; // last completed iteration score (root STM)
-  static constexpr int DrawContempt = 18; // cp: root side dislikes sterile draws
 };
 
 } // namespace ah

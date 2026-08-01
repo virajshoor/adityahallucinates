@@ -34,14 +34,6 @@ int piece_value(PieceType pt) {
 }
 } // namespace
 
-Value Search::draw_score(const Position& pos) const {
-  // Only push away from draws when clearly ahead; accept them when behind.
-  int c = 0;
-  if (rootScore > 50) c = DrawContempt + (rootScore > 150 ? 12 : 0);
-  else if (rootScore < -50) c = -DrawContempt / 2;
-  return pos.side_to_move() == rootColor ? Value(-c) : Value(c);
-}
-
 Search::Search() {
   tt.resize(256);
   clear();
@@ -136,20 +128,18 @@ Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
   if (ss->ply >= MAX_PLY - 1) return eval_pos(pos, ss);
 
   if (pos.is_draw(ss->ply))
-    return draw_score(pos);
+    return VALUE_DRAW;
 
-  const bool inCheckQS = pos.checkers();
-  Value stand = VALUE_NONE;
-  // Stand-pat is illegal while in check — must search evasions (or return mate).
-  if (!inCheckQS) {
-    stand = eval_pos(pos, ss);
+  Value stand = eval_pos(pos, ss);
+  // Stand-pat illegal in check — do not fail high or raise alpha from static eval.
+  if (!pos.checkers()) {
     if (stand >= beta) return stand;
     if (stand > alpha) alpha = stand;
   }
 
   ExtMove moves[MAX_MOVES];
   ExtMove* end;
-  if (inCheckQS) {
+  if (pos.checkers()) {
     end = generate<LEGAL>(pos, moves);
     if (moves == end) return mated_in(ss->ply);
   } else {
@@ -157,25 +147,21 @@ Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
     ExtMove* n = moves;
     for (ExtMove* m = moves; m != end; ++m)
       if (pos.is_legal(m->move)) *n++ = *m;
-    // Quiet promotions are horizon events — always include in qsearch.
+    // Also try safe checking quiets (tactical sharpness)
     ExtMove quiets[MAX_MOVES];
     ExtMove* qend = generate<QUIETS>(pos, quiets);
-    ExtMove checkCands[MAX_MOVES];
-    ExtMove* checkEnd = checkCands;
-    for (ExtMove* m = quiets; m != qend; ++m) {
+    int checksAdded = 0;
+    for (ExtMove* m = quiets; m != qend && checksAdded < 8; ++m) {
       if (!pos.is_legal(m->move)) continue;
       if (m->move.type() == PROMOTION) {
-        *n++ = *m;
+        *n++ = *m; // quiet promotions are horizon events
         continue;
       }
-      if (pos.gives_check(m->move) && pos.see_ge(m->move, 0))
-        *checkEnd++ = *m;
-    }
-    // Prefer higher-SEE / better-ordered checks: score then take top 8
-    order_moves(pos, checkCands, checkEnd, MOVE_NONE, ss);
-    int checksAdded = 0;
-    for (ExtMove* m = checkCands; m != checkEnd && checksAdded < 8; ++m, ++checksAdded)
+      if (!pos.gives_check(m->move)) continue;
+      if (!pos.see_ge(m->move, 0)) continue;
       *n++ = *m;
+      ++checksAdded;
+    }
     end = n;
   }
 
@@ -184,15 +170,13 @@ Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
 
   for (ExtMove* em = moves; em != end; ++em) {
     Move m = em->move;
-    if (!inCheckQS) {
-      bool isCheck = pos.gives_check(m);
-      int captureVal = m.type() == EN_PASSANT ? 100 : 0;
-      if (m.type() == PROMOTION)
-        captureVal += piece_value(m.promotion_type()) - piece_value(PAWN);
-      if (pos.piece_on(m.to()))
-        captureVal += piece_value(type_of(pos.piece_on(m.to())));
-      // Do not delta-prune checks; quiet checks have captureVal ~ 0.
-      if (!isCheck && stand + captureVal + 150 < alpha) continue;
+    if (!pos.checkers()) {
+      int captureVal = m.type() == EN_PASSANT ? 100
+                     : (m.type() == PROMOTION ? 900 : 0);
+      if (m.type() != PROMOTION && pos.piece_on(m.to()))
+        captureVal = piece_value(type_of(pos.piece_on(m.to())));
+      // Quiet checks have ~0 captureVal — do not delta-prune them.
+      if (!pos.gives_check(m) && stand + captureVal + 150 < alpha) continue;
       if (m.type() != PROMOTION && !pos.see_ge(m, 0)) continue;
     }
 
@@ -238,9 +222,9 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
 
   info.seldepth = std::max(info.seldepth, ss->ply);
 
-  // Draws before TT: a TT score must not override an actual repetition / 50-move draw.
+  // Draws before TT so a TT score cannot override repetition / 50-move.
   if (!rootNode && pos.is_draw(ss->ply))
-    return draw_score(pos);
+    return VALUE_DRAW;
 
   bool ttHit = false;
   TTEntry* tte = tt.probe(pos.key(), ttHit);
@@ -317,8 +301,6 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
   int moveCount = 0;
   StateInfo st;
   TTFlag flag = TT_UPPER;
-  Move quietsSearched[64];
-  int quietCount = 0;
 
   for (ExtMove* em = moves; em != end; ++em) {
     Move m = em->move;
@@ -350,20 +332,23 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
         !pos.see_ge(m, -piece_value(PAWN) * depth))
       continue;
 
-    // Quiet moves that hang material — only shallow; deeper SEE pruning was too blunt.
-    if (!rootNode && !pvNode && !capture && !givesCheck && depth <= 3 && moveCount > 1 &&
+    // Quiet moves that hang material (SEE < 0)
+    if (!rootNode && !pvNode && !capture && !givesCheck && depth <= 6 && moveCount > 1 &&
         !pos.see_ge(m, 0))
       continue;
 
     Depth newDepth = depth - 1;
     int extension = 0;
-    // Extend safe checks only at shallow-to-medium depth (was tautological depth<=6?1:1).
-    if (!rootNode && givesCheck && depth <= 8 && pos.see_ge(m, 0))
-      extension = 1;
+    if (!rootNode && givesCheck && pos.see_ge(m, 0))
+      extension = depth <= 6 ? 1 : 1;
     if (!rootNode && ss->ply >= 1 && (ss - 1)->current &&
         m.to() == (ss - 1)->current.to() && capture)
       extension = std::max(extension, 1);
-    // Pseudo-singular removed: a near-beta LOWER TT hit is not proof of singularity.
+    // Conservative singular-style extension: only deep TT hits that failed high
+    if (!rootNode && !extension && depth >= 8 && m == ttMove && ttHit &&
+        tte->depth >= depth - 2 && tte->flag == TT_LOWER &&
+        ttValue >= beta - 20 && std::abs(int(ttValue)) < VALUE_MATE_IN_MAX_PLY)
+      extension = 1;
 
     Depth reduction = 0;
     if (depth >= 3 && moveCount > 1 + pvNode && !capture && !givesCheck) {
@@ -371,17 +356,13 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
       if (cutNode) ++reduction;
       if (!improving) ++reduction;
       if (ss->killers[0] == m || ss->killers[1] == m) reduction = std::max(0, reduction - 1);
-      int hist = history[pos.side_to_move()][m.from()][m.to()];
-      if (ss->ply > 0 && (ss - 1)->movedPiece)
-        hist += contHistory[(ss - 1)->movedPiece][(ss - 1)->current.to()][m.to()] / 4;
-      if (hist > 3000) reduction = std::max(0, reduction - 1);
-      if (hist < -1500) ++reduction;
+      if (history[pos.side_to_move()][m.from()][m.to()] > 4000) reduction = std::max(0, reduction - 1);
+      if (history[pos.side_to_move()][m.from()][m.to()] < -2000) ++reduction;
       reduction = std::clamp(reduction, 0, newDepth - 1 + extension);
     }
 
     if (useNnueAcc) nnue().do_move((ss + 1)->acc, ss->acc, pos, m);
     pos.do_move(m, st);
-    if (!capture && quietCount < 64) quietsSearched[quietCount++] = m;
     Value score;
     if (moveCount == 1) {
       score = -search_node(pos, ss + 1, -beta, -alpha, newDepth + extension, false);
@@ -409,7 +390,7 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
               ss->killers[1] = ss->killers[0];
               ss->killers[0] = m;
             }
-            int bonus = std::min(depth * depth + 2 * depth - 2, 1200);
+            int bonus = depth * depth;
             int& h = history[pos.side_to_move()][m.from()][m.to()];
             h += bonus - h * bonus / 16384;
             if (ss->ply > 0 && (ss - 1)->movedPiece) {
@@ -419,18 +400,11 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
               int& ch = contHistory[prev][prevTo][m.to()];
               ch += bonus - ch * bonus / 16384;
             }
-            // Malus only quiets that were actually searched before the cutoff
-            for (int i = 0; i < quietCount - 1; ++i) {
-              Move failed = quietsSearched[i];
-              int& fh = history[pos.side_to_move()][failed.from()][failed.to()];
-              int malus = bonus / 2;
-              fh += -malus - fh * malus / 16384;
-            }
           } else if (pos.piece_on(m.to()) || m.type() == EN_PASSANT) {
             Piece attacker = pos.piece_on(m.from());
             int victim = m.type() == EN_PASSANT ? PAWN : type_of(pos.piece_on(m.to()));
             int& ch = captureHistory[attacker][m.to()][victim];
-            int bonus = std::min(depth * depth + 2 * depth - 2, 1200);
+            int bonus = depth * depth;
             ch += bonus - ch * bonus / 16384;
           }
           break;
@@ -455,12 +429,9 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
   info.seldepth = 0;
   tt.new_search();
   bestRootMove = MOVE_NONE;
-  rootColor = pos.side_to_move();
-  rootScore = 0;
   useNnueAcc = nnue_ready() && std::getenv("ADITYA_USE_NNUE") &&
                std::getenv("ADITYA_USE_NNUE")[0] == '1';
 
-  // Match probe_book's ply-14 ceiling (was gated at ply 8, discarding deeper book).
   if (!limits.infinite && pos.game_ply() <= 14) {
     Move bookMove = probe_book(pos);
     if (bookMove) {
@@ -530,7 +501,6 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
     if (info.stop && depth > 1) break;
 
     if (ss->pv[0]) bestRootMove = ss->pv[0];
-    rootScore = bestScore;
 
     int64_t elapsed = std::max<int64_t>(1, now_ms() - startTime);
     std::cout << "info depth " << depth
