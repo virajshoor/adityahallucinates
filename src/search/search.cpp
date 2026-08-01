@@ -466,15 +466,8 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
   int maxDepth = limits.depth > 0 ? limits.depth : MAX_PLY - 2;
   Value alpha = -VALUE_INFINITE, beta = VALUE_INFINITE;
   Value bestScore = 0;
-  int64_t lastIterTime = 0;
 
   for (int depth = 1; depth <= maxDepth; ++depth) {
-    // Don't start an iteration we clearly cannot finish.
-    if (allocatedTime > 0 && depth >= 6 && lastIterTime > 0) {
-      int64_t remaining = allocatedTime - (now_ms() - startTime);
-      if (remaining < lastIterTime * 3 / 2) break;
-    }
-
     if (depth >= 5) {
       alpha = bestScore - 28;
       beta = bestScore + 28;
@@ -483,7 +476,6 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
       beta = VALUE_INFINITE;
     }
 
-    int64_t iterStart = now_ms();
     int delta = 28;
     while (true) {
       bestScore = search_node(pos, ss, alpha, beta, depth, false);
@@ -493,8 +485,8 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
         alpha = bestScore - delta;
         delta += delta / 2;
         // Fail low: spend more of the remaining movetime
-        if (allocatedTime > 0) allocatedTime = std::min(allocatedTime + allocatedTime / 5,
-            limits.movetime > 0 ? std::max<int64_t>(5, limits.movetime - 2)
+        if (allocatedTime > 0) allocatedTime = std::min(allocatedTime + allocatedTime / 8,
+            limits.movetime > 0 ? std::max<int64_t>(5, limits.movetime - 3)
                                 : allocatedTime * 2);
         continue;
       }
@@ -508,7 +500,6 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
     if (info.stop && depth > 1) break;
 
     if (ss->pv[0]) bestRootMove = ss->pv[0];
-    lastIterTime = std::max<int64_t>(1, now_ms() - iterStart);
     int64_t elapsed = std::max<int64_t>(1, now_ms() - startTime);
     std::cout << "info depth " << depth
               << " seldepth " << info.seldepth
