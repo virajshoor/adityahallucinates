@@ -119,5 +119,6 @@
       "termination": "CHECKMATE",
       "result": "0-1"
     }
-  ]
+  ],
+  "note": "failed 75% at 5s (65.6%) and 8s (59.4%); ceiling for now"
 }
