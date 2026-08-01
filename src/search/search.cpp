@@ -34,6 +34,16 @@ int piece_value(PieceType pt) {
 }
 } // namespace
 
+Value Search::draw_score(int ply) const {
+  // Root-relative contempt: at even ply root is STM, so negative makes draws
+  // look worse for us. Scale up when ahead; accept draws when clearly behind.
+  int c = 10;
+  if (rootScore > 60) c = 22;
+  if (rootScore > 150) c = 30;
+  if (rootScore < -60) c = 0;
+  return (ply % 2 == 0) ? Value(-c) : Value(c);
+}
+
 Search::Search() {
   tt.resize(256);
   clear();
@@ -127,11 +137,8 @@ Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
   ss->pv[0] = MOVE_NONE;
   if (ss->ply >= MAX_PLY - 1) return eval_pos(pos, ss);
 
-  if (pos.is_draw(ss->ply)) {
-    Value stand = eval_pos(pos, ss);
-    if (std::abs(int(stand)) > 80) return Value(stand / 5);
-    return VALUE_DRAW;
-  }
+  if (pos.is_draw(ss->ply))
+    return draw_score(ss->ply);
 
   Value stand = eval_pos(pos, ss);
   if (stand >= beta) return stand;
@@ -236,11 +243,9 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
     eval = ss->staticEval = ttHit && tte->eval != int16_t(VALUE_NONE) ? Value(tte->eval) : eval_pos(pos, ss);
   }
 
-  // 2-fold / rule50 draw: soft-draw toward eval when clearly better/worse
-  if (!rootNode && pos.is_draw(ss->ply)) {
-    if (!inCheck && std::abs(int(eval)) > 80) return Value(eval / 5);
-    return VALUE_DRAW;
-  }
+  // 2-fold / rule50: root-relative contempt (avoid sterile draws when ahead)
+  if (!rootNode && pos.is_draw(ss->ply))
+    return draw_score(ss->ply);
 
   const bool improving = !inCheck && ss->ply >= 2 &&
       (ss - 2)->staticEval != VALUE_NONE && eval >(ss - 2)->staticEval;
@@ -426,6 +431,7 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
   info.seldepth = 0;
   tt.new_search();
   bestRootMove = MOVE_NONE;
+  rootScore = 0;
   useNnueAcc = nnue_ready() && std::getenv("ADITYA_USE_NNUE") &&
                std::getenv("ADITYA_USE_NNUE")[0] == '1';
 
@@ -498,6 +504,7 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
     if (info.stop && depth > 1) break;
 
     if (ss->pv[0]) bestRootMove = ss->pv[0];
+    rootScore = bestScore;
 
     int64_t elapsed = std::max<int64_t>(1, now_ms() - startTime);
     std::cout << "info depth " << depth
