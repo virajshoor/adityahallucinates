@@ -433,10 +433,11 @@ bool Position::gives_check(Move m) const {
   Color us = side;
   Square ksq = king_square(~us);
 
-  if (Bitboards::PseudoAttacks[pt][to] & ksq) {
-    if (pt == PAWN) {
-      if (Bitboards::PawnAttacks[us][to] & ksq) return true;
-    } else if (pt == KNIGHT || pt == KING) {
+  // Pawns: PseudoAttacks[PAWN] is empty — use pawn attack tables directly.
+  if (pt == PAWN) {
+    if (Bitboards::PawnAttacks[us][to] & ksq) return true;
+  } else if (Bitboards::PseudoAttacks[pt][to] & ksq) {
+    if (pt == KNIGHT || pt == KING) {
       return true;
     } else if (attacks_bb(pt, to, pieces() ^ from) & ksq)
       return true;
@@ -477,9 +478,9 @@ bool Position::see_ge(Move m, int threshold) const {
     swap += PieceValue[m.promotion_type()] - PieceValue[PAWN];
   if (swap < 0) return false;
 
-  swap = PieceValue[type_of(piece_on(from))] - swap;
-  if (m.type() == PROMOTION)
-    swap -= PieceValue[m.promotion_type()] - PieceValue[PAWN];
+  // After the move, opponent faces the piece now on `to` (promoted type if any).
+  PieceType nextVictim = m.type() == PROMOTION ? m.promotion_type() : type_of(piece_on(from));
+  swap = PieceValue[nextVictim] - swap;
   if (swap <= 0) return true;
 
   Bitboard occupied = pieces() ^ from ^ to;

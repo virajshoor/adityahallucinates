@@ -35,11 +35,10 @@ int piece_value(PieceType pt) {
 } // namespace
 
 Value Search::draw_score(const Position& pos) const {
-  // Fifty-move / insufficient material already folded into is_draw; apply root contempt
-  // so the engine avoids repeating when ahead and accepts draws when behind.
-  int c = DrawContempt;
-  if (std::abs(int(rootScore)) > 120) c += 12;
-  // Score from STM perspective: root side sees draws as slightly negative.
+  // Only push away from draws when clearly ahead; accept them when behind.
+  int c = 0;
+  if (rootScore > 50) c = DrawContempt + (rootScore > 150 ? 12 : 0);
+  else if (rootScore < -50) c = -DrawContempt / 2;
   return pos.side_to_move() == rootColor ? Value(-c) : Value(c);
 }
 
@@ -186,14 +185,14 @@ Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
   for (ExtMove* em = moves; em != end; ++em) {
     Move m = em->move;
     if (!inCheckQS) {
-      int captureVal = m.type() == EN_PASSANT ? 100
-                     : (m.type() == PROMOTION ? 800 : 0);
+      bool isCheck = pos.gives_check(m);
+      int captureVal = m.type() == EN_PASSANT ? 100 : 0;
       if (m.type() == PROMOTION)
         captureVal += piece_value(m.promotion_type()) - piece_value(PAWN);
       if (pos.piece_on(m.to()))
-        captureVal = piece_value(type_of(pos.piece_on(m.to())))
-                   + (m.type() == PROMOTION ? piece_value(m.promotion_type()) - piece_value(PAWN) : 0);
-      if (stand + captureVal + 150 < alpha) continue;
+        captureVal += piece_value(type_of(pos.piece_on(m.to())));
+      // Do not delta-prune checks; quiet checks have captureVal ~ 0.
+      if (!isCheck && stand + captureVal + 150 < alpha) continue;
       if (m.type() != PROMOTION && !pos.see_ge(m, 0)) continue;
     }
 
@@ -282,9 +281,12 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
     StateInfo st;
     int R = 3 + depth / 3 + std::min(2, (eval - beta) / 220);
     if (useNnueAcc) (ss + 1)->acc.copy_from(ss->acc);
+    Move prevMove = ss->current;
+    ss->current = MOVE_NULL;
     pos.do_null_move(st);
     Value nullScore = -search_node(pos, ss + 1, -beta, -beta + 1, depth - R, !cutNode);
     pos.undo_null_move();
+    ss->current = prevMove;
     if (info.stop) return alpha;
     if (nullScore >= beta)
       return nullScore >= VALUE_MATE_IN_MAX_PLY ? beta : nullScore;
@@ -315,6 +317,8 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
   int moveCount = 0;
   StateInfo st;
   TTFlag flag = TT_UPPER;
+  Move quietsSearched[64];
+  int quietCount = 0;
 
   for (ExtMove* em = moves; em != end; ++em) {
     Move m = em->move;
@@ -377,6 +381,7 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
 
     if (useNnueAcc) nnue().do_move((ss + 1)->acc, ss->acc, pos, m);
     pos.do_move(m, st);
+    if (!capture && quietCount < 64) quietsSearched[quietCount++] = m;
     Value score;
     if (moveCount == 1) {
       score = -search_node(pos, ss + 1, -beta, -alpha, newDepth + extension, false);
@@ -414,14 +419,12 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
               int& ch = contHistory[prev][prevTo][m.to()];
               ch += bonus - ch * bonus / 16384;
             }
-            // Malus quiet moves that failed to cause the cutoff
-            for (ExtMove* qm = moves; qm != em; ++qm) {
-              Move failed = qm->move;
-              if (pos.piece_on(failed.to()) || failed.type() == EN_PASSANT || failed.type() == PROMOTION)
-                continue;
+            // Malus only quiets that were actually searched before the cutoff
+            for (int i = 0; i < quietCount - 1; ++i) {
+              Move failed = quietsSearched[i];
               int& fh = history[pos.side_to_move()][failed.from()][failed.to()];
               int malus = bonus / 2;
-              fh -= malus + fh * malus / 16384;
+              fh += -malus - fh * malus / 16384;
             }
           } else if (pos.piece_on(m.to()) || m.type() == EN_PASSANT) {
             Piece attacker = pos.piece_on(m.from());

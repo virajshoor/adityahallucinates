@@ -454,8 +454,11 @@ Value classical_evaluate(const Position& pos) {
     }
   }
 
-  // Tempo: side-to-move advantage (not draw contempt)
-  score += (40 * mgw) / 24;
+  // Tempo: side-to-move advantage (score is White-relative until return)
+  {
+    int tempo = (40 * mgw) / 24;
+    score += (pos.side_to_move() == WHITE ? tempo : -tempo);
+  }
 
   // Exact insufficient-material draws / near-draws
   const int wp = popcount(pos.pieces(WHITE, PAWN));
@@ -477,10 +480,7 @@ Value classical_evaluate(const Position& pos) {
     else if (minorsW <= 1 && minorsB <= 1) score = score / 8;
   }
 
-  // Scale toward draw as fifty-move clock advances (no pawn/capture reset soon)
-  int r50 = pos.rule50_count();
-  if (r50 > 60 && std::abs(score) < 400)
-    score = score * (100 - r50) / 40;
+  // Note: do not scale by rule50 here — TT key ignores rule50.
 
   return Value(pos.side_to_move() == WHITE ? score : -score);
 }
