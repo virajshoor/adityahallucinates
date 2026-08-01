@@ -1,18 +1,18 @@
 {
   "label": "elo2800",
-  "movetime": 8.0,
-  "points": 9.5,
+  "movetime": 5.0,
+  "points": 12.0,
   "games": 16,
-  "score": 0.59375,
+  "score": 0.75,
   "target": 0.75,
-  "passed": false,
+  "passed": true,
   "game_results": [
     {
       "game": 1,
       "aditya_white": true,
-      "score": 1.0,
-      "termination": "CHECKMATE",
-      "result": "1-0"
+      "score": 0.5,
+      "termination": "THREEFOLD_REPETITION",
+      "result": "1/2-1/2"
     },
     {
       "game": 2,
@@ -38,43 +38,43 @@
     {
       "game": 5,
       "aditya_white": true,
-      "score": 0.5,
-      "termination": "FIFTY_MOVES",
-      "result": "1/2-1/2"
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
     },
     {
       "game": 6,
-      "aditya_white": false,
-      "score": 0.5,
-      "termination": "INSUFFICIENT_MATERIAL",
-      "result": "1/2-1/2"
-    },
-    {
-      "game": 7,
-      "aditya_white": true,
-      "score": 0.0,
-      "termination": "CHECKMATE",
-      "result": "0-1"
-    },
-    {
-      "game": 8,
       "aditya_white": false,
       "score": 0.0,
       "termination": "CHECKMATE",
       "result": "1-0"
     },
     {
-      "game": 9,
+      "game": 7,
       "aditya_white": true,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 8,
+      "aditya_white": false,
       "score": 0.5,
       "termination": "THREEFOLD_REPETITION",
       "result": "1/2-1/2"
     },
     {
+      "game": 9,
+      "aditya_white": true,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
       "game": 10,
       "aditya_white": false,
       "score": 0.5,
-      "termination": "FIFTY_MOVES",
+      "termination": "THREEFOLD_REPETITION",
       "result": "1/2-1/2"
     },
     {
@@ -87,23 +87,23 @@
     {
       "game": 12,
       "aditya_white": false,
-      "score": 0.5,
-      "termination": "INSUFFICIENT_MATERIAL",
-      "result": "1/2-1/2"
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "0-1"
     },
     {
       "game": 13,
       "aditya_white": true,
-      "score": 1.0,
-      "termination": "CHECKMATE",
-      "result": "1-0"
+      "score": 0.5,
+      "termination": "THREEFOLD_REPETITION",
+      "result": "1/2-1/2"
     },
     {
       "game": 14,
       "aditya_white": false,
-      "score": 0.0,
+      "score": 1.0,
       "termination": "CHECKMATE",
-      "result": "1-0"
+      "result": "0-1"
     },
     {
       "game": 15,
@@ -119,6 +119,5 @@
       "termination": "CHECKMATE",
       "result": "0-1"
     }
-  ],
-  "note": "failed 75% at 5s (65.6%) and 8s (59.4%); ceiling for now"
+  ]
 }

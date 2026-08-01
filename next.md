@@ -13,20 +13,21 @@ Classical UCI engine `build/aditya` is runnable and strength-tested vs Stockfish
 | `UCI_Elo` 2200 | 3.0s/move | **100% pass (16/16)** |
 | `UCI_Elo` 2400 | 3.0s/move | **90.6% pass** |
 | `UCI_Elo` 2600 | **5.0s/move** | **75% pass** (71.9% near-miss @3s) |
-| `UCI_Elo` 2800 | 5.0s / 8.0s | **retesting** — search restored to 9848fe5 (+null/book); board SEE/tempo/TT kept (prior 65.6%/59.4%) |
+| `UCI_Elo` 2800 | **5.0s/move** | **75% pass (12/16)** |
+| `UCI_Elo` 3000 | 5.0s+ | **next gate** |
 
 **Default eval is classical.** Critical fixes this session:
 1. PeSTO PSTs were rank-flipped (a1=0 vs rank-8-first) — ~300–500cp inflation + exchange blunders
 2. SEE-based threat eval for winning opponent captures (e.g. BxR on “defended” rook)
 3. SEE mover color + pins + promotion next-victim; pawn `gives_check`
 4. Tempo polarity (Black STM was ~80cp too low)
-5. Draws before TT; book ply 14; full Hash TT; null-move `MOVE_NULL`
-6. Search patches (stand-pat/draw/qsearch) regressed Elo 2400+ — **restored 9848fe5 search** (+ null-move marker, book ply 14 only)
-7. Kept: SEE mover/pins/promotions, tempo polarity, mop-up, full Hash TT, threat aggregation
+5. Full Hash TT (multiply-high); null-move `MOVE_NULL`; book ply 14
+6. Advantage-dependent endgame mop-up; per-victim threat aggregation
+7. Search patches (stand-pat/draw/qsearch rewrite) **regressed Elo 2400+** — keep 9848fe5 search skeleton
 
 NNUE (`nets/fast.nnue`, `ADITYA_USE_NNUE=1`) has incremental int16 dual-perspective accumulators in search. Bootstrap net (~20k SF labels) loses heavily to classical in short self-play — **do not enable for matches** until it wins SPRT.
 
-**Elo 5000 is not a real ladder target.** Stockfish `UCI_Elo` only goes **1320–3190**; full SF ≈3600. Measurable progress: cleared through **2600**; **2800+** in retest after recovery.
+**Elo 5000 is not a real ladder target.** Stockfish `UCI_Elo` only goes **1320–3190**; full SF ≈3600. Measurable progress: cleared through **2800**; next **3000 → 3190 → unrestricted SF**.
 
 Branch: `cursor/chess-engine-elo-climb-936e`  
 PR: https://github.com/virajshoor/adityahallucinates/pull/2
@@ -42,6 +43,8 @@ cmake --build build -j
 ./scripts/fetch_stockfish.sh
 pip install python-chess
 
+python3 scripts/match_stockfish.py --elo 2800 --games 16 --movetime 5.0 --target 0.75
+python3 scripts/match_stockfish.py --elo 3000 --games 16 --movetime 5.0 --target 0.75
 python3 scripts/match_stockfish.py --elo 2600 --games 16 --movetime 5.0 --target 0.75
 python3 scripts/match_stockfish.py --elo 2400 --games 16 --movetime 3.0 --target 0.75
 ```
@@ -50,11 +53,11 @@ python3 scripts/match_stockfish.py --elo 2400 --games 16 --movetime 3.0 --target
 
 ## What to do next (priority order)
 
-### 1. Break Elo 2800 (main goal)
-- Analyze `results/match_elo2800_*.pgn` losses (many draws + black losses)
-- Classical: better endgame conversion, less drawish play when ahead, search quality at long TC
-- Try 2800 @5–8s again after each SPRT’d patch
+### 1. Break Elo 3000 (main goal)
+- Cleared Elo 2800 @5s (**75%**)
+- Analyze remaining Black-side draws/losses vs 2800; press conversions
 - Then 3000 → 3190 → unrestricted SF
+- Validate any search change at Elo 2400 first (search regressions hide at Elo 2000)
 
 ### 2. Skill 5 — done
 - Cleared Skill 5 @1.5s (**90.6%**)
