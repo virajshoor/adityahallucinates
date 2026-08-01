@@ -34,15 +34,6 @@ int piece_value(PieceType pt) {
 }
 } // namespace
 
-Value Search::draw_score(int ply) const {
-  // Root-relative contempt: at even ply root is STM, so negative makes draws
-  // look worse for us. Scale up when ahead; accept draws when clearly behind.
-  int c = 10;
-  if (rootScore > 60) c = 22;
-  if (rootScore > 150) c = 30;
-  if (rootScore < -60) c = 0;
-  return (ply % 2 == 0) ? Value(-c) : Value(c);
-}
 
 Search::Search() {
   tt.resize(256);
@@ -137,8 +128,11 @@ Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
   ss->pv[0] = MOVE_NONE;
   if (ss->ply >= MAX_PLY - 1) return eval_pos(pos, ss);
 
-  if (pos.is_draw(ss->ply))
-    return draw_score(ss->ply);
+  if (pos.is_draw(ss->ply)) {
+    Value stand = eval_pos(pos, ss);
+    if (std::abs(int(stand)) > 80) return Value(stand / 5);
+    return VALUE_DRAW;
+  }
 
   Value stand = eval_pos(pos, ss);
   if (stand >= beta) return stand;
@@ -243,9 +237,11 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
     eval = ss->staticEval = ttHit && tte->eval != int16_t(VALUE_NONE) ? Value(tte->eval) : eval_pos(pos, ss);
   }
 
-  // 2-fold / rule50: root-relative contempt (avoid sterile draws when ahead)
-  if (!rootNode && pos.is_draw(ss->ply))
-    return draw_score(ss->ply);
+  // 2-fold / rule50 draw: soft-draw toward eval when clearly better/worse
+  if (!rootNode && pos.is_draw(ss->ply)) {
+    if (!inCheck && std::abs(int(eval)) > 80) return Value(eval / 5);
+    return VALUE_DRAW;
+  }
 
   const bool improving = !inCheck && ss->ply >= 2 &&
       (ss - 2)->staticEval != VALUE_NONE && eval >(ss - 2)->staticEval;
@@ -431,7 +427,6 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
   info.seldepth = 0;
   tt.new_search();
   bestRootMove = MOVE_NONE;
-  rootScore = 0;
   useNnueAcc = nnue_ready() && std::getenv("ADITYA_USE_NNUE") &&
                std::getenv("ADITYA_USE_NNUE")[0] == '1';
 
@@ -446,7 +441,8 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
   startTime = now_ms();
   allocatedTime = 0;
   if (limits.movetime > 0) {
-    allocatedTime = std::max(8, limits.movetime - 10);
+    // Use nearly all of the fixed movetime budget.
+    allocatedTime = std::max(5, limits.movetime - 4);
   } else if (limits.wtime || limits.btime) {
     int time = pos.side_to_move() == WHITE ? limits.wtime : limits.btime;
     int inc = pos.side_to_move() == WHITE ? limits.winc : limits.binc;
@@ -470,8 +466,15 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
   int maxDepth = limits.depth > 0 ? limits.depth : MAX_PLY - 2;
   Value alpha = -VALUE_INFINITE, beta = VALUE_INFINITE;
   Value bestScore = 0;
+  int64_t lastIterTime = 0;
 
   for (int depth = 1; depth <= maxDepth; ++depth) {
+    // Don't start an iteration we clearly cannot finish.
+    if (allocatedTime > 0 && depth >= 6 && lastIterTime > 0) {
+      int64_t remaining = allocatedTime - (now_ms() - startTime);
+      if (remaining < lastIterTime * 3 / 2) break;
+    }
+
     if (depth >= 5) {
       alpha = bestScore - 28;
       beta = bestScore + 28;
@@ -480,6 +483,7 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
       beta = VALUE_INFINITE;
     }
 
+    int64_t iterStart = now_ms();
     int delta = 28;
     while (true) {
       bestScore = search_node(pos, ss, alpha, beta, depth, false);
@@ -488,9 +492,9 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
         beta = (alpha + beta) / 2;
         alpha = bestScore - delta;
         delta += delta / 2;
-        // Fail low: spend a bit more time
-        if (allocatedTime > 0) allocatedTime = std::min(allocatedTime + allocatedTime / 8,
-            limits.movetime > 0 ? std::max<int64_t>(8, limits.movetime - 5)
+        // Fail low: spend more of the remaining movetime
+        if (allocatedTime > 0) allocatedTime = std::min(allocatedTime + allocatedTime / 5,
+            limits.movetime > 0 ? std::max<int64_t>(5, limits.movetime - 2)
                                 : allocatedTime * 2);
         continue;
       }
@@ -504,8 +508,7 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
     if (info.stop && depth > 1) break;
 
     if (ss->pv[0]) bestRootMove = ss->pv[0];
-    rootScore = bestScore;
-
+    lastIterTime = std::max<int64_t>(1, now_ms() - iterStart);
     int64_t elapsed = std::max<int64_t>(1, now_ms() - startTime);
     std::cout << "info depth " << depth
               << " seldepth " << info.seldepth
@@ -518,7 +521,7 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
     std::cout << std::endl;
 
     if (limits.depth && depth >= limits.depth) break;
-    if (allocatedTime > 0 && (now_ms() - startTime) > allocatedTime * 95 / 100) break;
+    if (allocatedTime > 0 && (now_ms() - startTime) > allocatedTime * 98 / 100) break;
     if (std::abs(bestScore) > VALUE_MATE_IN_MAX_PLY) break;
   }
 
