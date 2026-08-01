@@ -15,11 +15,12 @@ A from-scratch C++ chess engine (classical alpha-beta + handcrafted eval), stren
 | SF `UCI_Elo` **2200** | **3.0s** | **100%** | **pass** |
 | SF `UCI_Elo` **2400** | **3.0s** | **90.6%** | **pass** |
 | SF `UCI_Elo` **2600** | **5.0s** | **75%** | **pass** |
-| SF `UCI_Elo` 2800 | 5–8s | ~59–66% | ceiling / iterating |
+| SF `UCI_Elo` **2800** | **5.0s** | **75%** | **pass** |
+| SF `UCI_Elo` 3000 | 5s+ | — | next |
 
-**Primary 75% gate:** cleared at Stockfish `UCI_Elo` 2000 (0.25s) and **2100 (1.5s, 16/16)**, and Skill Level 4.
+**Primary 75% gate:** cleared through Stockfish `UCI_Elo` **2800** @5s (and Skill 5).
 
-**Key fix:** PeSTO PST rank orientation + SEE threat eval (was hanging exchanges).
+**Key fixes:** PeSTO PST rank orientation; SEE threat eval + mover color/pins; tempo polarity; full Hash TT.
 
 **Note on “Elo 5000”:** Stockfish `UCI_Elo` only calibrates **1320–3190**; full unrestricted SF is ~3600. There is no Elo-5000 opponent on this ladder — the goal is to climb Skill / `UCI_Elo` / full SF as far as possible.
 
