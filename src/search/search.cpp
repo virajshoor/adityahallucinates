@@ -61,7 +61,11 @@ bool Search::time_up() const {
   if (info.stop.load(std::memory_order_relaxed)) return true;
   if (limits.infinite || limits.depth) return false;
   if (allocatedTime <= 0) return false;
-  return (now_ms() - startTime) >= allocatedTime;
+  const int64_t elapsed = now_ms() - startTime;
+  if (elapsed >= allocatedTime) return true;
+  // Hard ceiling: never exceed the UCI movetime (or a wtime slice bound)
+  if (limits.movetime > 0 && elapsed >= limits.movetime) return true;
+  return false;
 }
 
 Value Search::eval_pos(const Position& pos, Stack* ss) const {
@@ -148,16 +152,18 @@ Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
     ExtMove* n = moves;
     for (ExtMove* m = moves; m != end; ++m)
       if (pos.is_legal(m->move)) *n++ = *m;
-    // Also try safe checking quiets (tactical sharpness)
-    ExtMove quiets[MAX_MOVES];
-    ExtMove* qend = generate<QUIETS>(pos, quiets);
-    int checksAdded = 0;
-    for (ExtMove* m = quiets; m != qend && checksAdded < 8; ++m) {
-      if (!pos.is_legal(m->move)) continue;
-      if (!pos.gives_check(m->move)) continue;
-      if (!pos.see_ge(m->move, 0)) continue;
-      *n++ = *m;
-      ++checksAdded;
+    // Also try safe checking quiets (tactical sharpness) — limit depth of this extension
+    if (ss->ply < 6) {
+      ExtMove quiets[MAX_MOVES];
+      ExtMove* qend = generate<QUIETS>(pos, quiets);
+      int checksAdded = 0;
+      for (ExtMove* m = quiets; m != qend && checksAdded < 6; ++m) {
+        if (!pos.is_legal(m->move)) continue;
+        if (!pos.gives_check(m->move)) continue;
+        if (!pos.see_ge(m->move, 0)) continue;
+        *n++ = *m;
+        ++checksAdded;
+      }
     }
     end = n;
   }
@@ -463,10 +469,17 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
   if (useNnueAcc) nnue().refresh(ss->acc, pos);
 
   int maxDepth = limits.depth > 0 ? limits.depth : MAX_PLY - 2;
+  // Timed games: cap iterative depth so aspiration/fail-high storms cannot run forever
+  if (limits.movetime > 0 || limits.wtime || limits.btime)
+    maxDepth = std::min(maxDepth, 48);
   Value alpha = -VALUE_INFINITE, beta = VALUE_INFINITE;
   Value bestScore = 0;
 
   for (int depth = 1; depth <= maxDepth; ++depth) {
+    if (time_up()) {
+      info.stop = true;
+      break;
+    }
     if (depth >= 5) {
       alpha = bestScore - 28;
       beta = bestScore + 28;
@@ -476,9 +489,13 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
     }
 
     int delta = 28;
+    int aspTries = 0;
     while (true) {
       bestScore = search_node(pos, ss, alpha, beta, depth, false);
-      if (info.stop) break;
+      if (info.stop || time_up()) {
+        info.stop = true;
+        break;
+      }
       if (bestScore <= alpha) {
         beta = (alpha + beta) / 2;
         alpha = bestScore - delta;
@@ -487,16 +504,18 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
         if (allocatedTime > 0) allocatedTime = std::min(allocatedTime + allocatedTime / 8,
             limits.movetime > 0 ? std::max<int64_t>(8, limits.movetime - 5)
                                 : allocatedTime * 2);
+        if (++aspTries >= 8) break;
         continue;
       }
       if (bestScore >= beta) {
         beta = bestScore + delta;
         delta += delta / 2;
+        if (++aspTries >= 8) break;
         continue;
       }
       break;
     }
-    if (info.stop && depth > 1) break;
+    if (info.stop) break;
 
     if (ss->pv[0]) bestRootMove = ss->pv[0];
     int64_t elapsed = std::max<int64_t>(1, now_ms() - startTime);

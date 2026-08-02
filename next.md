@@ -63,7 +63,7 @@ python3 scripts/match_stockfish.py --elo 2400 --games 16 --movetime 3.0 --target
 - Elo 3000 @5s: **56.3%** (White 75% / **Black 37.5%**)
 - Book gap fix verified (QGD returns Be7/Bb4/c6/c5, not `...h6`)
 - Elo 2400 hold after soften: **4/4**
-- v10 aborted @0/4 (unlucky + Alekhine book); v11: no Alekhine/Pirc, Nf3/Alapin book; Elo2400 hold green
+- v11 @50%/6 then hung ~2h on game 7; fixed search hard time ceiling + aspiration caps; v12 next
 - Validate any search change at Elo 2400 first (search regressions hide at Elo 2000)
 - Then 3190 → unrestricted SF
 
@@ -84,6 +84,9 @@ python3 tools/train/train_nnue_fast.py --data tools/datagen/output/all.bin --out
 ---
 
 ## Pitfalls already learned
+
+- Timed search can hang for hours on aspiration/fail-high + deep qsearch checks — hard-cap movetime, depth 48, aspiration tries, and break on stop at every depth.
+
 
 - **Do not** claim Elo 5000 via `UCI_Elo` — max is 3190
 - Flipped PeSTO PSTs caused massive eval inflation — verify table orientation vs `a1=0`
