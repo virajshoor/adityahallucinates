@@ -63,7 +63,7 @@ python3 scripts/match_stockfish.py --elo 2400 --games 16 --movetime 3.0 --target
 - Elo 3000 @5s: **56.3%** (White 75% / **Black 37.5%**)
 - Book gap fix verified (QGD returns Be7/Bb4/c6/c5, not `...h6`)
 - Elo 2400 hold after soften: **4/4**
-- v11 @50%/6 then hung; time-fix shipped; Elo2400 hold 3.5/4; **v12 Elo 3000 running**
+- v12 hung again; fixed time_up to always honor movetime before allocatedTime gate; v13 next
 - Validate any search change at Elo 2400 first (search regressions hide at Elo 2000)
 - Then 3190 → unrestricted SF
 

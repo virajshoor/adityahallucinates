@@ -59,13 +59,13 @@ int64_t Search::now_ms() const {
 
 bool Search::time_up() const {
   if (info.stop.load(std::memory_order_relaxed)) return true;
-  if (limits.infinite || limits.depth) return false;
-  if (allocatedTime <= 0) return false;
+  if (limits.infinite) return false;
+  // Depth-limited analysis may omit a clock; still honor an explicit movetime.
   const int64_t elapsed = now_ms() - startTime;
-  if (elapsed >= allocatedTime) return true;
-  // Hard ceiling: never exceed the UCI movetime (or a wtime slice bound)
   if (limits.movetime > 0 && elapsed >= limits.movetime) return true;
-  return false;
+  if (limits.depth && !limits.movetime && !limits.wtime && !limits.btime) return false;
+  if (allocatedTime <= 0) return false;
+  return elapsed >= allocatedTime;
 }
 
 Value Search::eval_pos(const Position& pos, Stack* ss) const {
@@ -124,7 +124,7 @@ void Search::order_moves(Position& pos, ExtMove* begin, ExtMove* end, Move ttMov
 
 Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
   ++info.nodes;
-  if ((info.nodes & 4095) == 0 && time_up()) {
+  if ((info.nodes & 1023) == 0 && time_up()) {
     info.stop = true;
     return alpha;
   }
@@ -202,7 +202,7 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
   const bool pvNode = (beta - alpha) > 1;
   ++info.nodes;
 
-  if ((info.nodes & 4095) == 0 && time_up()) {
+  if ((info.nodes & 1023) == 0 && time_up()) {
     info.stop = true;
     return alpha;
   }
