@@ -449,6 +449,30 @@ Value classical_evaluate(const Position& pos) {
       mg[c] -= 40 * (relative_rank(c, ksq) - RANK_2);
   }
 
+  // Early development: prefer getting minors out over tempo-wasting rook-pawn pushes
+  if (pos.game_ply() <= 16 && pos.non_pawn_material() > 3500) {
+    for (Color c : {WHITE, BLACK}) {
+      const Square knHome = relative_square(c, SQ_G1);
+      const Square bHome = relative_square(c, SQ_F1);
+      const Square qnHome = relative_square(c, SQ_B1);
+      const Square qbHome = relative_square(c, SQ_C1);
+      const Square kHome = relative_square(c, SQ_E1);
+      int undeveloped = 0;
+      if (pos.piece_on(knHome) == make_piece(c, KNIGHT)) undeveloped += 1;
+      if (pos.piece_on(bHome) == make_piece(c, BISHOP)) undeveloped += 1;
+      if (pos.piece_on(qnHome) == make_piece(c, KNIGHT)) undeveloped += 1;
+      if (pos.piece_on(qbHome) == make_piece(c, BISHOP)) undeveloped += 1;
+      mg[c] -= 8 * undeveloped;
+
+      if (pos.king_square(c) == kHome && undeveloped >= 2) {
+        const Square h3 = relative_square(c, SQ_H3);
+        const Square a3 = relative_square(c, SQ_A3);
+        if (pos.piece_on(h3) == make_piece(c, PAWN)) mg[c] -= 28;
+        if (pos.piece_on(a3) == make_piece(c, PAWN)) mg[c] -= 18;
+      }
+    }
+  }
+
   // phase: 0 = middlegame-ish material present, 24 = bare kings
   int phase = phase_weight(pos);
   int egw = phase;

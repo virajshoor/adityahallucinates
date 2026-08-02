@@ -42,8 +42,27 @@ const BookEntry kBook[] = {
   {"rnbqkbnr/ppp2ppp/4p3/3p4/2PP4/2N5/PP2PPPP/R1BQKBNR b", "g8f6", 70},
   {"rnbqkb1r/ppp2ppp/4pn2/3p4/2PP4/2N5/PP2PPPP/R1BQKBNR w", "c1g5", 40},
   {"rnbqkb1r/ppp2ppp/4pn2/3p4/2PP4/2N5/PP2PPPP/R1BQKBNR w", "g1f3", 45},
+  // Critical: after 1.d4 d5 2.Nf3 Nf6 3.c4 e6 4.Nc3 (or move-order twin) — NOT ...h6
+  {"rnbqkb1r/ppp2ppp/4pn2/3p4/2PP4/2N2N2/PP2PPPP/R1BQKB1R b", "f8e7", 45},
+  {"rnbqkb1r/ppp2ppp/4pn2/3p4/2PP4/2N2N2/PP2PPPP/R1BQKB1R b", "f8b4", 25},
+  {"rnbqkb1r/ppp2ppp/4pn2/3p4/2PP4/2N2N2/PP2PPPP/R1BQKB1R b", "c7c6", 20},
+  {"rnbqkb1r/ppp2ppp/4pn2/3p4/2PP4/2N2N2/PP2PPPP/R1BQKB1R b", "c7c5", 15},
+  // Same structure without White Nc3 yet: 1.d4 d5 2.Nf3 Nf6 3.c4 e6
+  {"rnbqkb1r/ppp2ppp/4pn2/3p4/2PP4/5N2/PP2PPPP/RNBQKB1R w", "b1c3", 50},
+  {"rnbqkb1r/ppp2ppp/4pn2/3p4/2PP4/5N2/PP2PPPP/RNBQKB1R w", "g2g3", 25},
+  {"rnbqkb1r/ppp2ppp/4pn2/3p4/2PP4/5N2/PP2PPPP/RNBQKB1R w", "e2e3", 20},
+  // Catalan: 1.d4 Nf6 2.Nf3 d5 3.c4 e6 4.g3 — develop, not ...h6
+  {"rnbqkb1r/ppp2ppp/4pn2/3p4/2PP4/5NP1/PP2PP1P/RNBQKB1R b", "f8e7", 40},
+  {"rnbqkb1r/ppp2ppp/4pn2/3p4/2PP4/5NP1/PP2PP1P/RNBQKB1R b", "d5c4", 30},
+  {"rnbqkb1r/ppp2ppp/4pn2/3p4/2PP4/5NP1/PP2PP1P/RNBQKB1R b", "c7c5", 25},
   {"rnbqkb1r/pp3ppp/4pn2/2pp4/2PP4/2N2N2/PP2PPPP/R1BQKB1R w", "c4d5", 35},
   {"rnbqkb1r/pp3ppp/4pn2/2pp4/2PP4/2N2N2/PP2PPPP/R1BQKB1R w", "e2e3", 40},
+  // After ...Be7 in QGD — castle / challenge center
+  {"rnbqk2r/ppp1bppp/4pn2/3p4/2PP4/2N2N2/PP2PPPP/R1BQKB1R w", "c1g5", 40},
+  {"rnbqk2r/ppp1bppp/4pn2/3p4/2PP4/2N2N2/PP2PPPP/R1BQKB1R w", "e2e3", 35},
+  {"rnbqk2r/ppp1bppp/4pn2/3p4/2PP4/2N2N2/PP2PPPP/R1BQKB1R w", "c1f4", 15},
+  {"rnbqk2r/ppp1bppp/4pn2/3p4/2PP4/2N2N2/PP2PPPP/R1BQKB1R b", "e8g8", 70},
+  {"rnbqk2r/ppp1bppp/4pn2/3p4/2PP4/2N2N2/PP2PPPP/R1BQKB1R b", "c7c6", 20},
 
   // 1.e4 e5
   {"rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w", "g1f3", 70},
@@ -59,6 +78,19 @@ const BookEntry kBook[] = {
   {"r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w", "f1b5", 40},
   {"r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w", "f1c4", 35},
   {"r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w", "d2d4", 20},
+
+  // Vienna / Three Knights: 1.e4 e5 2.Nc3 — classical replies
+  {"rnbqkbnr/pppp1ppp/8/4p3/4P3/2N5/PPPP1PPP/R1BQKBNR b", "b8c6", 45},
+  {"rnbqkbnr/pppp1ppp/8/4p3/4P3/2N5/PPPP1PPP/R1BQKBNR b", "g8f6", 40},
+  {"rnbqkbnr/pppp1ppp/8/4p3/4P3/2N5/PPPP1PPP/R1BQKBNR b", "f8c5", 10},
+  {"r1bqkbnr/pppp1ppp/2n5/4p3/4P3/2N5/PPPP1PPP/R1BQKBNR b", "g8f6", 55},
+  {"r1bqkbnr/pppp1ppp/2n5/4p3/4P3/2N5/PPPP1PPP/R1BQKBNR b", "f8c5", 25},
+  {"r1bqkbnr/pppp1ppp/2n5/4p3/4P3/2N5/PPPP1PPP/R1BQKBNR b", "f8b4", 15},
+  {"r1bqkbnr/pppp1ppp/2n5/4p3/4P3/2N2N2/PPPP1PPP/R1BQKB1R b", "g8f6", 70},
+  {"r1bqkbnr/pppp1ppp/2n5/4p3/4P3/2N2N2/PPPP1PPP/R1BQKB1R b", "f8b4", 20},
+  {"r1bqkbnr/pppp1ppp/2n5/4p3/4P3/2N5/PPPP1PPP/R1BQKBNR w", "g1f3", 45},
+  {"r1bqkbnr/pppp1ppp/2n5/4p3/4P3/2N5/PPPP1PPP/R1BQKBNR w", "f1c4", 30},
+  {"r1bqkbnr/pppp1ppp/2n5/4p3/4P3/2N5/PPPP1PPP/R1BQKBNR w", "f2f4", 15},
 
   // Ruy Lopez: 1.e4 e5 2.Nf3 Nc6 3.Bb5
   {"r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b", "a7a6", 50},
@@ -186,6 +218,18 @@ const BookEntry kBook[] = {
   {"rnbqkbnr/pp2pppp/2p5/3p4/2PP4/8/PP2PPPP/RNBQKBNR w", "b1c3", 40},
   {"rnbqkbnr/pp2pppp/2p5/3p4/2PP4/8/PP2PPPP/RNBQKBNR w", "g1f3", 35},
   {"rnbqkbnr/pp2pppp/2p5/3p4/2PP4/8/PP2PPPP/RNBQKBNR w", "c4d5", 15},
+  // Exchange Slav: develop solidly (avoid early ...Nh5 / ...f6)
+  {"rnbqkbnr/pp2pppp/2p5/3P4/3P4/8/PP2PPPP/RNBQKBNR b", "c6d5", 90},
+  {"rnbqkbnr/pp2pppp/8/3p4/3P4/8/PP2PPPP/RNBQKBNR w", "b1c3", 50},
+  {"rnbqkbnr/pp2pppp/8/3p4/3P4/8/PP2PPPP/RNBQKBNR w", "g1f3", 40},
+  {"rnbqkbnr/pp2pppp/8/3p4/3P4/2N5/PP2PPPP/R1BQKBNR b", "g8f6", 70},
+  {"rnbqkbnr/pp2pppp/8/3p4/3P4/2N5/PP2PPPP/R1BQKBNR b", "b8c6", 25},
+  {"rnbqkb1r/pp2pppp/5n2/3p4/3P4/2N2N2/PP2PPPP/R1BQKB1R b", "b8c6", 45},
+  {"rnbqkb1r/pp2pppp/5n2/3p4/3P4/2N2N2/PP2PPPP/R1BQKB1R b", "c8f5", 35},
+  {"rnbqkb1r/pp2pppp/5n2/3p4/3P4/2N2N2/PP2PPPP/R1BQKB1R b", "e7e6", 20},
+  {"r1bqkb1r/pp2pppp/2n2n2/3p4/3P1B2/2N2N2/PP2PPPP/R2QKB1R b", "c8f5", 45},
+  {"r1bqkb1r/pp2pppp/2n2n2/3p4/3P1B2/2N2N2/PP2PPPP/R2QKB1R b", "e7e6", 35},
+  {"r1bqkb1r/pp2pppp/2n2n2/3p4/3P1B2/2N2N2/PP2PPPP/R2QKB1R b", "c8g4", 20},
 
   // 1.d4 Nf6
   {"rnbqkb1r/pppppppp/5n2/8/3P4/8/PPP1PPPP/RNBQKBNR w", "c2c4", 50},

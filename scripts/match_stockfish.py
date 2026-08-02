@@ -113,6 +113,7 @@ def main() -> int:
                 }
                 game_results.append(row)
                 print(game, file=pgn_out, end="\n\n")
+                pgn_out.flush()
                 avg = sum(scores) / len(scores)
                 print(
                     f"game {i+1}/{args.games}: aditya={'W' if aditya_white else 'B'} "

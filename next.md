@@ -14,7 +14,7 @@ Classical UCI engine `build/aditya` is runnable and strength-tested vs Stockfish
 | `UCI_Elo` 2400 | 3.0s/move | **90.6% pass** |
 | `UCI_Elo` 2600 | **5.0s/move** | **75% pass** (71.9% near-miss @3s) |
 | `UCI_Elo` 2800 | **5.0s/move** | **75% pass (12/16)** |
-| `UCI_Elo` 3000 | **5.0s** | **56.3% fail** (White 75% / Black 37.5%) — current ceiling |
+| `UCI_Elo` 3000 | **5.0s** | **56.3% fail** (White 75% / Black 37.5%) — current ceiling; v6 retest in flight |
 
 **Default eval is classical.** Critical fixes this session:
 1. PeSTO PSTs were rank-flipped (a1=0 vs rank-8-first) — ~300–500cp inflation + exchange blunders
@@ -24,7 +24,9 @@ Classical UCI engine `build/aditya` is runnable and strength-tested vs Stockfish
 5. Full Hash TT (multiply-high); null-move `MOVE_NULL`; book ply 14
 6. Advantage-dependent endgame mop-up; per-victim threat aggregation
 7. Search patches (stand-pat/draw/qsearch rewrite) **regressed Elo 2400+** — keep 9848fe5 search skeleton
-8. Elo 3000 bottleneck is **Black** (37.5%); distance-based king shelter + solid QGD book
+8. Elo 3000 bottleneck is **Black** (37.5%); distance-based king shelter + QGD book
+9. Book gaps closed for QGD+Nf3/Nc3, Catalan, Vienna/3N, Exchange Slav (stop early `...h6` / `...Nge7` / `...Nh5`)
+10. Early-development eval: undeveloped minors + rook-pawn tempo penalty when king uncastled
 
 NNUE (`nets/fast.nnue`, `ADITYA_USE_NNUE=1`) has incremental int16 dual-perspective accumulators in search. Bootstrap net (~20k SF labels) loses heavily to classical in short self-play — **do not enable for matches** until it wins SPRT.
 
@@ -56,8 +58,9 @@ python3 scripts/match_stockfish.py --elo 2400 --games 16 --movetime 3.0 --target
 
 ### 1. Break Elo 3000 (main goal)
 - Cleared Elo 2800 @5s (**75%**)
-- Elo 3000 @5s: **56.3%** (White 75% / **Black 37.5%**) — improve Black defense/king safety
-- Distance-based king shelter + solid QGD book lines in progress
+- Elo 3000 @5s: **56.3%** (White 75% / **Black 37.5%**)
+- v6 match running (shelter + partial QGD book on loaded binary)
+- Next binary (post-v6): fuller Black book + development eval — verify book avoids `...h6`
 - Validate any search change at Elo 2400 first (search regressions hide at Elo 2000)
 - Then 3190 → unrestricted SF
 
