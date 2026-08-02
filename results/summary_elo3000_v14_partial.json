@@ -1,0 +1,7 @@
+{
+  "label": "elo3000_v14_deadlock",
+  "games": 0,
+  "score": 0,
+  "note": "ThreadPoolExecutor timeout on SimpleEngine deadlocked; reverted harness to sync play + engine hardDeadline",
+  "passed": false
+}

@@ -27,8 +27,6 @@ def newgame(engine: chess.engine.SimpleEngine) -> None:
 
 
 def play_game(aditya, sf, aditya_white: bool, movetime: float):
-    import concurrent.futures
-
     newgame(aditya)
     newgame(sf)
 
@@ -39,28 +37,11 @@ def play_game(aditya, sf, aditya_white: bool, movetime: float):
     game.headers["Date"] = datetime.now(timezone.utc).strftime("%Y.%m.%d")
     node = game
     limit = chess.engine.Limit(time=movetime)
-    # Hard wall-clock per move: engines must not hang the match
-    move_wall = max(movetime * 4.0, movetime + 2.0)
 
     while not board.is_game_over(claim_draw=True):
         engine = aditya if ((board.turn == chess.WHITE) == aditya_white) else sf
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-            fut = pool.submit(engine.play, board, limit)
-            try:
-                result = fut.result(timeout=move_wall)
-            except concurrent.futures.TimeoutError:
-                try:
-                    engine.protocol.send_line("stop")
-                    engine.ping()
-                except Exception:
-                    pass
-                if board.turn == chess.WHITE:
-                    game.headers["Result"] = "0-1"
-                else:
-                    game.headers["Result"] = "1-0"
-                game.headers["Termination"] = "TIME_FORFEIT"
-                aditya_to_move = (board.turn == chess.WHITE) == aditya_white
-                return (0.0 if aditya_to_move else 1.0), game, "TIME_FORFEIT"
+        # Rely on engine hardDeadline; SimpleEngine is not thread-safe for timeouts.
+        result = engine.play(board, limit)
         if result.move is None:
             break
         board.push(result.move)
