@@ -449,22 +449,6 @@ Value classical_evaluate(const Position& pos) {
       mg[c] -= 40 * (relative_rank(c, ksq) - RANK_2);
   }
 
-  // Discourage early rook-pawn "luft" tempi while still undeveloped / uncastled
-  if (pos.game_ply() <= 14 && pos.non_pawn_material() > 3500) {
-    for (Color c : {WHITE, BLACK}) {
-      if (pos.king_square(c) != relative_square(c, SQ_E1)) continue;
-      const Square knHome = relative_square(c, SQ_G1);
-      const Square bHome = relative_square(c, SQ_F1);
-      if (pos.piece_on(knHome) != make_piece(c, KNIGHT) &&
-          pos.piece_on(bHome) != make_piece(c, BISHOP))
-        continue; // kingside already developing
-      if (pos.piece_on(relative_square(c, SQ_H3)) == make_piece(c, PAWN))
-        mg[c] -= 22;
-      if (pos.piece_on(relative_square(c, SQ_A3)) == make_piece(c, PAWN))
-        mg[c] -= 12;
-    }
-  }
-
   // phase: 0 = middlegame-ish material present, 24 = bare kings
   int phase = phase_weight(pos);
   int egw = phase;

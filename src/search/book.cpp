@@ -120,6 +120,16 @@ const BookEntry kBook[] = {
   // Scotch: 1.e4 e5 2.Nf3 Nc6 3.d4
   {"r1bqkbnr/pppp1ppp/2n5/4p3/3PP3/5N2/PPP2PPP/RNBQKB1R b", "e5d4", 80},
   {"r1bqkbnr/pppp1ppp/2n5/8/3pP3/5N2/PPP2PPP/RNBQKB1R w", "f3d4", 80},
+  // Scotch Gambit 4.Bc4 — Two Knights / solid development (avoid soft ...Bd7 lines)
+  {"r1bqkbnr/pppp1ppp/2n5/8/2BpP3/5N2/PPP2PPP/RNBQK2R b", "g8f6", 55},
+  {"r1bqkbnr/pppp1ppp/2n5/8/2BpP3/5N2/PPP2PPP/RNBQK2R b", "f8c5", 35},
+  {"r1bqkb1r/pppp1ppp/2n2n2/4P3/2Bp4/5N2/PPP2PPP/RNBQK2R b", "d7d5", 85},
+  {"r1bqkb1r/ppp2ppp/2n2n2/3pP3/2Bp4/5N2/PPP2PPP/RNBQK2R w", "e5f6", 40},
+  {"r1bqkb1r/ppp2ppp/2n2n2/3pP3/2Bp4/5N2/PPP2PPP/RNBQK2R w", "c4b5", 45},
+  // After 6.Bb5 Ne4 7.O-O — prefer Be7 / a6 over Bd7
+  {"r1bqkb1r/ppp2ppp/2n5/1B1pP3/3pn3/5N2/PPP2PPP/RNBQ1RK1 b", "f8e7", 45},
+  {"r1bqkb1r/ppp2ppp/2n5/1B1pP3/3pn3/5N2/PPP2PPP/RNBQ1RK1 b", "a7a6", 30},
+  {"r1bqkb1r/ppp2ppp/2n5/1B1pP3/3pn3/5N2/PPP2PPP/RNBQ1RK1 b", "c8d7", 20},
 
   // Petroff: 1.e4 e5 2.Nf3 Nf6
   {"rnbqkb1r/pppp1ppp/5n2/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w", "f3e5", 45},
