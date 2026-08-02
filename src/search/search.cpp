@@ -441,8 +441,7 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
   startTime = now_ms();
   allocatedTime = 0;
   if (limits.movetime > 0) {
-    // Use nearly all of the fixed movetime budget.
-    allocatedTime = std::max(5, limits.movetime - 4);
+    allocatedTime = std::max(8, limits.movetime - 10);
   } else if (limits.wtime || limits.btime) {
     int time = pos.side_to_move() == WHITE ? limits.wtime : limits.btime;
     int inc = pos.side_to_move() == WHITE ? limits.winc : limits.binc;
@@ -486,7 +485,7 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
         delta += delta / 2;
         // Fail low: spend more of the remaining movetime
         if (allocatedTime > 0) allocatedTime = std::min(allocatedTime + allocatedTime / 8,
-            limits.movetime > 0 ? std::max<int64_t>(5, limits.movetime - 3)
+            limits.movetime > 0 ? std::max<int64_t>(8, limits.movetime - 5)
                                 : allocatedTime * 2);
         continue;
       }
@@ -512,7 +511,7 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
     std::cout << std::endl;
 
     if (limits.depth && depth >= limits.depth) break;
-    if (allocatedTime > 0 && (now_ms() - startTime) > allocatedTime * 98 / 100) break;
+    if (allocatedTime > 0 && (now_ms() - startTime) > allocatedTime * 95 / 100) break;
     if (std::abs(bestScore) > VALUE_MATE_IN_MAX_PLY) break;
   }
 
