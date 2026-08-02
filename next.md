@@ -26,7 +26,8 @@ Classical UCI engine `build/aditya` is runnable and strength-tested vs Stockfish
 7. Search patches (stand-pat/draw/qsearch rewrite) **regressed Elo 2400+** — keep 9848fe5 search skeleton
 8. Elo 3000 bottleneck is **Black** (37.5%); distance-based king shelter + QGD book
 9. Book gaps closed for QGD+Nf3/Nc3, Catalan, Vienna/3N, Exchange Slav (stop early `...h6` / `...Nge7` / `...Nh5`)
-10. Early-development eval: undeveloped minors + rook-pawn tempo penalty when king uncastled
+10. Light anti-`...h6` eval only (no broad undeveloped-minor tax — that hurt White @ Elo 3000)
+11. Elo 3000 v7 partial aborted at 40% (5 games); Black drew solidly, White lost conversion
 
 NNUE (`nets/fast.nnue`, `ADITYA_USE_NNUE=1`) has incremental int16 dual-perspective accumulators in search. Bootstrap net (~20k SF labels) loses heavily to classical in short self-play — **do not enable for matches** until it wins SPRT.
 
@@ -59,8 +60,9 @@ python3 scripts/match_stockfish.py --elo 2400 --games 16 --movetime 3.0 --target
 ### 1. Break Elo 3000 (main goal)
 - Cleared Elo 2800 @5s (**75%**)
 - Elo 3000 @5s: **56.3%** (White 75% / **Black 37.5%**)
-- v6 match running (shelter + partial QGD book on loaded binary)
-- Next binary (post-v6): fuller Black book + development eval — verify book avoids `...h6`
+- Book gap fix verified (QGD returns Be7/Bb4/c6/c5, not `...h6`)
+- Elo 2400 hold after soften: **4/4**
+- Elo 3000 v8 in flight (book + light h/a-pawn tempo only)
 - Validate any search change at Elo 2400 first (search regressions hide at Elo 2000)
 - Then 3190 → unrestricted SF
 
