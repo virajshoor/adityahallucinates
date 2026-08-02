@@ -37,10 +37,27 @@ def play_game(aditya, sf, aditya_white: bool, movetime: float):
     game.headers["Date"] = datetime.now(timezone.utc).strftime("%Y.%m.%d")
     node = game
     limit = chess.engine.Limit(time=movetime)
+    # Hard wall-clock per move: engines must not hang the match
+    move_wall = max(movetime * 4.0, movetime + 2.0)
 
     while not board.is_game_over(claim_draw=True):
         engine = aditya if ((board.turn == chess.WHITE) == aditya_white) else sf
-        result = engine.play(board, limit)
+        try:
+            result = engine.play(board, limit, timeout=move_wall)
+        except chess.engine.TimeoutError:
+            try:
+                engine.protocol.send_line("stop")
+                engine.ping()
+            except Exception:
+                pass
+            # Treat timeout as resign for the side to move
+            if board.turn == chess.WHITE:
+                game.headers["Result"] = "0-1"
+            else:
+                game.headers["Result"] = "1-0"
+            game.headers["Termination"] = "TIME_FORFEIT"
+            aditya_to_move = (board.turn == chess.WHITE) == aditya_white
+            return (0.0 if aditya_to_move else 1.0), game, "TIME_FORFEIT"
         if result.move is None:
             break
         board.push(result.move)

@@ -60,8 +60,9 @@ int64_t Search::now_ms() const {
 bool Search::time_up() const {
   if (info.stop.load(std::memory_order_relaxed)) return true;
   if (limits.infinite) return false;
-  // Depth-limited analysis may omit a clock; still honor an explicit movetime.
   const int64_t elapsed = now_ms() - startTime;
+  // Absolute wall-clock deadline — last line of defense against runaway search
+  if (hardDeadline > 0 && now_ms() >= hardDeadline) return true;
   if (limits.movetime > 0 && elapsed >= limits.movetime) return true;
   if (limits.depth && !limits.movetime && !limits.wtime && !limits.btime) return false;
   if (allocatedTime <= 0) return false;
@@ -446,15 +447,23 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
 
   startTime = now_ms();
   allocatedTime = 0;
+  hardDeadline = 0;
   if (limits.movetime > 0) {
     allocatedTime = std::max(8, limits.movetime - 10);
+    // Hard stop slightly after UCI movetime so we always return a move
+    hardDeadline = startTime + limits.movetime + 250;
   } else if (limits.wtime || limits.btime) {
     int time = pos.side_to_move() == WHITE ? limits.wtime : limits.btime;
     int inc = pos.side_to_move() == WHITE ? limits.winc : limits.binc;
     int mtg = limits.movestogo > 0 ? limits.movestogo : 28;
     allocatedTime = time / mtg + inc * 3 / 4;
     allocatedTime = std::max<int64_t>(15, std::min<int64_t>(allocatedTime, time * 4 / 5));
+    hardDeadline = startTime + allocatedTime + 500;
   }
+  std::cout << "info string time_ctrl movetime=" << limits.movetime
+            << " allocated=" << allocatedTime
+            << " hard_ms=" << (hardDeadline ? (hardDeadline - startTime) : 0)
+            << std::endl;
 
   Stack stack[MAX_PLY + 5] = {};
   Stack* ss = stack + 2;

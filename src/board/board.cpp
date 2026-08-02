@@ -495,7 +495,7 @@ bool Position::see_ge(Move m, int threshold) const {
   int res = 1;
   Square ksq;
 
-  while (true) {
+  for (int seePlies = 0; seePlies < 32; ++seePlies) {
     stm = ~stm;
     attackers &= occupied;
 

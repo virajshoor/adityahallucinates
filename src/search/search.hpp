@@ -67,6 +67,7 @@ private:
   Move bestRootMove = MOVE_NONE;
   int64_t startTime = 0;
   int64_t allocatedTime = 0;
+  int64_t hardDeadline = 0; // absolute now_ms() cutoff; 0 = none
   SearchLimits limits{};
   bool useNnueAcc = false;
 };
