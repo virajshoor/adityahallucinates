@@ -338,23 +338,36 @@ Value classical_evaluate(const Position& pos) {
     if (pos.can_castle(c == WHITE ? WHITE_OOO : BLACK_OOO)) mg[c] += 10;
 
     File kf = file_of(ksq);
-    Bitboard shelterMask = file_bb(kf) | Bitboards::AdjacentFilesBB[kf];
-    Bitboard shelterPawns = pos.pieces(c, PAWN) &
-        Bitboards::ForwardRanksBB[c][rank_of(ksq)] & shelterMask;
-    int shelter = popcount(shelterPawns);
-    mg[c] += 10 * std::min(3, shelter);
-    if ((kf <= FILE_C || kf >= FILE_G) && shelter == 0 && relative_rank(c, ksq) == RANK_1)
-      mg[c] -= 28;
+    // Shelter: nearest friendly pawn distance on king file ±1 (far pawns count less)
+    int shelterScore = 0;
+    for (int ff = std::max(0, int(kf) - 1); ff <= std::min(7, int(kf) + 1); ++ff) {
+      Bitboard filePawns = pos.pieces(c, PAWN) & file_bb(File(ff)) &
+                           Bitboards::ForwardRanksBB[c][rank_of(ksq)];
+      if (!filePawns) {
+        shelterScore -= 14;
+        continue;
+      }
+      int bestDist = 8;
+      Bitboard fp = filePawns;
+      while (fp) {
+        Square s = pop_lsb(fp);
+        bestDist = std::min(bestDist, std::abs(int(rank_of(s)) - int(rank_of(ksq))));
+      }
+      shelterScore += std::max(0, 18 - 5 * bestDist);
+    }
+    mg[c] += shelterScore;
+    if ((kf <= FILE_C || kf >= FILE_G) && shelterScore < 0 && relative_rank(c, ksq) == RANK_1)
+      mg[c] -= 20;
 
-    // Pawn storm against enemy king (computed from our pawns toward their king)
+    // Pawn storm: closer enemy-oriented pawns are more dangerous
     Square eks = pos.king_square(~c);
     File ekf = file_of(eks);
     Bitboard stormFiles = file_bb(ekf) | Bitboards::AdjacentFilesBB[ekf];
     Bitboard stormers = ourPawns & stormFiles & Bitboards::ForwardRanksBB[~c][rank_of(eks)];
     while (stormers) {
       Square s = pop_lsb(stormers);
-      int dist = std::abs(int(relative_rank(c, s)) - int(RANK_7));
-      mg[c] += std::max(0, 18 - 4 * dist);
+      int dist = std::abs(int(rank_of(s)) - int(rank_of(eks)));
+      mg[c] += std::max(0, 22 - 5 * dist);
     }
 
     // King safety: weighted attackers on king ring
