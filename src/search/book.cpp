@@ -22,12 +22,12 @@ const BookEntry kBook[] = {
   {"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w", "g1f3", 8},
   {"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w", "c2c4", 5},
 
-  // After 1.e4
-  {"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b", "e7e5", 40},
-  {"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b", "c7c5", 35},
-  {"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b", "e7e6", 12},
-  {"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b", "c7c6", 12},
-  {"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b", "d7d6", 5},
+  // After 1.e4 — bias solid classical (Sicilian is sharper vs Elo 3000 SF)
+  {"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b", "e7e5", 50},
+  {"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b", "c7c6", 18},
+  {"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b", "e7e6", 18},
+  {"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b", "c7c5", 12},
+  {"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b", "d7d6", 1},
   {"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b", "g8f6", 5},
 
   // After 1.d4 — prefer solid classical replies (avoid soft sidelines)
@@ -146,6 +146,11 @@ const BookEntry kBook[] = {
   {"rnbqkbnr/pp2pppp/3p4/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R w", "d2d4", 80},
   {"r1bqkbnr/pp1ppppp/2n5/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R w", "d2d4", 75},
   {"rnbqkbnr/pp1p1ppp/4p3/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R w", "d2d4", 75},
+  // 2...d6 3.d4 Nf6 without ...cxd4 — do NOT grab on c5; develop
+  {"rnbqkb1r/pp2pppp/3p1n2/2p5/3PP3/5N2/PPP2PPP/RNBQKB1R w", "b1c3", 70},
+  {"rnbqkb1r/pp2pppp/3p1n2/2p5/3PP3/5N2/PPP2PPP/RNBQKB1R w", "d4c5", 5},
+  {"rnbqkb1r/pp2pppp/3p1n2/2p5/3PP3/2N2N2/PPP2PPP/R1BQKB1R b", "c5d4", 75},
+  {"rnbqkb1r/pp2pppp/3p1n2/2p5/3PP3/2N2N2/PPP2PPP/R1BQKB1R b", "e7e6", 15},
   // Avoid weak Bb5 Sicilians as White — prefer Open
   {"rnbqkbnr/pp1ppppp/8/2p5/4P3/2N5/PPPP1PPP/R1BQKBNR b", "b8c6", 40},
   {"rnbqkbnr/pp1ppppp/8/2p5/4P3/2N5/PPPP1PPP/R1BQKBNR b", "e7e6", 30},
@@ -253,6 +258,14 @@ const BookEntry kBook[] = {
   {"rnbqkb1r/pppp1ppp/4pn2/8/2PP4/8/PP2PPPP/RNBQKBNR w", "g1f3", 30},
   {"rnbqkb1r/pppppp1p/5np1/8/2PP4/8/PP2PPPP/RNBQKBNR w", "b1c3", 45},
   {"rnbqkb1r/pppppp1p/5np1/8/2PP4/8/PP2PPPP/RNBQKBNR w", "g1f3", 30},
+
+  // 1.e3 / 1.c3 — take the center
+  {"rnbqkbnr/pppppppp/8/8/8/4P3/PPPP1PPP/RNBQKBNR b", "d7d5", 45},
+  {"rnbqkbnr/pppppppp/8/8/8/4P3/PPPP1PPP/RNBQKBNR b", "e7e5", 35},
+  {"rnbqkbnr/pppppppp/8/8/8/4P3/PPPP1PPP/RNBQKBNR b", "g8f6", 15},
+  {"rnbqkbnr/pppppppp/8/8/8/2P5/PP1PPPPP/RNBQKBNR b", "d7d5", 40},
+  {"rnbqkbnr/pppppppp/8/8/8/2P5/PP1PPPPP/RNBQKBNR b", "e7e5", 35},
+  {"rnbqkbnr/pppppppp/8/8/8/2P5/PP1PPPPP/RNBQKBNR b", "g8f6", 20},
 
   // 1.a3 / other rare first moves — respond classically
   {"rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR b", "e7e5", 40},

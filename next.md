@@ -63,7 +63,7 @@ python3 scripts/match_stockfish.py --elo 2400 --games 16 --movetime 3.0 --target
 - Elo 3000 @5s: **56.3%** (White 75% / **Black 37.5%**)
 - Book gap fix verified (QGD returns Be7/Bb4/c6/c5, not `...h6`)
 - Elo 2400 hold after soften: **4/4**
-- Elo 3000 v8 aborted @12.5%/4; v9 = book-only (QGD+Scotch Gambit), eval tempo tax removed
+- v9 aborted @40%/5 (Black 0/2); v10 biases solid 1.e4 replies + Sicilian Nc3 vs ...Nf6
 - Validate any search change at Elo 2400 first (search regressions hide at Elo 2000)
 - Then 3190 → unrestricted SF
 
