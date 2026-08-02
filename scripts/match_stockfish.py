@@ -27,6 +27,8 @@ def newgame(engine: chess.engine.SimpleEngine) -> None:
 
 
 def play_game(aditya, sf, aditya_white: bool, movetime: float):
+    import concurrent.futures
+
     newgame(aditya)
     newgame(sf)
 
@@ -42,22 +44,23 @@ def play_game(aditya, sf, aditya_white: bool, movetime: float):
 
     while not board.is_game_over(claim_draw=True):
         engine = aditya if ((board.turn == chess.WHITE) == aditya_white) else sf
-        try:
-            result = engine.play(board, limit, timeout=move_wall)
-        except chess.engine.TimeoutError:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            fut = pool.submit(engine.play, board, limit)
             try:
-                engine.protocol.send_line("stop")
-                engine.ping()
-            except Exception:
-                pass
-            # Treat timeout as resign for the side to move
-            if board.turn == chess.WHITE:
-                game.headers["Result"] = "0-1"
-            else:
-                game.headers["Result"] = "1-0"
-            game.headers["Termination"] = "TIME_FORFEIT"
-            aditya_to_move = (board.turn == chess.WHITE) == aditya_white
-            return (0.0 if aditya_to_move else 1.0), game, "TIME_FORFEIT"
+                result = fut.result(timeout=move_wall)
+            except concurrent.futures.TimeoutError:
+                try:
+                    engine.protocol.send_line("stop")
+                    engine.ping()
+                except Exception:
+                    pass
+                if board.turn == chess.WHITE:
+                    game.headers["Result"] = "0-1"
+                else:
+                    game.headers["Result"] = "1-0"
+                game.headers["Termination"] = "TIME_FORFEIT"
+                aditya_to_move = (board.turn == chess.WHITE) == aditya_white
+                return (0.0 if aditya_to_move else 1.0), game, "TIME_FORFEIT"
         if result.move is None:
             break
         board.push(result.move)
