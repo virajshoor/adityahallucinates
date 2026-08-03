@@ -396,8 +396,20 @@ Value classical_evaluate(const Position& pos) {
     if (pawn_attacks_bb(~c, pos.pieces(~c, PAWN)) & zone) { attackUnits += 1; ++attackerCount; }
     // Open files near king amplify danger
     if (!(pos.pieces(PAWN) & file_bb(kf))) attackUnits += 2;
+    // Semi-open file toward our king (enemy has no pawn, we might)
+    if (!(pos.pieces(~c, PAWN) & file_bb(kf)) && (pos.pieces(c, PAWN) & file_bb(kf)))
+      attackUnits += 1;
     if (attackerCount >= 2)
-      mg[c] -= attackUnits * attackUnits / 3 + 3 * attackerCount;
+      mg[c] -= attackUnits * attackUnits / 2 + 4 * attackerCount;
+    else if (attackerCount == 1 && attackUnits >= 5)
+      mg[c] -= 2 * attackUnits;
+
+    // Reward having minor-piece defenders near a castled king
+    if (relative_rank(c, ksq) == RANK_1 && (kf <= FILE_C || kf >= FILE_G)) {
+      Bitboard near = Bitboards::PseudoAttacks[KING][ksq];
+      int defs = popcount(near & (pos.pieces(c, KNIGHT) | pos.pieces(c, BISHOP)));
+      mg[c] += 6 * defs;
+    }
 
     // Threats: best winning opponent capture per our piece (mutually exclusive victims)
     Bitboard ours = pos.pieces(c, PAWN) | pos.pieces(c, KNIGHT) | pos.pieces(c, BISHOP)

@@ -64,6 +64,7 @@ python3 scripts/match_stockfish.py --elo 2400 --games 16 --movetime 3.0 --target
 - Prior baseline 56.3% (W 75% / B 37.5%); Black still the bottleneck
 - Hangs fixed: hardDeadline, no qsearch quiet-checks, SEE cap (do not thread-wrap SimpleEngine)
 - Solid Black book kept; need **classical eval/search strength**, not more book churn
+- v17: stronger king-safety + castled defenders; Elo2400 hold then Elo3000
 - Validate search changes at Elo 2400 first; then 3190 → unrestricted SF
 
 ### 2. Skill 5 — done
