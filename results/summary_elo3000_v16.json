@@ -119,5 +119,6 @@
       "termination": "CHECKMATE",
       "result": "1-0"
     }
-  ]
+  ],
+  "note": "v16 full 16-game after hang fixes + solid book + no qsearch quiet-checks. Fail 50%. W 62.5% B 37.5%. Baseline was 56.3% W75% B37.5%."
 }

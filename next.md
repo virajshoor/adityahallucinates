@@ -14,7 +14,7 @@ Classical UCI engine `build/aditya` is runnable and strength-tested vs Stockfish
 | `UCI_Elo` 2400 | 3.0s/move | **90.6% pass** |
 | `UCI_Elo` 2600 | **5.0s/move** | **75% pass** (71.9% near-miss @3s) |
 | `UCI_Elo` 2800 | **5.0s/move** | **75% pass (12/16)** |
-| `UCI_Elo` 3000 | **5.0s** | **56.3% fail** (White 75% / Black 37.5%) — current ceiling; v6 retest in flight |
+| `UCI_Elo` 3000 | **5.0s** | **50% fail (v16)** (White 62.5% / Black 37.5%); baseline was 56.3% — hang fixes shipped |
 
 **Default eval is classical.** Critical fixes this session:
 1. PeSTO PSTs were rank-flipped (a1=0 vs rank-8-first) — ~300–500cp inflation + exchange blunders
@@ -60,12 +60,11 @@ python3 scripts/match_stockfish.py --elo 2400 --games 16 --movetime 3.0 --target
 
 ### 1. Break Elo 3000 (main goal)
 - Cleared Elo 2800 @5s (**75%**)
-- Elo 3000 @5s: **56.3%** (White 75% / **Black 37.5%**)
-- Book gap fix verified (QGD returns Be7/Bb4/c6/c5, not `...h6`)
-- Elo 2400 hold after soften: **4/4**
-- v15 hung game3; removed qsearch quiet-checks (hang suspect); **v16 running**
-- Validate any search change at Elo 2400 first (search regressions hide at Elo 2000)
-- Then 3190 → unrestricted SF
+- Elo 3000 v16 @5s: **50%** (W 62.5% / B 37.5%) — completed full 16 after hang fixes
+- Prior baseline 56.3% (W 75% / B 37.5%); Black still the bottleneck
+- Hangs fixed: hardDeadline, no qsearch quiet-checks, SEE cap (do not thread-wrap SimpleEngine)
+- Solid Black book kept; need **classical eval/search strength**, not more book churn
+- Validate search changes at Elo 2400 first; then 3190 → unrestricted SF
 
 ### 2. Skill 5 — done
 - Cleared Skill 5 @1.5s (**90.6%**)
