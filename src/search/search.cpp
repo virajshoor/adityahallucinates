@@ -125,6 +125,11 @@ void Search::order_moves(Position& pos, ExtMove* begin, ExtMove* end, Move ttMov
 
 Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
   ++info.nodes;
+  // Poll the hard deadline frequently; don't wait for a 1024-node boundary.
+  if (hardDeadline > 0 && (info.nodes & 63) == 0 && now_ms() >= hardDeadline) {
+    info.stop = true;
+    return alpha;
+  }
   if ((info.nodes & 1023) == 0 && time_up()) {
     info.stop = true;
     return alpha;
@@ -153,19 +158,8 @@ Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
     ExtMove* n = moves;
     for (ExtMove* m = moves; m != end; ++m)
       if (pos.is_legal(m->move)) *n++ = *m;
-    // Also try safe checking quiets (tactical sharpness) — limit depth of this extension
-    if (ss->ply < 6) {
-      ExtMove quiets[MAX_MOVES];
-      ExtMove* qend = generate<QUIETS>(pos, quiets);
-      int checksAdded = 0;
-      for (ExtMove* m = quiets; m != qend && checksAdded < 6; ++m) {
-        if (!pos.is_legal(m->move)) continue;
-        if (!pos.gives_check(m->move)) continue;
-        if (!pos.see_ge(m->move, 0)) continue;
-        *n++ = *m;
-        ++checksAdded;
-      }
-    }
+    // NOTE: quiet checks in qsearch previously caused multi-hour hangs mid-match
+    // (explosion past clock polls). Keep qsearch to captures only.
     end = n;
   }
 
@@ -203,6 +197,10 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
   const bool pvNode = (beta - alpha) > 1;
   ++info.nodes;
 
+  if (hardDeadline > 0 && (info.nodes & 63) == 0 && now_ms() >= hardDeadline) {
+    info.stop = true;
+    return alpha;
+  }
   if ((info.nodes & 1023) == 0 && time_up()) {
     info.stop = true;
     return alpha;
@@ -485,7 +483,7 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
   Value bestScore = 0;
 
   for (int depth = 1; depth <= maxDepth; ++depth) {
-    if (time_up()) {
+    if (time_up() || (hardDeadline > 0 && now_ms() >= hardDeadline)) {
       info.stop = true;
       break;
     }
