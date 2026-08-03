@@ -14,7 +14,7 @@ Classical UCI engine `build/aditya` is runnable and strength-tested vs Stockfish
 | `UCI_Elo` 2400 | 3.0s/move | **90.6% pass** |
 | `UCI_Elo` 2600 | **5.0s/move** | **75% pass** (71.9% near-miss @3s) |
 | `UCI_Elo` 2800 | **5.0s/move** | **75% pass (12/16)** |
-| `UCI_Elo` 3000 | **5.0s** | **v16 50%** (W62.5/B37.5); **v17 43.8%**; **v18 34.4%** (book+defender regress); **v19 21.9%** (LMP/LMR regress); v20 reverts LMP, keeps targeted book |
+| `UCI_Elo` 3000 | **5.0s** | v16 **50%**; v17 43.8%; v18 34.4%; v19 21.9%; v20 partial weak White; **v21** pure v16 rematch |
 
 **Default eval is classical.** Critical fixes this session:
 1. PeSTO PSTs were rank-flipped (a1=0 vs rank-8-first) — ~300–500cp inflation + exchange blunders
@@ -63,7 +63,7 @@ python3 scripts/match_stockfish.py --elo 2400 --games 16 --movetime 3.0 --target
 ### 1. Break Elo 3000 (main goal)
 - Cleared Elo 2800 @5s (**75%**)
 - Elo 3000: v16 **50%**; v17 43.8%; v18 34.4%; **v19 21.9%** (W31/B12.5) — milder LMP/LMR **hurt depth**; reverted
-- v20: v16 LMP/LMR restored; keep Catalan/Alapin/d4-c6 book only; rematch Elo 3000
+- v20 partial ~28% @7 with Catalan book still weak White; **v21** pure v16 book+search rematch
 - Do **not** weaken pruning without SPRT — fixed-time depth matters more than move coverage
 - Hangs fixed: hardDeadline, no qsearch quiet-checks, SEE cap (do not thread-wrap SimpleEngine)
 - Need classical eval/search strength (not book churn) to clear 75%; then 3190 → unrestricted SF
