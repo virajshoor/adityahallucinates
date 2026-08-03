@@ -119,5 +119,6 @@
       "termination": "THREEFOLD_REPETITION",
       "result": "1/2-1/2"
     }
-  ]
+  ],
+  "note": "v17 king-safety boost: 43.8% overall. Black improved to 50% (4/8) but White collapsed to 37.5% (3/8). Reverted aggressive KS; keep mild castled-defender bonus."
 }
