@@ -33,10 +33,6 @@ const BookEntry kBook[] = {
   {"rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b", "g8f6", 45},
   {"rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b", "e7e6", 5},
   {"rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b", "f7f5", 1},
-  // 1.d4 c6 — go Slav with c4 (Advance Caro via e4 was soft as White @ Elo 3000)
-  {"rnbqkbnr/pp1ppppp/2p5/8/3P4/8/PPP1PPPP/RNBQKBNR w", "c2c4", 55},
-  {"rnbqkbnr/pp1ppppp/2p5/8/3P4/8/PPP1PPPP/RNBQKBNR w", "g1f3", 30},
-  {"rnbqkbnr/pp1ppppp/2p5/8/3P4/8/PPP1PPPP/RNBQKBNR w", "e2e4", 10},
 
   // QGD / Slav structures: develop before ...h6
   {"rnbqkb1r/ppp1pppp/5n2/3p4/2PP4/2N5/PP2PPPP/R1BQKBNR b", "e7e6", 50},
@@ -59,11 +55,6 @@ const BookEntry kBook[] = {
   {"rnbqkb1r/ppp2ppp/4pn2/3p4/2PP4/5NP1/PP2PP1P/RNBQKB1R b", "c7c5", 25},
   {"rnbqkb1r/pp3ppp/4pn2/2pp4/2PP4/2N2N2/PP2PPPP/R1BQKB1R w", "c4d5", 35},
   {"rnbqkb1r/pp3ppp/4pn2/2pp4/2PP4/2N2N2/PP2PPPP/R1BQKB1R w", "e2e3", 40},
-  // Catalan after ...Be7 Bg2 — prefer O-O/c6/Nbd7 (…Nc6 was soft in Elo 3000)
-  {"rnbqk2r/ppp1bppp/4pn2/3p4/2PP4/5NP1/PP2PPBP/RNBQK2R b", "e8g8", 55},
-  {"rnbqk2r/ppp1bppp/4pn2/3p4/2PP4/5NP1/PP2PPBP/RNBQK2R b", "c7c6", 25},
-  {"rnbqk2r/ppp1bppp/4pn2/3p4/2PP4/5NP1/PP2PPBP/RNBQK2R b", "b8d7", 15},
-  {"rnbqk2r/ppp1bppp/4pn2/3p4/2PP4/5NP1/PP2PPBP/RNBQK2R b", "b8c6", 5},
   // After ...Be7 in QGD — castle / challenge center
   {"rnbqk2r/ppp1bppp/4pn2/3p4/2PP4/2N2N2/PP2PPPP/R1BQKB1R w", "c1g5", 40},
   {"rnbqk2r/ppp1bppp/4pn2/3p4/2PP4/2N2N2/PP2PPPP/R1BQKB1R w", "e2e3", 35},
@@ -99,10 +90,10 @@ const BookEntry kBook[] = {
   {"r1bqkbnr/pppp1ppp/2n5/4p3/4P3/2N5/PPPP1PPP/R1BQKBNR w", "f1c4", 30},
   {"r1bqkbnr/pppp1ppp/2n5/4p3/4P3/2N5/PPPP1PPP/R1BQKBNR w", "f2f4", 15},
 
-  // Ruy Lopez: 1.e4 e5 2.Nf3 Nc6 3.Bb5 — prefer Morphy/Berlin over Classical ...Bc5
-  {"r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b", "a7a6", 55},
-  {"r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b", "g8f6", 40},
-  {"r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b", "f8c5", 5},
+  // Ruy Lopez: 1.e4 e5 2.Nf3 Nc6 3.Bb5
+  {"r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b", "a7a6", 50},
+  {"r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b", "g8f6", 35},
+  {"r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b", "f8c5", 10},
   {"r1bqkbnr/1ppp1ppp/p1n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w", "b5a4", 70},
   {"r1bqkbnr/1ppp1ppp/p1n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w", "b5c6", 20},
   // Berlin / Classical — avoid Bd6 after 3...Nf6 4.Nc3
@@ -282,11 +273,6 @@ const BookEntry kBook[] = {
   {"rnbqkbnr/pp1ppppp/8/2p5/4P3/2P5/PP1P1PPP/RNBQKBNR b", "e7e6", 15},
   {"rnbqkbnr/pp1ppppp/8/2p5/4P3/2P5/PP1P1PPP/RNBQKBNR w", "d2d4", 70},
   {"rnbqkbnr/pp1ppppp/8/2p5/4P3/2P5/PP1P1PPP/RNBQKBNR w", "g1f3", 25},
-  // Alapin 2...d5 3.exd5 — take with queen (…Nf6 gambit was soft @ Elo 3000)
-  {"rnbqkbnr/pp2pppp/8/2pP4/8/2P5/PP1P1PPP/RNBQKBNR b", "d8d5", 75},
-  {"rnbqkbnr/pp2pppp/8/2pP4/8/2P5/PP1P1PPP/RNBQKBNR b", "g8f6", 15},
-  {"rnb1kbnr/pp2pppp/8/2pq4/8/2P5/PP1P1PPP/RNBQKBNR w", "d2d4", 60},
-  {"rnb1kbnr/pp2pppp/8/2pq4/8/2P5/PP1P1PPP/RNBQKBNR w", "g1f3", 30},
 
   // 1.e3 / 1.c3 — take the center
   {"rnbqkbnr/pppppppp/8/8/8/4P3/PPPP1PPP/RNBQKBNR b", "d7d5", 45},
