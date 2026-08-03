@@ -398,6 +398,11 @@ Value classical_evaluate(const Position& pos) {
     if (!(pos.pieces(PAWN) & file_bb(kf))) attackUnits += 2;
     if (attackerCount >= 2)
       mg[c] -= attackUnits * attackUnits / 3 + 3 * attackerCount;
+    // Mild castled-defender presence (balanced; v17 full KS boost hurt White)
+    if (relative_rank(c, ksq) == RANK_1 && (kf <= FILE_C || kf >= FILE_G)) {
+      Bitboard near = Bitboards::PseudoAttacks[KING][ksq];
+      mg[c] += 4 * popcount(near & (pos.pieces(c, KNIGHT) | pos.pieces(c, BISHOP)));
+    }
 
     // Threats: best winning opponent capture per our piece (mutually exclusive victims)
     Bitboard ours = pos.pieces(c, PAWN) | pos.pieces(c, KNIGHT) | pos.pieces(c, BISHOP)
