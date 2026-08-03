@@ -29,7 +29,8 @@ Classical UCI engine `build/aditya` is runnable and strength-tested vs Stockfish
 10. Removed early rook-pawn tempo tax (hurt more than it helped)
 11. Scotch Gambit book: prefer ...Be7/a6 over ...Bd7 after 6.Bb5 Ne4 7.O-O
 12. v17 aggressive king-safety **hurt White** (43.8%) — fully reverted
-13. **v18 regress 34.4%** (W43.8/B25) — reverted mild defender + broad French/KID book; keep only loss-targeted Catalan/Alapin/d4-c6 + milder LMP/LMR
+13. **v18/v19 regress** — broad book+defender (34.4%) and milder LMP/LMR (21.9%) both hurt; v20 restores v16 pruning + targeted Catalan/Alapin/d4-c6 book only
+14. Do **not** soften LMP/LMR at fixed movetime — depth loss dominates
 
 NNUE (`nets/fast.nnue`, `ADITYA_USE_NNUE=1`) has incremental int16 dual-perspective accumulators in search. Bootstrap net (~20k SF labels) loses heavily to classical in short self-play — **do not enable for matches** until it wins SPRT.
 
