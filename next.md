@@ -14,7 +14,7 @@ Classical UCI engine `build/aditya` is runnable and strength-tested vs Stockfish
 | `UCI_Elo` 2400 | 3.0s/move | **90.6% pass** |
 | `UCI_Elo` 2600 | **5.0s/move** | **75% pass** (71.9% near-miss @3s) |
 | `UCI_Elo` 2800 | **5.0s/move** | **75% pass (12/16)** |
-| `UCI_Elo` 3000 | **5.0s** | **v16 50%** (W62.5/B37.5); **v17 43.8%**; **v18 34.4%** (book+defender regress); **v19** Elo2400 hold 87.5%; Elo3000 running |
+| `UCI_Elo` 3000 | **5.0s** | **v16 50%** (W62.5/B37.5); **v17 43.8%**; **v18 34.4%** (book+defender regress); **v19 21.9%** (LMP/LMR regress); v20 reverts LMP, keeps targeted book |
 
 **Default eval is classical.** Critical fixes this session:
 1. PeSTO PSTs were rank-flipped (a1=0 vs rank-8-first) — ~300–500cp inflation + exchange blunders
@@ -61,10 +61,11 @@ python3 scripts/match_stockfish.py --elo 2400 --games 16 --movetime 3.0 --target
 
 ### 1. Break Elo 3000 (main goal)
 - Cleared Elo 2800 @5s (**75%**)
-- Elo 3000: v16 **50%**; v17 KS **43.8%** reverted; **v18 34.4%** (W43.8/B25) — broad book+defender **regressed**
-- v19: restore pre-v18 eval; targeted Catalan (no …Nc6), Alapin …Qxd5, 1.d4 c6→c4; milder LMP/LMR; Elo 2400 hold **3.5/4 pass**; Elo 3000 @5s/16 **running**
+- Elo 3000: v16 **50%**; v17 43.8%; v18 34.4%; **v19 21.9%** (W31/B12.5) — milder LMP/LMR **hurt depth**; reverted
+- v20: v16 LMP/LMR restored; keep Catalan/Alapin/d4-c6 book only; rematch Elo 3000
+- Do **not** weaken pruning without SPRT — fixed-time depth matters more than move coverage
 - Hangs fixed: hardDeadline, no qsearch quiet-checks, SEE cap (do not thread-wrap SimpleEngine)
-- Prefer classical search/eval strength over book churn; then 3190 → unrestricted SF
+- Need classical eval/search strength (not book churn) to clear 75%; then 3190 → unrestricted SF
 
 ### 2. Skill 5 — done
 - Cleared Skill 5 @1.5s (**90.6%**)
