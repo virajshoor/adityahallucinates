@@ -327,7 +327,7 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
 
     // Late move pruning (less aggressive — accuracy over NPS at long TC)
     if (!rootNode && !pvNode && !capture && !givesCheck && depth <= 4 &&
-        moveCount > (improving ? 5 : 4) + depth * depth + depth)
+        moveCount > (improving ? 6 : 5) + depth * depth + depth)
       continue;
 
     // Bad-capture SEE pruning
@@ -355,7 +355,7 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
 
     Depth reduction = 0;
     if (depth >= 3 && moveCount > 1 + pvNode && !capture && !givesCheck) {
-      reduction = Depth(0.65 + std::log(double(depth)) * std::log(double(moveCount)) / 2.50);
+      reduction = Depth(0.65 + std::log(double(depth)) * std::log(double(moveCount)) / 2.70);
       if (cutNode) ++reduction;
       if (!improving) ++reduction;
       if (ss->killers[0] == m || ss->killers[1] == m) reduction = std::max(0, reduction - 1);
