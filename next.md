@@ -14,7 +14,7 @@ Classical UCI engine `build/aditya` is runnable and strength-tested vs Stockfish
 | `UCI_Elo` 2400 | 3.0s/move | **90.6% pass** |
 | `UCI_Elo` 2600 | **5.0s/move** | **75% pass** (71.9% near-miss @3s) |
 | `UCI_Elo` 2800 | **5.0s/move** | **75% pass (12/16)** |
-| `UCI_Elo` 3000 | **5.0s** | **v16 50%** (W62.5/B37.5); **v17 43.8%** (W37.5/B50) — KS boost helped Black, hurt White |
+| `UCI_Elo` 3000 | **5.0s** | **v16 50%** (W62.5/B37.5); **v17 43.8%** (reverted KS); **v18 running** after book+mild defender |
 
 **Default eval is classical.** Critical fixes this session:
 1. PeSTO PSTs were rank-flipped (a1=0 vs rank-8-first) — ~300–500cp inflation + exchange blunders
@@ -28,11 +28,12 @@ Classical UCI engine `build/aditya` is runnable and strength-tested vs Stockfish
 9. Book gaps closed for QGD+Nf3/Nc3, Catalan, Vienna/3N, Exchange Slav (stop early `...h6` / `...Nge7` / `...Nh5`)
 10. Removed early rook-pawn tempo tax (hurt more than it helped)
 11. Scotch Gambit book: prefer ...Be7/a6 over ...Bd7 after 6.Bb5 Ne4 7.O-O
-12. v7@40%/5 and v8@12.5%/4 aborted; Black defense still the bottleneck
+12. v17 aggressive king-safety **hurt White** (43.8%) — fully reverted; keep only mild castled-defender (+4)
+13. v18 book: French Advance development, avoid KID `...g6` / Ruy `...Bc5`; Elo 2400 hold **4/4 pass**
 
 NNUE (`nets/fast.nnue`, `ADITYA_USE_NNUE=1`) has incremental int16 dual-perspective accumulators in search. Bootstrap net (~20k SF labels) loses heavily to classical in short self-play — **do not enable for matches** until it wins SPRT.
 
-**Elo 5000 is not a real ladder target.** Stockfish `UCI_Elo` only goes **1320–3190**; full SF ≈3600. Measurable progress: cleared through **2800**; Elo 3000 at **56.3%**.
+**Elo 5000 is not a real ladder target.** Stockfish `UCI_Elo` only goes **1320–3190**; full SF ≈3600. Measurable progress: cleared through **2800**; best Elo 3000 so far **56.3%** (pre-hang-fix); recent complete **v16 50%**.
 
 Branch: `cursor/chess-engine-elo-climb-936e`  
 PR: https://github.com/virajshoor/adityahallucinates/pull/2
@@ -60,12 +61,10 @@ python3 scripts/match_stockfish.py --elo 2400 --games 16 --movetime 3.0 --target
 
 ### 1. Break Elo 3000 (main goal)
 - Cleared Elo 2800 @5s (**75%**)
-- Elo 3000 v16 @5s: **50%** (W 62.5% / B 37.5%) — completed full 16 after hang fixes
-- Prior baseline 56.3% (W 75% / B 37.5%); Black still the bottleneck
+- Elo 3000 v16 @5s: **50%** (W 62.5% / B 37.5%); v17 KS **43.8%** reverted
+- v18: solid book from Black mates + mild castled-defender; Elo 2400 hold **4/4**; Elo 3000 @5s/16 **in progress**
 - Hangs fixed: hardDeadline, no qsearch quiet-checks, SEE cap (do not thread-wrap SimpleEngine)
-- Solid Black book kept; need **classical eval/search strength**, not more book churn
-- v17: stronger king-safety + castled defenders; Elo2400 hold then Elo3000
-- Validate search changes at Elo 2400 first; then 3190 → unrestricted SF
+- After v18: if still <75%, prefer balanced classical strength over one-sided KS; then 3190 → unrestricted SF
 
 ### 2. Skill 5 — done
 - Cleared Skill 5 @1.5s (**90.6%**)
