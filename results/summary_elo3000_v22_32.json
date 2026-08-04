@@ -231,5 +231,6 @@
       "termination": "THREEFOLD_REPETITION",
       "result": "1/2-1/2"
     }
-  ]
+  ],
+  "note": "v22 32-game Elo 3000 @5s with pure v16 source. Stabler baseline than 16-game runs."
 }

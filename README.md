@@ -16,7 +16,7 @@ A from-scratch C++ chess engine (classical alpha-beta + handcrafted eval), stren
 | SF `UCI_Elo` **2400** | **3.0s** | **90.6%** | **pass** |
 | SF `UCI_Elo` **2600** | **5.0s** | **75%** | **pass** |
 | SF `UCI_Elo` **2800** | **5.0s** | **75%** | **pass** |
-| SF `UCI_Elo` 3000 | 5.0s | **best **v16 50%**; v17–v19 failed; v21 pure-v16 rematch **28.1%** (16-game noise; baseline 56.3%)** | ceiling (Black weak) |
+| SF `UCI_Elo` 3000 | 5.0s | ****v22 32-game 35.9%** (W50/B21.9); 16-game noisy (v16 50% / v21 28%); Black gate; baseline 56.3%** | ceiling (Black weak) |
 
 **Primary 75% gate:** cleared through Stockfish `UCI_Elo` **2800** @5s (and Skill 5).
 
