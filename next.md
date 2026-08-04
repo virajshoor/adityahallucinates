@@ -65,7 +65,7 @@ python3 scripts/match_stockfish.py --elo 2400 --games 16 --movetime 3.0 --target
 - Elo 3000 ladder: v16 **50%** (W62.5/B37.5); v17 43.8%; v18 34.4%; v19 21.9%; **v21 28.1%** (W31/B25)
 - **v21 source == v16** yet scored 28% — 16-game Elo3000 is high-variance (v21 had **0 White wins**)
 - Stop book/KS/LMP churn; need **real strength**: working NNUE, Lazy SMP, or eval that wins longer matches
-- Prefer 32-game matches for Elo 3000 decisions; hang fixes stay (hardDeadline, no qsearch quiet-checks)
+- **32-game Elo 3000 @5s running** for stabler baseline; hang fixes stay (hardDeadline, no qsearch quiet-checks)
 - Then 3190 → unrestricted SF
 
 ### 2. Skill 5 — done
