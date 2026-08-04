@@ -119,5 +119,6 @@
       "termination": "THREEFOLD_REPETITION",
       "result": "1/2-1/2"
     }
-  ]
+  ],
+  "note": "v21 pure v16 book+search rematch. 28.1% (W31.2/B25). Source identical to v16 (50%) \u2014 16-game Elo3000 is high-variance; zero White wins this run."
 }
