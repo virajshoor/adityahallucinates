@@ -14,7 +14,7 @@ Classical UCI engine `build/aditya` is runnable and strength-tested vs Stockfish
 | `UCI_Elo` 2400 | 3.0s/move | **90.6% pass** |
 | `UCI_Elo` 2600 | **5.0s/move** | **75% pass** (71.9% near-miss @3s) |
 | `UCI_Elo` 2800 | **5.0s/move** | **75% pass (12/16)** |
-| `UCI_Elo` 3000 | **5.0s** | **v22 32-game 35.9%** (W50/B21.9); v16 16-game 50% was lucky; Black is the gate |
+| `UCI_Elo` 3000 | **5.0s** | **v22 32g 35.9%** (W50/B21.9); **v23 Lazy SMP Threads=2** testing |
 
 **Default eval is classical.** Critical fixes this session:
 1. PeSTO PSTs were rank-flipped (a1=0 vs rank-8-first) — ~300–500cp inflation + exchange blunders
@@ -63,11 +63,11 @@ python3 scripts/match_stockfish.py --elo 2400 --games 16 --movetime 3.0 --target
 ### 1. Break Elo 3000 (main goal)
 - Cleared Elo 2800 @5s (**75%**)
 - **Stabler baseline:** Elo 3000 **v22 32-game @5s = 35.9%** (W **50%** / B **21.9%**)
-- 16-game runs are noisy (v16 50% vs v21 28% identical source); trust 32-game
-- Black is the bottleneck (~22%); White is roughly even
-- Stop book/KS/LMP churn; need **real strength** (~+150–200 Elo): working NNUE, Lazy SMP, or eval that lifts Black without hurting White
-- Hangs fixed: hardDeadline, no qsearch quiet-checks, SEE cap (do not thread-wrap SimpleEngine)
-- Then 3190 → unrestricted SF
+- **v23 Lazy SMP:** UCI `Threads` 1–8, shared lockless TT, helpers run independent ID (NPS ~2× at Threads=2)
+- Black is the bottleneck (~22%); White roughly even — SMP helps both colors via depth/TT
+- Stop book/KS/LMP churn; NNUE still off until it beats classical
+- Hangs fixed: hardDeadline, no qsearch quiet-checks, SEE cap (do not thread-wrap SimpleEngine.play)
+- Validate: Elo 2400 hold with Threads=2, then Elo 3000 @5s; then 3190 → unrestricted SF
 
 ### 2. Skill 5 — done
 - Cleared Skill 5 @1.5s (**90.6%**)

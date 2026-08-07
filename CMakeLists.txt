@@ -12,6 +12,8 @@ endif()
 add_compile_options(-Wall -Wextra -O3 -march=native -flto -DNDEBUG)
 add_link_options(-flto)
 
+find_package(Threads REQUIRED)
+
 set(ENGINE_SOURCES
   src/board/bitboard.cpp
   src/board/board.cpp
@@ -28,6 +30,7 @@ set(ENGINE_SOURCES
 
 add_library(engine_lib STATIC ${ENGINE_SOURCES})
 target_include_directories(engine_lib PUBLIC src)
+target_link_libraries(engine_lib PUBLIC Threads::Threads)
 
 add_executable(aditya src/main.cpp)
 target_link_libraries(aditya PRIVATE engine_lib)

@@ -88,7 +88,7 @@ void uci_loop() {
       std::cout << "id name AdityaHallucinates\n";
       std::cout << "id author Viraj Shoor\n";
       std::cout << "option name Hash type spin default 256 min 1 max 65536\n";
-      std::cout << "option name Threads type spin default 1 min 1 max 1\n";
+      std::cout << "option name Threads type spin default 1 min 1 max 8\n";
       std::cout << "option name EvalFile type string default nets/default.nnue\n";
       std::cout << "uciok" << std::endl;
     } else if (token == "isready") {
@@ -109,6 +109,7 @@ void uci_loop() {
       if (!rest.empty()) value += rest;
       while (!value.empty() && value[0] == ' ') value.erase(0, 1);
       if (name == "Hash") search.set_hash(std::stoul(value));
+      else if (name == "Threads") search.set_threads(std::stoi(value));
       else if (name == "EvalFile") {
         if (load_nnue(value))
           std::cout << "info string loaded NNUE " << value << std::endl;

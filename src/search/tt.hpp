@@ -4,6 +4,7 @@
 #include <vector>
 #include <cstring>
 #include <algorithm>
+#include <atomic>
 
 namespace ah {
 
@@ -19,6 +20,8 @@ struct TTEntry {
   uint8_t age = 0;
 };
 
+// Shared across Lazy SMP threads. Stores publish `key` last; probes re-check key
+// after reading payload (lockless, rare torn reads are discarded).
 class TranspositionTable {
 public:
   static constexpr size_t ClusterSize = 3;
@@ -26,37 +29,43 @@ public:
   void resize(size_t mb) {
     size_t bytes = mb * 1024ULL * 1024ULL;
     size_t entries = std::max<size_t>(ClusterSize, bytes / sizeof(TTEntry));
-    // Keep full cluster count (not floored to power-of-two) for ~full Hash MB usage.
     size_ = std::max<size_t>(1, entries / ClusterSize);
     table_.assign(size_ * ClusterSize, {});
-    age_ = 0;
+    age_.store(0, std::memory_order_relaxed);
   }
 
   void clear() {
     std::memset(table_.data(), 0, table_.size() * sizeof(TTEntry));
-    age_ = 0;
+    age_.store(0, std::memory_order_relaxed);
   }
 
-  void new_search() { age_ = uint8_t(age_ + 1); }
+  void new_search() {
+    age_.store(uint8_t(age_.load(std::memory_order_relaxed) + 1), std::memory_order_relaxed);
+  }
 
   TTEntry* probe(Key key, bool& hit) {
-    // Multiply-high index into arbitrary cluster count
     size_t idx = (size_t)((__uint128_t(key) * __uint128_t(size_)) >> 64);
     TTEntry* cluster = &table_[idx * ClusterSize];
+    const uint8_t age = age_.load(std::memory_order_relaxed);
     for (size_t i = 0; i < ClusterSize; ++i) {
-      if (cluster[i].key == key) {
-        hit = true;
-        cluster[i].age = age_;
-        return &cluster[i];
+      // Read key first; re-validate after copying payload fields.
+      Key k = cluster[i].key;
+      if (k == key) {
+        TTEntry snap = cluster[i];
+        if (snap.key == key) {
+          hit = true;
+          cluster[i].age = age;
+          // Return live pointer — callers only read after hit validation above.
+          return &cluster[i];
+        }
       }
     }
     hit = false;
-    // Prefer empty, then generation-distance + shallower depth; protect exact entries.
     TTEntry* replace = &cluster[0];
     for (size_t i = 1; i < ClusterSize; ++i) {
       if (cluster[i].key == 0) { replace = &cluster[i]; break; }
       auto score_slot = [&](const TTEntry& e) {
-        int ageDist = uint8_t(age_ - e.age);
+        int ageDist = uint8_t(age - e.age);
         int protect = (e.flag == TT_EXACT ? 64 : 0) + int(e.depth);
         return protect - 4 * ageDist;
       };
@@ -68,15 +77,17 @@ public:
   void store(Key key, Depth depth, Value score, TTFlag flag, Move move, Value eval) {
     bool hit = false;
     TTEntry* e = probe(key, hit);
-    // Always overwrite empty / same key / deeper / exact / older generation
-    if (e->key != key || depth + 2 >= e->depth || flag == TT_EXACT || e->age != age_) {
-      e->key = key;
-      e->depth = uint8_t(std::max(0, depth));
+    const uint8_t age = age_.load(std::memory_order_relaxed);
+    if (e->key != key || depth + 2 >= e->depth || flag == TT_EXACT || e->age != age) {
+      e->move = move ? move : e->move;
       e->score = int16_t(score);
       e->eval = int16_t(eval);
+      e->depth = uint8_t(std::max(0, depth));
       e->flag = flag;
-      e->age = age_;
-      if (move) e->move = move;
+      e->age = age;
+      // Publish last so concurrent probes never see a half-written entry with matching key.
+      std::atomic_thread_fence(std::memory_order_release);
+      e->key = key;
     } else if (move) {
       e->move = move;
     }
@@ -84,8 +95,8 @@ public:
 
 private:
   std::vector<TTEntry> table_;
-  size_t size_ = 0; // cluster count
-  uint8_t age_ = 0;
+  size_t size_ = 0;
+  std::atomic<uint8_t> age_{0};
 };
 
 } // namespace ah

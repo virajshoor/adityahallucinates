@@ -9,6 +9,7 @@
 #include <cstring>
 #include <cmath>
 #include <cstdlib>
+#include <thread>
 
 namespace ah {
 
@@ -32,24 +33,43 @@ int piece_value(PieceType pt) {
   static constexpr int v[] = {0, 100, 320, 330, 500, 900, 0};
   return v[pt];
 }
+
+void atomic_max(std::atomic<int>& a, int v) {
+  int cur = a.load(std::memory_order_relaxed);
+  while (v > cur && !a.compare_exchange_weak(cur, v, std::memory_order_relaxed)) {}
+}
 } // namespace
 
 
-Search::Search() {
-  tt.resize(256);
+Search::Search() : tt(std::make_shared<TranspositionTable>()), info(&ownedInfo) {
+  tt->resize(256);
   clear();
 }
 
-void Search::clear() {
-  tt.clear();
+Search::Search(std::shared_ptr<TranspositionTable> sharedTt, SearchInfo* sharedInfo)
+    : tt(std::move(sharedTt)), info(sharedInfo) {
   std::memset(history, 0, sizeof(history));
   std::memset(captureHistory, 0, sizeof(captureHistory));
   std::memset(contHistory, 0, sizeof(contHistory));
   std::memset(countermove, 0, sizeof(countermove));
   std::memset(pv_table, 0, sizeof(pv_table));
-  info.nodes = 0;
-  info.seldepth = 0;
-  info.stop = false;
+  silent = true;
+}
+
+void Search::set_threads(int n) {
+  numThreads = std::clamp(n, 1, 8);
+}
+
+void Search::clear() {
+  tt->clear();
+  std::memset(history, 0, sizeof(history));
+  std::memset(captureHistory, 0, sizeof(captureHistory));
+  std::memset(contHistory, 0, sizeof(contHistory));
+  std::memset(countermove, 0, sizeof(countermove));
+  std::memset(pv_table, 0, sizeof(pv_table));
+  info->nodes.store(0, std::memory_order_relaxed);
+  info->seldepth.store(0, std::memory_order_relaxed);
+  info->stop.store(false, std::memory_order_relaxed);
 }
 
 int64_t Search::now_ms() const {
@@ -58,10 +78,9 @@ int64_t Search::now_ms() const {
 }
 
 bool Search::time_up() const {
-  if (info.stop.load(std::memory_order_relaxed)) return true;
+  if (info->stop.load(std::memory_order_relaxed)) return true;
   if (limits.infinite) return false;
   const int64_t elapsed = now_ms() - startTime;
-  // Absolute wall-clock deadline — last line of defense against runaway search
   if (hardDeadline > 0 && now_ms() >= hardDeadline) return true;
   if (limits.movetime > 0 && elapsed >= limits.movetime) return true;
   if (limits.depth && !limits.movetime && !limits.wtime && !limits.btime) return false;
@@ -124,14 +143,14 @@ void Search::order_moves(Position& pos, ExtMove* begin, ExtMove* end, Move ttMov
 }
 
 Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
-  ++info.nodes;
+  info->nodes.fetch_add(1, std::memory_order_relaxed);
   // Poll the hard deadline frequently; don't wait for a 1024-node boundary.
-  if (hardDeadline > 0 && (info.nodes & 63) == 0 && now_ms() >= hardDeadline) {
-    info.stop = true;
+  if (hardDeadline > 0 && (info->nodes.load(std::memory_order_relaxed) & 63) == 0 && now_ms() >= hardDeadline) {
+    info->stop.store(true, std::memory_order_relaxed);
     return alpha;
   }
-  if ((info.nodes & 1023) == 0 && time_up()) {
-    info.stop = true;
+  if ((info->nodes.load(std::memory_order_relaxed) & 1023) == 0 && time_up()) {
+    info->stop.store(true, std::memory_order_relaxed);
     return alpha;
   }
 
@@ -181,7 +200,7 @@ Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
     pos.do_move(m, st);
     Value score = -qsearch(pos, ss + 1, -beta, -alpha);
     pos.undo_move(m);
-    if (info.stop) return alpha;
+    if (info->stop.load(std::memory_order_relaxed)) return alpha;
 
     if (score > alpha) {
       alpha = score;
@@ -195,14 +214,14 @@ Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
 Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode) {
   const bool rootNode = (ss->ply == 0);
   const bool pvNode = (beta - alpha) > 1;
-  ++info.nodes;
+  info->nodes.fetch_add(1, std::memory_order_relaxed);
 
-  if (hardDeadline > 0 && (info.nodes & 63) == 0 && now_ms() >= hardDeadline) {
-    info.stop = true;
+  if (hardDeadline > 0 && (info->nodes.load(std::memory_order_relaxed) & 63) == 0 && now_ms() >= hardDeadline) {
+    info->stop.store(true, std::memory_order_relaxed);
     return alpha;
   }
-  if ((info.nodes & 1023) == 0 && time_up()) {
-    info.stop = true;
+  if ((info->nodes.load(std::memory_order_relaxed) & 1023) == 0 && time_up()) {
+    info->stop.store(true, std::memory_order_relaxed);
     return alpha;
   }
 
@@ -221,10 +240,10 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
   if (depth <= 0)
     return qsearch(pos, ss, alpha, beta);
 
-  info.seldepth = std::max(info.seldepth, ss->ply);
+  atomic_max(info->seldepth, ss->ply);
 
   bool ttHit = false;
-  TTEntry* tte = tt.probe(pos.key(), ttHit);
+  TTEntry* tte = tt->probe(pos.key(), ttHit);
   Move ttMove = ttHit ? tte->move : MOVE_NONE;
   Value ttValue = ttHit ? value_from_tt(Value(tte->score), ss->ply) : VALUE_NONE;
 
@@ -274,7 +293,7 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
     Value nullScore = -search_node(pos, ss + 1, -beta, -beta + 1, depth - R, !cutNode);
     pos.undo_null_move();
     ss->current = prevMove;
-    if (info.stop) return alpha;
+    if (info->stop.load(std::memory_order_relaxed)) return alpha;
     if (nullScore >= beta)
       return nullScore >= VALUE_MATE_IN_MAX_PLY ? beta : nullScore;
   }
@@ -284,8 +303,8 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
   // Internal iterative deepening: shallow search to get a TT move (PV only)
   if (pvNode && !ttMove && depth >= 6) {
     search_node(pos, ss, alpha, beta, depth - 2, false);
-    if (info.stop) return alpha;
-    tte = tt.probe(pos.key(), ttHit);
+    if (info->stop.load(std::memory_order_relaxed)) return alpha;
+    tte = tt->probe(pos.key(), ttHit);
     ttMove = ttHit ? tte->move : MOVE_NONE;
     ttValue = ttHit ? value_from_tt(Value(tte->score), ss->ply) : VALUE_NONE;
   } else if (!ttMove && depth >= 7) {
@@ -377,7 +396,7 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
         score = -search_node(pos, ss + 1, -beta, -alpha, newDepth + extension, false);
     }
     pos.undo_move(m);
-    if (info.stop) return alpha;
+    if (info->stop.load(std::memory_order_relaxed)) return alpha;
 
     if (score > bestScore) {
       bestScore = score;
@@ -419,18 +438,18 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
     }
   }
 
-  if (!info.stop)
-    tt.store(pos.key(), depth, value_to_tt(bestScore, ss->ply), flag,
+  if (!info->stop.load(std::memory_order_relaxed))
+    tt->store(pos.key(), depth, value_to_tt(bestScore, ss->ply), flag,
              bestMove ? bestMove : ttMove, ss->staticEval);
   return bestScore;
 }
 
 Move Search::think(Position& pos, const SearchLimits& lim) {
   limits = lim;
-  info.stop = false;
-  info.nodes = 0;
-  info.seldepth = 0;
-  tt.new_search();
+  info->stop.store(false, std::memory_order_relaxed);
+  info->nodes.store(0, std::memory_order_relaxed);
+  info->seldepth.store(0, std::memory_order_relaxed);
+  tt->new_search();
   bestRootMove = MOVE_NONE;
   useNnueAcc = nnue_ready() && std::getenv("ADITYA_USE_NNUE") &&
                std::getenv("ADITYA_USE_NNUE")[0] == '1';
@@ -448,7 +467,6 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
   hardDeadline = 0;
   if (limits.movetime > 0) {
     allocatedTime = std::max(8, limits.movetime - 10);
-    // Hard stop slightly after UCI movetime so we always return a move
     hardDeadline = startTime + limits.movetime + 250;
   } else if (limits.wtime || limits.btime) {
     int time = pos.side_to_move() == WHITE ? limits.wtime : limits.btime;
@@ -458,11 +476,55 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
     allocatedTime = std::max<int64_t>(15, std::min<int64_t>(allocatedTime, time * 4 / 5));
     hardDeadline = startTime + allocatedTime + 500;
   }
-  std::cout << "info string time_ctrl movetime=" << limits.movetime
-            << " allocated=" << allocatedTime
-            << " hard_ms=" << (hardDeadline ? (hardDeadline - startTime) : 0)
-            << std::endl;
+  if (!silent) {
+    std::cout << "info string time_ctrl movetime=" << limits.movetime
+              << " allocated=" << allocatedTime
+              << " hard_ms=" << (hardDeadline ? (hardDeadline - startTime) : 0)
+              << " threads=" << numThreads
+              << std::endl;
+  }
 
+  // Lazy SMP: helpers run independent ID on a FEN copy, sharing TT + stop/nodes.
+  std::vector<std::thread> helpers;
+  const std::string rootFen = pos.fen();
+  if (numThreads > 1) {
+    helpers.reserve(numThreads - 1);
+    for (int id = 1; id < numThreads; ++id)
+      helpers.emplace_back([this, rootFen, id]() { helper_loop(rootFen, id); });
+  }
+
+  iterative_deepening(pos, /*emitInfo=*/!silent);
+
+  // Stop helpers and join — main thread owns the returned best move.
+  info->stop.store(true, std::memory_order_relaxed);
+  for (auto& t : helpers) t.join();
+
+  if (!bestRootMove) {
+    MoveListWrapper list(pos);
+    if (list.size()) bestRootMove = list.begin()->move;
+  }
+  return bestRootMove;
+}
+
+void Search::helper_loop(const std::string& fen, int helperId) {
+  Search helper(tt, info);
+  helper.limits = limits;
+  helper.startTime = startTime;
+  helper.allocatedTime = allocatedTime;
+  helper.hardDeadline = hardDeadline;
+  helper.useNnueAcc = useNnueAcc;
+  helper.silent = true;
+  helper.numThreads = 1;
+
+  Position hpos;
+  StateInfo states[MAX_PLY + 8];
+  hpos.set(fen, states[0]);
+  // Slight depth offset so helpers don't all mirror the main thread.
+  (void)helperId;
+  helper.iterative_deepening(hpos, /*emitInfo=*/false);
+}
+
+void Search::iterative_deepening(Position& pos, bool emitInfo) {
   Stack stack[MAX_PLY + 5] = {};
   Stack* ss = stack + 2;
   for (int i = 0; i < MAX_PLY; ++i) {
@@ -476,7 +538,6 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
   if (useNnueAcc) nnue().refresh(ss->acc, pos);
 
   int maxDepth = limits.depth > 0 ? limits.depth : MAX_PLY - 2;
-  // Timed games: cap iterative depth so aspiration/fail-high storms cannot run forever
   if (limits.movetime > 0 || limits.wtime || limits.btime)
     maxDepth = std::min(maxDepth, 48);
   Value alpha = -VALUE_INFINITE, beta = VALUE_INFINITE;
@@ -484,7 +545,7 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
 
   for (int depth = 1; depth <= maxDepth; ++depth) {
     if (time_up() || (hardDeadline > 0 && now_ms() >= hardDeadline)) {
-      info.stop = true;
+      info->stop.store(true, std::memory_order_relaxed);
       break;
     }
     if (depth >= 5) {
@@ -499,15 +560,14 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
     int aspTries = 0;
     while (true) {
       bestScore = search_node(pos, ss, alpha, beta, depth, false);
-      if (info.stop || time_up()) {
-        info.stop = true;
+      if (info->stop.load(std::memory_order_relaxed) || time_up()) {
+        info->stop.store(true, std::memory_order_relaxed);
         break;
       }
       if (bestScore <= alpha) {
         beta = (alpha + beta) / 2;
         alpha = bestScore - delta;
         delta += delta / 2;
-        // Fail low: spend more of the remaining movetime
         if (allocatedTime > 0) allocatedTime = std::min(allocatedTime + allocatedTime / 8,
             limits.movetime > 0 ? std::max<int64_t>(8, limits.movetime - 5)
                                 : allocatedTime * 2);
@@ -522,30 +582,27 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
       }
       break;
     }
-    if (info.stop) break;
+    if (info->stop.load(std::memory_order_relaxed)) break;
 
     if (ss->pv[0]) bestRootMove = ss->pv[0];
-    int64_t elapsed = std::max<int64_t>(1, now_ms() - startTime);
-    std::cout << "info depth " << depth
-              << " seldepth " << info.seldepth
-              << " score cp " << bestScore
-              << " nodes " << info.nodes
-              << " nps " << (info.nodes * 1000 / elapsed)
-              << " time " << elapsed
-              << " pv";
-    for (int i = 0; ss->pv[i]; ++i) std::cout << ' ' << move_to_uci(ss->pv[i]);
-    std::cout << std::endl;
+    if (emitInfo) {
+      int64_t elapsed = std::max<int64_t>(1, now_ms() - startTime);
+      const uint64_t nodes = info->nodes.load(std::memory_order_relaxed);
+      std::cout << "info depth " << depth
+                << " seldepth " << info->seldepth.load(std::memory_order_relaxed)
+                << " score cp " << bestScore
+                << " nodes " << nodes
+                << " nps " << (nodes * 1000 / elapsed)
+                << " time " << elapsed
+                << " pv";
+      for (int i = 0; ss->pv[i]; ++i) std::cout << ' ' << move_to_uci(ss->pv[i]);
+      std::cout << std::endl;
+    }
 
     if (limits.depth && depth >= limits.depth) break;
     if (allocatedTime > 0 && (now_ms() - startTime) > allocatedTime * 95 / 100) break;
     if (std::abs(bestScore) > VALUE_MATE_IN_MAX_PLY) break;
   }
-
-  if (!bestRootMove) {
-    MoveListWrapper list(pos);
-    if (list.size()) bestRootMove = list.begin()->move;
-  }
-  return bestRootMove;
 }
 
 } // namespace ah

@@ -4,6 +4,7 @@
 #include "search/tt.hpp"
 #include "nnue/nnue.hpp"
 #include <atomic>
+#include <memory>
 #include <string>
 #include <vector>
 #include <cstdint>
@@ -21,8 +22,8 @@ struct SearchLimits {
 
 struct SearchInfo {
   std::atomic<bool> stop{false};
-  uint64_t nodes = 0;
-  int seldepth = 0;
+  std::atomic<uint64_t> nodes{0};
+  std::atomic<int> seldepth{0};
 };
 
 class Search {
@@ -38,15 +39,19 @@ public:
   };
 
   Search();
-  void set_hash(size_t mb) { tt.resize(mb); }
+  explicit Search(std::shared_ptr<TranspositionTable> sharedTt, SearchInfo* sharedInfo);
+  void set_hash(size_t mb) { tt->resize(mb); }
+  void set_threads(int n);
+  int threads() const { return numThreads; }
   void clear();
 
   Move think(Position& pos, const SearchLimits& limits);
-  uint64_t nodes() const { return info.nodes; }
-  void request_stop() { info.stop = true; }
+  uint64_t nodes() const { return info->nodes.load(std::memory_order_relaxed); }
+  void request_stop() { info->stop.store(true, std::memory_order_relaxed); }
 
-  TranspositionTable tt;
-  SearchInfo info;
+  std::shared_ptr<TranspositionTable> tt;
+  SearchInfo ownedInfo;
+  SearchInfo* info = &ownedInfo;
 
 private:
   Value search_node(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode);
@@ -56,20 +61,24 @@ private:
   bool time_up() const;
   int64_t now_ms() const;
   Value eval_pos(const Position& pos, Stack* ss) const;
+  void iterative_deepening(Position& pos, bool emitInfo);
+  void helper_loop(const std::string& fen, int helperId);
 
   static constexpr int MAX_PV = MAX_PLY + 1;
   Move pv_table[MAX_PLY + 1][MAX_PV]{};
   int history[COLOR_NB][64][64]{};
   int captureHistory[PIECE_NB][64][PIECE_TYPE_NB]{};
-  int contHistory[PIECE_NB][64][64]{}; // prev piece-to → current from-to
+  int contHistory[PIECE_NB][64][64]{};
   Move countermove[PIECE_NB][64]{};
 
   Move bestRootMove = MOVE_NONE;
   int64_t startTime = 0;
   int64_t allocatedTime = 0;
-  int64_t hardDeadline = 0; // absolute now_ms() cutoff; 0 = none
+  int64_t hardDeadline = 0;
   SearchLimits limits{};
   bool useNnueAcc = false;
+  bool silent = false;
+  int numThreads = 1;
 };
 
 } // namespace ah

@@ -73,6 +73,7 @@ def main() -> int:
     ap.add_argument("--elo", type=int, default=0)
     ap.add_argument("--movetime", type=float, default=0.1)
     ap.add_argument("--hash", type=int, default=256)
+    ap.add_argument("--threads", type=int, default=1)
     ap.add_argument("--target", type=float, default=0.75)
     args = ap.parse_args()
 
@@ -90,7 +91,7 @@ def main() -> int:
     scores = []
 
     try:
-        aditya.configure({"Hash": args.hash})
+        aditya.configure({"Hash": args.hash, "Threads": args.threads})
         sf.configure({"Hash": args.hash, "Threads": 1})
         if args.elo > 0:
             sf.configure({"UCI_LimitStrength": True, "UCI_Elo": args.elo})
@@ -126,6 +127,7 @@ def main() -> int:
         summary = {
             "label": label,
             "movetime": args.movetime,
+            "threads": args.threads,
             "points": sum(scores),
             "games": len(scores),
             "score": avg,
