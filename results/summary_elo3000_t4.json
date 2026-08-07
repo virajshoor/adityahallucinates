@@ -1,0 +1,69 @@
+{
+  "label": "elo3000",
+  "movetime": 5.0,
+  "threads": 4,
+  "points": 1.0,
+  "games": 8,
+  "score": 0.125,
+  "target": 0.75,
+  "passed": false,
+  "game_results": [
+    {
+      "game": 1,
+      "aditya_white": true,
+      "score": 0.0,
+      "termination": "CHECKMATE",
+      "result": "?"
+    },
+    {
+      "game": 2,
+      "aditya_white": false,
+      "score": 0.0,
+      "termination": "CHECKMATE",
+      "result": "?"
+    },
+    {
+      "game": 3,
+      "aditya_white": true,
+      "score": 0.5,
+      "termination": "THREEFOLD_REPETITION",
+      "result": "?"
+    },
+    {
+      "game": 4,
+      "aditya_white": false,
+      "score": 0.0,
+      "termination": "CHECKMATE",
+      "result": "?"
+    },
+    {
+      "game": 5,
+      "aditya_white": true,
+      "score": 0.0,
+      "termination": "CHECKMATE",
+      "result": "?"
+    },
+    {
+      "game": 6,
+      "aditya_white": false,
+      "score": 0.0,
+      "termination": "CHECKMATE",
+      "result": "?"
+    },
+    {
+      "game": 7,
+      "aditya_white": true,
+      "score": 0.5,
+      "termination": "THREEFOLD_REPETITION",
+      "result": "?"
+    },
+    {
+      "game": 8,
+      "aditya_white": false,
+      "score": 0.0,
+      "termination": "CHECKMATE",
+      "result": "?"
+    }
+  ],
+  "note": "Threads=4 probe; worse than T=2"
+}
