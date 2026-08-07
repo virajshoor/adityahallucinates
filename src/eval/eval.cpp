@@ -521,12 +521,12 @@ Value evaluate(const Position& pos, const NnueAccumulator* acc) {
     const char* b = std::getenv("ADITYA_NNUE_BLEND");
     blend = b ? std::clamp(std::atoi(b), 0, 100) : 70;
   }
-  if (use_nnue && nnue_ready()) {
+  if (use_nnue && nnue_ready() && blend < 100) {
+    // Skip net when blend=100 (pure classical) so NPS is not destroyed.
     Value net = (acc && acc->computed) ? nnue().evaluate(pos, *acc) : nnue().evaluate(pos);
     if (net != VALUE_NONE) {
-      Value classical = classical_evaluate(pos);
-      if (blend >= 100) return classical;
       if (blend <= 0) return net;
+      Value classical = classical_evaluate(pos);
       return Value((int(classical) * blend + int(net) * (100 - blend)) / 100);
     }
   }

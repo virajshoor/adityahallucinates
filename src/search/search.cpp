@@ -451,8 +451,14 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
   info->seldepth.store(0, std::memory_order_relaxed);
   tt->new_search();
   bestRootMove = MOVE_NONE;
-  useNnueAcc = nnue_ready() && std::getenv("ADITYA_USE_NNUE") &&
-               std::getenv("ADITYA_USE_NNUE")[0] == '1';
+  // Only maintain accumulators when the net actually contributes to eval.
+  useNnueAcc = false;
+  if (nnue_ready() && std::getenv("ADITYA_USE_NNUE") &&
+      std::getenv("ADITYA_USE_NNUE")[0] == '1') {
+    const char* b = std::getenv("ADITYA_NNUE_BLEND");
+    const int blend = b ? std::clamp(std::atoi(b), 0, 100) : 70;
+    useNnueAcc = blend < 100;
+  }
 
   if (!limits.infinite && pos.game_ply() <= 14) {
     Move bookMove = probe_book(pos);

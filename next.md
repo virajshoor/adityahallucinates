@@ -27,6 +27,8 @@ Classical UCI engine `build/aditya` is runnable and strength-tested vs Stockfish
 8. Elo 3000 bottleneck is **Black** (~22–31%); White ~44–50% — distance-based king shelter + QGD book
 15. **v23 Lazy SMP** (Threads=2) Elo3000 **37.5%** ≈ v22 — need NNUE, not more book/KS churn
 16. v24: Lazy SMP helper diversity (history seed + depth/aspiration offset)
+17. NNUE bootstrap (88k labels) still **0/40** vs classical — net plays Bh7 nonsense; float NNUE ~400knps
+18. Fixed blend≥100 short-circuit (was evaluating net every node); datagen now prefers SF moves
 9. Book gaps closed for QGD+Nf3/Nc3, Catalan, Vienna/3N, Exchange Slav (stop early `...h6` / `...Nge7` / `...Nh5`)
 10. Removed early rook-pawn tempo tax (hurt more than it helped)
 11. Scotch Gambit book: prefer ...Be7/a6 over ...Bd7 after 6.Bb5 Ne4 7.O-O
