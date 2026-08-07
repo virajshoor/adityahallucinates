@@ -516,15 +516,25 @@ void Search::helper_loop(const std::string& fen, int helperId) {
   helper.silent = true;
   helper.numThreads = 1;
 
+  // Asymmetric history so helpers diverge in move ordering (Lazy SMP diversity).
+  unsigned seed = 0x9e3779b9u * static_cast<unsigned>(helperId + 1);
+  for (int c = 0; c < COLOR_NB; ++c)
+    for (int f = 0; f < 64; ++f)
+      for (int t = 0; t < 64; ++t) {
+        seed = seed * 1664525u + 1013904223u;
+        helper.history[c][f][t] = static_cast<int>(seed % 17) - 8;
+      }
+
   Position hpos;
   StateInfo states[MAX_PLY + 8];
   hpos.set(fen, states[0]);
-  // Slight depth offset so helpers don't all mirror the main thread.
-  (void)helperId;
-  helper.iterative_deepening(hpos, /*emitInfo=*/false);
+  // Offset start depth + aspiration width so TT fills different shapes.
+  const int startDepth = 1 + (helperId % 3);
+  const int aspBase = 24 + 4 * helperId;
+  helper.iterative_deepening(hpos, /*emitInfo=*/false, startDepth, aspBase);
 }
 
-void Search::iterative_deepening(Position& pos, bool emitInfo) {
+void Search::iterative_deepening(Position& pos, bool emitInfo, int startDepth, int aspBase) {
   Stack stack[MAX_PLY + 5] = {};
   Stack* ss = stack + 2;
   for (int i = 0; i < MAX_PLY; ++i) {
@@ -542,21 +552,23 @@ void Search::iterative_deepening(Position& pos, bool emitInfo) {
     maxDepth = std::min(maxDepth, 48);
   Value alpha = -VALUE_INFINITE, beta = VALUE_INFINITE;
   Value bestScore = 0;
+  startDepth = std::max(1, startDepth);
+  aspBase = std::max(12, aspBase);
 
-  for (int depth = 1; depth <= maxDepth; ++depth) {
+  for (int depth = startDepth; depth <= maxDepth; ++depth) {
     if (time_up() || (hardDeadline > 0 && now_ms() >= hardDeadline)) {
       info->stop.store(true, std::memory_order_relaxed);
       break;
     }
     if (depth >= 5) {
-      alpha = bestScore - 28;
-      beta = bestScore + 28;
+      alpha = bestScore - aspBase;
+      beta = bestScore + aspBase;
     } else {
       alpha = -VALUE_INFINITE;
       beta = VALUE_INFINITE;
     }
 
-    int delta = 28;
+    int delta = aspBase;
     int aspTries = 0;
     while (true) {
       bestScore = search_node(pos, ss, alpha, beta, depth, false);

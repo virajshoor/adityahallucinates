@@ -61,7 +61,7 @@ private:
   bool time_up() const;
   int64_t now_ms() const;
   Value eval_pos(const Position& pos, Stack* ss) const;
-  void iterative_deepening(Position& pos, bool emitInfo);
+  void iterative_deepening(Position& pos, bool emitInfo, int startDepth = 1, int aspBase = 28);
   void helper_loop(const std::string& fen, int helperId);
 
   static constexpr int MAX_PV = MAX_PLY + 1;

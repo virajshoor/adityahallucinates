@@ -14,7 +14,7 @@ Classical UCI engine `build/aditya` is runnable and strength-tested vs Stockfish
 | `UCI_Elo` 2400 | 3.0s/move | **90.6% pass** |
 | `UCI_Elo` 2600 | **5.0s/move** | **75% pass** (71.9% near-miss @3s) |
 | `UCI_Elo` 2800 | **5.0s/move** | **75% pass (12/16)** |
-| `UCI_Elo` 3000 | **5.0s** | **v22 32g 35.9%** (W50/B21.9); **v23 Lazy SMP Threads=2** Elo2400 hold 4/4; Elo3000 running |
+| `UCI_Elo` 3000 | **5.0s** | **v22 32g 35.9%** (W50/B21.9); **v23 SMP T=2 16g 37.5%** (W43.8/B31.2) — no clear gain |
 
 **Default eval is classical.** Critical fixes this session:
 1. PeSTO PSTs were rank-flipped (a1=0 vs rank-8-first) — ~300–500cp inflation + exchange blunders
@@ -24,7 +24,9 @@ Classical UCI engine `build/aditya` is runnable and strength-tested vs Stockfish
 5. Full Hash TT (multiply-high); null-move `MOVE_NULL`; book ply 14
 6. Advantage-dependent endgame mop-up; per-victim threat aggregation
 7. Search patches (stand-pat/draw/qsearch rewrite) **regressed Elo 2400+** — keep 9848fe5 search skeleton
-8. Elo 3000 bottleneck is **Black** (37.5%); distance-based king shelter + QGD book
+8. Elo 3000 bottleneck is **Black** (~22–31%); White ~44–50% — distance-based king shelter + QGD book
+15. **v23 Lazy SMP** (Threads=2) Elo3000 **37.5%** ≈ v22 — need NNUE, not more book/KS churn
+16. v24: Lazy SMP helper diversity (history seed + depth/aspiration offset)
 9. Book gaps closed for QGD+Nf3/Nc3, Catalan, Vienna/3N, Exchange Slav (stop early `...h6` / `...Nge7` / `...Nh5`)
 10. Removed early rook-pawn tempo tax (hurt more than it helped)
 11. Scotch Gambit book: prefer ...Be7/a6 over ...Bd7 after 6.Bb5 Ne4 7.O-O
@@ -63,25 +65,26 @@ python3 scripts/match_stockfish.py --elo 2400 --games 16 --movetime 3.0 --target
 ### 1. Break Elo 3000 (main goal)
 - Cleared Elo 2800 @5s (**75%**)
 - **Stabler baseline:** Elo 3000 **v22 32-game @5s = 35.9%** (W **50%** / B **21.9%**)
-- **v23 Lazy SMP:** UCI `Threads` 1–8, shared lockless TT, helpers run independent ID (NPS ~2× at Threads=2)
-- Black is the bottleneck (~22%); White roughly even — SMP helps both colors via depth/TT
-- Stop book/KS/LMP churn; NNUE still off until it beats classical
+- **v23 Lazy SMP Threads=2 @5s:** **37.5%** (16g, W43.8/B31.2) + Elo2400 hold 4/4 — **SMP alone is not enough** for 75%
+- NPS scales (~1.8M→3.2M→5.0M at T=1/2/4); v24 adds helper history/depth/aspiration diversity
+- Stop book/KS/LMP churn; next lever is **NNUE that beats classical**
 - Hangs fixed: hardDeadline, no qsearch quiet-checks, SEE cap (do not thread-wrap SimpleEngine.play)
-- Validate: Elo 2400 hold with Threads=2, then Elo 3000 @5s; then 3190 → unrestricted SF
+- After NNUE wins self-play: Elo 3000 @5s Threads=2; then 3190 → unrestricted SF
 
 ### 2. Skill 5 — done
 - Cleared Skill 5 @1.5s (**90.6%**)
 
-### 3. NNUE that beats classical
+### 3. NNUE that beats classical (active)
 ```bash
-python3 tools/datagen/gen_sf_labels.py --games 300 --depth 9 --out tools/datagen/output/sf_d9.bin --use-aditya
-cat tools/datagen/output/sf_d7.bin tools/datagen/output/sf_d8b.bin tools/datagen/output/sf_d9.bin > tools/datagen/output/all.bin
-python3 tools/train/train_nnue_fast.py --data tools/datagen/output/all.bin --out nets/fast.nnue --epochs 24
-# Self-match classical vs ADITYA_USE_NNUE=1 ADITYA_NNUE_BLEND=0
-# Int16 MLP forward still pending (float hidden limits NPS)
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+mkdir -p tools/datagen/output
+python3 tools/datagen/gen_sf_labels.py --games 400 --depth 8 --out tools/datagen/output/sf_d8.bin --use-aditya
+python3 tools/train/train_nnue_fast.py --data tools/datagen/output/sf_d8.bin --out nets/fast.nnue --epochs 24
+python3 scripts/selfplay_nnue.py --games 40 --movetime 0.15 --blend 0
+# Only enable NNUE in SF matches if self-play score ≥ ~55%
 ```
 
-### 4. Optional Lazy SMP (Threads > 1)
+### 4. Lazy SMP — shipped (v23/v24)
 
 ---
 
