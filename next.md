@@ -14,7 +14,7 @@ Classical UCI engine `build/aditya` is runnable and strength-tested vs Stockfish
 | `UCI_Elo` 2400 | 3.0s/move | **90.6% pass** |
 | `UCI_Elo` 2600 | **5.0s/move** | **75% pass** (71.9% near-miss @3s) |
 | `UCI_Elo` 2800 | **5.0s/move** | **75% pass (12/16)** |
-| `UCI_Elo` 3000 | **5.0s** | **v22 32g 35.9%** (W50/B21.9); **v23 Lazy SMP Threads=2** testing |
+| `UCI_Elo` 3000 | **5.0s** | **v22 32g 35.9%** (W50/B21.9); **v23 Lazy SMP Threads=2** Elo2400 hold 4/4; Elo3000 running |
 
 **Default eval is classical.** Critical fixes this session:
 1. PeSTO PSTs were rank-flipped (a1=0 vs rank-8-first) — ~300–500cp inflation + exchange blunders
