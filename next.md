@@ -14,7 +14,7 @@ Classical UCI engine `build/aditya` is runnable and strength-tested vs Stockfish
 | `UCI_Elo` 2400 | 3.0s/move | **90.6% pass** |
 | `UCI_Elo` 2600 | **5.0s/move** | **75% pass** (71.9% near-miss @3s) |
 | `UCI_Elo` 2800 | **5.0s/move** | **75% pass (12/16)** |
-| `UCI_Elo` 3000 | **5.0s** | **v22 32g 35.9%** (W50/B21.9); **v23 SMP T=2 16g 37.5%** (W43.8/B31.2) — no clear gain |
+| `UCI_Elo` 3000 | **5.0s** | **v22 32g 35.9%** (W50/B21.9); **v23 SMP T=2 16g 37.5%**; T=4 probe weak; book v25 pending |
 
 **Default eval is classical.** Critical fixes this session:
 1. PeSTO PSTs were rank-flipped (a1=0 vs rank-8-first) — ~300–500cp inflation + exchange blunders
@@ -68,8 +68,9 @@ python3 scripts/match_stockfish.py --elo 2400 --games 16 --movetime 3.0 --target
 - Cleared Elo 2800 @5s (**75%**)
 - **Stabler baseline:** Elo 3000 **v22 32-game @5s = 35.9%** (W **50%** / B **21.9%**)
 - **v23 Lazy SMP Threads=2 @5s:** **37.5%** (16g, W43.8/B31.2) + Elo2400 hold 4/4 — **SMP alone is not enough** for 75%
-- NPS scales (~1.8M→3.2M→5.0M at T=1/2/4); v24 adds helper history/depth/aspiration diversity
-- Stop book/KS/LMP churn; next lever is **NNUE that beats classical**
+- NPS scales (~1.8M→3.2M→5.0M at T=1/2/4); v24 helper diversity; **Threads=4 probe looks worse** (partial ~12%)
+- **v25 book:** drop London-as-White + `1.d4 e6`; add French Classical/Advance as Black
+- Stop broad book/KS/LMP churn; NNUE still loses self-play (~2%) — needs much more data
 - Hangs fixed: hardDeadline, no qsearch quiet-checks, SEE cap (do not thread-wrap SimpleEngine.play)
 - After NNUE wins self-play: Elo 3000 @5s Threads=2; then 3190 → unrestricted SF
 
