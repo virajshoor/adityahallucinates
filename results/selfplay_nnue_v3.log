@@ -1,0 +1,32 @@
+<UciProtocol (pid=10758)>: stderr >> info string loaded NNUE nets/fast.nnue
+game 1/30: nnue=W score=0.0 running=0.000
+game 2/30: nnue=B score=0.0 running=0.000
+game 3/30: nnue=W score=0.0 running=0.000
+game 4/30: nnue=B score=0.0 running=0.000
+game 5/30: nnue=W score=0.0 running=0.000
+game 6/30: nnue=B score=0.0 running=0.000
+game 7/30: nnue=W score=0.0 running=0.000
+game 8/30: nnue=B score=0.0 running=0.000
+game 9/30: nnue=W score=0.0 running=0.000
+game 10/30: nnue=B score=0.0 running=0.000
+game 11/30: nnue=W score=0.0 running=0.000
+game 12/30: nnue=B score=0.0 running=0.000
+game 13/30: nnue=W score=0.0 running=0.000
+game 14/30: nnue=B score=0.0 running=0.000
+game 15/30: nnue=W score=0.0 running=0.000
+game 16/30: nnue=B score=0.0 running=0.000
+game 17/30: nnue=W score=0.0 running=0.000
+game 18/30: nnue=B score=0.0 running=0.000
+game 19/30: nnue=W score=0.0 running=0.000
+game 20/30: nnue=B score=0.0 running=0.000
+game 21/30: nnue=W score=0.0 running=0.000
+game 22/30: nnue=B score=0.0 running=0.000
+game 23/30: nnue=W score=0.0 running=0.000
+game 24/30: nnue=B score=0.0 running=0.000
+game 25/30: nnue=W score=0.5 running=0.020
+game 26/30: nnue=B score=0.0 running=0.019
+game 27/30: nnue=W score=0.0 running=0.019
+game 28/30: nnue=B score=0.0 running=0.018
+game 29/30: nnue=W score=0.0 running=0.017
+game 30/30: nnue=B score=0.0 running=0.017
+NNUE score 0.5/30 = 0.017 (blend=0)
