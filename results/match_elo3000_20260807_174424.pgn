@@ -1,0 +1,176 @@
+[Event "?"]
+[Site "?"]
+[Date "2026.08.07"]
+[Round "?"]
+[White "Aditya"]
+[Black "Stockfish"]
+[Result "0-1"]
+[Termination "CHECKMATE"]
+
+1. d4 d5 2. Nf3 e6 3. c4 dxc4 4. e4 b5 5. a4 c6 6. e5 Nd7 7. Nc3 Bb4 8. Bd2 Bxc3 9. bxc3 h6 10. Rb1 a6 11. g3 Rb8 12. Bg2 Ne7 13. axb5 cxb5 14. O-O Nb6 15. Nh4 Qc7 16. Qg4 Rh7 17. Be4 g6 18. Qh3 Nbd5 19. Rfc1 Kf8 20. Ng2 Qd7 21. Qg4 Rh8 22. Ra1 Qc7 23. h4 Bb7 24. Rab1 Bc6 25. Ne1 Ba8 26. Qe2 Kg7 27. h5 g5 28. Nf3 a5 29. Bxg5 hxg5 30. Nxg5 Ng8 31. Bg6 Nh6 32. Bxf7 Qe7 33. Nxe6+ Kxf7 34. Nc5 Nf4 35. Qa2 Ng4 36. gxf4 Qh4 37. Kf1 Qh1+ 38. Ke2 Qf3+ 39. Ke1 Rxh5 40. Qe2 Qxf4 41. Kd1 Bf3 42. e6+ Ke7 43. Kc2 Bxe2 44. Ra1 Qxf2 45. Kb1 Rh2 46. Rxa5 Bf1 47. Ra7+ Ke8 48. Re7+ Kd8 49. Rd7+ Ke8 50. Re7+ Kd8 51. Rd7+ Kc8 52. Rd8+ Kxd8 53. Nb7+ Rxb7 54. e7+ Kd7 55. e8=Q+ Kxe8 56. Rc2 Qxc2+ 57. Ka1 Qa2# 0-1
+
+[Event "?"]
+[Site "?"]
+[Date "2026.08.07"]
+[Round "?"]
+[White "Stockfish"]
+[Black "Aditya"]
+[Result "1-0"]
+[Termination "CHECKMATE"]
+
+1. Nf3 d5 2. g3 Nf6 3. Bg2 c5 4. O-O Nc6 5. c4 d4 6. e3 d3 7. b3 e5 8. Bb2 Bd6 9. Nc3 Bf5 10. Nd5 Be4 11. Ne1 Bxg2 12. Kxg2 Nb4 13. Nxb4 cxb4 14. Nxd3 e4 15. Nf4 Bxf4 16. gxf4 O-O 17. Rg1 Rc8 18. Kh1 g6 19. Qe2 a6 20. Bd4 b6 21. f5 Re8 22. Raf1 Rc6 23. f4 Rf8 24. fxg6 fxg6 25. f5 Qe8 26. Rg5 Nd7 27. Rfg1 Rff6 28. Qh5 Nf8 29. Bxf6 Rxf6 30. R5g4 Qe5 31. Rf4 Ne6 32. Rh4 Qxf5 33. Qxf5 Rxf5 34. Rxe4 Nc5 35. Rf4 Rxf4 36. exf4 Kf7 37. d4 Ne6 38. d5 Nxf4 39. Rf1 g5 40. Rg1 b5 41. Rxg5 Kf6 42. Rg4 Nd3 43. Rh4 bxc4 44. bxc4 Kg6 45. Rd4 Nc5 46. d6 Nd7 47. c5 Nxc5 48. d7 Nxd7 49. Rxd7 h6 50. Rd6+ Kf5 51. Rxa6 h5 52. Rb6 h4 53. Rb5+ Ke6 54. Rb7 Kd5 55. Rxb4 Kc5 56. Rb7 Kc6 57. Rb2 Kc7 58. Rb5 h3 59. Rb2 Kd6 60. Rb5 Kc7 61. Rb2 Kd6 62. Rb4 Kc5 63. a3 Kd6 64. Rb1 Ke6 65. Rb5 Kd7 66. Kg1 Kc6 67. Rb2 Kd5 68. Rb1 Ke4 69. Kh1 Kd3 70. Rb8 Ke3 71. a4 Kf3 72. a5 Ke4 73. Rd8 Kf3 74. Rf8+ Ke4 75. a6 Kd5 76. Kg1 Ke5 77. Rd8 Kf5 78. Re8 Kg5 79. a7 Kh6 80. Rf8 Kg6 81. a8=Q Kh7 82. Qa6 Kg7 83. Rd8 Kh7 84. Rc8 Kg7 85. Rc7+ Kg8 86. Qa8# 1-0
+
+[Event "?"]
+[Site "?"]
+[Date "2026.08.07"]
+[Round "?"]
+[White "Aditya"]
+[Black "Stockfish"]
+[Result "1/2-1/2"]
+[Termination "THREEFOLD_REPETITION"]
+
+1. e4 e6 2. d4 a6 3. Nf3 c5 4. d5 Nf6 5. dxe6 dxe6 6. Qxd8+ Kxd8 7. e5 Nd5 8. Bd3 Be7 9. O-O Nc6 10. c4 Nb6 11. Nc3 h6 12. b3 Kc7 13. Bb2 Rd8 14. Rad1 Bd7 15. Bb1 Be8 16. Ne4 Rxd1 17. Rxd1 Rd8 18. Rxd8 Nxd8 19. h4 Bc6 20. Nfd2 Nd7 21. Nd6 Nf8 22. N2e4 b6 23. h5 Kd7 24. f4 g6 25. Bc3 gxh5 26. Kf1 f5 27. Nxf5 exf5 28. Ng3 Nde6 29. Bxf5 Kd8 30. Ne2 Ng7 31. Bh3 Be4 32. Kf2 Nfe6 33. Bd2 Ke8 34. Nc3 Bd3 35. Nd5 Bd8 36. Ke3 Bg6 37. Kf3 Nd4+ 38. Kf2 h4 39. Bc8 a5 40. Bc3 Bb1 41. Bxd4 cxd4 42. a4 Nf5 43. Bb7 Kf8 44. Bc6 Ng3 45. b4 Bf5 46. Ke1 Ne4 47. bxa5 bxa5 48. Ke2 Nc5 49. Kf2 h5 50. Ke2 Be4 51. Kf2 Bf5 52. Ke2 Be6 53. Kf3 Be7 54. Kf2 Bd8 55. Kf3 Bg4+ 56. Kf2 1/2-1/2
+
+[Event "?"]
+[Site "?"]
+[Date "2026.08.07"]
+[Round "?"]
+[White "Stockfish"]
+[Black "Aditya"]
+[Result "1/2-1/2"]
+[Termination "THREEFOLD_REPETITION"]
+
+1. d4 d5 2. a3 c5 3. dxc5 Nf6 4. b4 a5 5. Bb2 axb4 6. axb4 Rxa1 7. Bxa1 e6 8. Bxf6 Qxf6 9. e3 Be7 10. Bb5+ Nc6 11. Ne2 O-O 12. c3 e5 13. Qxd5 h5 14. O-O h4 15. Nd2 h3 16. Ra1 Rd8 17. Qa2 Be6 18. Qc2 hxg2 19. Kxg2 Qh4 20. Ng3 f5 21. Nf3 Qf6 22. Qe2 Bc8 23. Rd1 f4 24. exf4 exf4 25. Rxd8+ Nxd8 26. Ne4 Qg6+ 27. Kf1 Bg4 28. Qd3 Qh7 29. Bc4+ Kh8 30. Ned2 Qh3+ 31. Kg1 Bf6 32. Qe4 Qh5 33. Qxf4 Ne6 34. Bxe6 Bxe6 35. Ne4 Qg6+ 36. Nfg5 Bd5 37. h3 Be6 38. Qg3 Bxg5 39. Nxg5 Bd5 40. Qb8+ Bg8 41. Qg3 Bd5 42. Qb8+ Bg8 43. Qf4 Bd5 1/2-1/2
+
+[Event "?"]
+[Site "?"]
+[Date "2026.08.07"]
+[Round "?"]
+[White "Aditya"]
+[Black "Stockfish"]
+[Result "1-0"]
+[Termination "CHECKMATE"]
+
+1. e4 e6 2. d4 c5 3. d5 d6 4. Nf3 Nf6 5. Nc3 a6 6. a4 h6 7. Bc4 exd5 8. exd5 Be7 9. O-O Bf5 10. Nh4 Bg4 11. Be2 Bc8 12. Re1 O-O 13. a5 Re8 14. Be3 Nbd7 15. Nf5 b5 16. axb6 Nxb6 17. Qd3 Bxf5 18. Qxf5 Nfd7 19. Bf4 Bf8 20. Qh3 Nf6 21. Qf3 a5 22. Bb5 Rxe1+ 23. Rxe1 Rb8 24. Bc6 Nc4 25. b3 Ne5 26. Bxe5 dxe5 27. Rxe5 Rb4 28. g3 Qb8 29. Re3 c4 30. Na2 Rb6 31. bxc4 Bc5 32. Re2 Rb1+ 33. Kg2 Ra1 34. Qb3 Qc8 35. h3 Bd6 36. Qb2 Rd1 37. Nc3 Rh1 38. Kxh1 Qxh3+ 39. Kg1 Nh5 40. Re3 a4 41. Nxa4 Kh7 42. Qd4 g6 43. Qa7 Qf5 44. c5 Bxg3 45. fxg3 Qf6 46. d6 Nf4 47. gxf4 Qf5 48. Re7 Qg4+ 49. Bg2 Qd1+ 50. Kh2 Qh5+ 51. Kg3 Qf3+ 52. Bxf3 Kh8 53. Rxf7 Kg8 54. Rg7+ Kh8 55. Rxg6 h5 56. Qg7# 1-0
+
+[Event "?"]
+[Site "?"]
+[Date "2026.08.07"]
+[Round "?"]
+[White "Stockfish"]
+[Black "Aditya"]
+[Result "1-0"]
+[Termination "CHECKMATE"]
+
+1. Nf3 c5 2. e4 Nc6 3. Bb5 e6 4. O-O Nd4 5. Bc4 Nxf3+ 6. Qxf3 Ne7 7. c3 Nc6 8. d3 Ne5 9. Qg3 Nxc4 10. dxc4 d6 11. Bf4 e5 12. Bc1 h5 13. Na3 h4 14. Qe3 h3 15. g3 Bd7 16. Qe2 Bc6 17. f3 a5 18. Nb5 Be7 19. Be3 Qb6 20. Rad1 Rd8 21. g4 Rd7 22. Qd3 a4 23. Kf2 a3 24. bxa3 Qa5 25. Rh1 Rd8 26. Qc2 Bxb5 27. cxb5 Bh4+ 28. Ke2 Qxb5+ 29. c4 Qa6 30. Qd3 b6 31. Rb1 O-O 32. Rb3 Kh7 33. Rhb1 Rb8 34. Bd2 Kg8 35. g5 Qb7 36. Rg1 f6 37. g6 Qc6 38. f4 exf4 39. Qxh3 Qxe4+ 40. Kd1 Rfe8 41. Qxh4 Qxc4 42. Qh7+ Kf8 43. Qh8+ Qg8 44. Qxg8+ Kxg8 45. Rf1 c4 46. Rc3 d5 47. Rxf4 b5 48. Rh4 Kf8 49. Bf4 Ke7 50. Rh7 d4 51. Bxb8 dxc3 52. Rxg7+ Kf8 53. Rf7+ Kg8 54. Bf4 c2+ 55. Kxc2 Re2+ 56. Kc3 Rxa2 57. Bh6 Rxa3+ 58. Kd4 Ra8 59. Rxf6 Rd8+ 60. Ke4 c3 61. Kf5 Rc8 62. g7 Kh7 63. Rf8 Kxh6 64. g8=Q Rc5+ 65. Ke4 Rc4+ 66. Kf3 Rc6 67. Qf7 Kg5 68. Rg8+ Kh4 69. Qh7+ Rh6 70. Rg4+ Kh5 71. Rh4+ Kg5 72. Qg7+ Rg6 73. Qe7+ Rf6+ 74. Rf4 Kg6 75. Qe8+ Kg7 76. Qe5 Kg8 77. Qg5+ Kf7 78. Qxf6+ Ke8 79. Rd4 c2 80. Ke4 c1=Q 81. Qe6+ Kf8 82. Qf6+ Ke8 83. Qe5+ Kf8 84. Rd8+ Kf7 85. Qe8+ Kg7 86. Qd7+ Kf6 87. Rf8+ Kg6 88. Qf5+ Kh6 89. Qe6+ Kh5 90. Qf7+ Kh4 91. Qf2+ Kh5 92. Qf7+ Kh4 93. Rh8+ Qh6 94. Qf4+ Kh3 95. Qg3# 1-0
+
+[Event "?"]
+[Site "?"]
+[Date "2026.08.07"]
+[Round "?"]
+[White "Aditya"]
+[Black "Stockfish"]
+[Result "1/2-1/2"]
+[Termination "THREEFOLD_REPETITION"]
+
+1. e4 c5 2. Nf3 e6 3. d4 d5 4. exd5 exd5 5. Bb5+ Nc6 6. O-O Be6 7. Re1 Nf6 8. Ng5 Be7 9. Nxe6 fxe6 10. dxc5 a6 11. Bxc6+ bxc6 12. Qe2 Qd7 13. Bg5 Bxc5 14. Bxf6 gxf6 15. Qh5+ Kf8 16. Nd2 Ba7 17. Rad1 Re8 18. Ne4 Qe7 19. Ng3 Qf7 20. Qh6+ Ke7 21. Qf4 Kf8 22. Qd6+ Kg7 23. Qxc6 h5 24. Qxa6 Bb8 25. c4 Bxg3 26. hxg3 Ra8 27. Qxe6 Qxe6 28. Rxe6 dxc4 29. Rd7+ Kg6 30. Rdd6 Rhf8 31. a3 c3 32. bxc3 Rxa3 33. c4 Ra2 34. c5 Rb2 35. c6 Rc2 36. Kf1 Kg7 37. Re7+ Kg6 38. c7 Rc1+ 39. Ke2 Ra8 40. f3 Ra2+ 41. Rd2 Ra3 42. Rdd7 Ra2+ 43. Kd3 Ra3+ 44. Ke4 Rc4+ 45. Rd4 Rc5 46. Rd3 Rc4+ 47. Ke3 Ra2 48. g4 hxg4 49. Rdd7 g3 50. f4 Rc3+ 51. Rd3 Rc1 52. f5+ Kg5 53. Kf3 Rac2 54. Rg7+ Kxf5 55. Rd5+ Ke6 56. Rdd7 Rc3+ 57. Kg4 Rc4+ 58. Kxg3 R1c2 59. Kh3 Rc6 60. Kh2 R6c3 61. Rge7+ Kf5 62. Rh7 Rc6 63. Rdf7 Ke6 64. Re7+ Kf5 65. Rd7 Kg6 66. Rhg7+ Kh5 67. Kg3 f5 68. Kf4 Kh6 69. Kxf5 R6c5+ 70. Ke4 Rc6 71. g3 Rc1 72. Rh7+ Kg6 73. Rdg7+ Kf6 74. Rf7+ Kg6 75. Rhg7+ Kh6 76. Rd7 R1c3 77. Kf4 Rc2 78. Rh7+ Kg6 79. Rdg7+ Kf6 80. Rf7+ Kg6 81. Rhg7+ Kh6 82. Re7 R6c3 83. Rh7+ Kg6 84. Reg7+ Kf6 85. Rf7+ Kg6 86. Rhg7+ Kh6 87. Kg4 Rc4+ 88. Kh3 Rc6 89. Re7 Rc1 90. Rd7 R1c4 91. g4 Rc2 92. Kh4 Rh2+ 93. Kg3 Rhc2 94. Rde7 R6c5 95. Rh7+ Kg6 96. Reg7+ Kf6 97. Re7 R5c4 98. Rhf7+ Kg5 99. Re5+ Kg6 100. Rd7 R4c3+ 101. Kf4 Rf2+ 102. Ke4 Rc4+ 103. Kd5 Rfc2 104. Re6+ Kg5 105. Ree7 Kf6 106. g5+ Kg6 107. Rg7+ Kh5 108. g6 Kg5 109. Ke6 Re4+ 110. Kd6 Rec4 111. Rh7 Kxg6 112. Rde7 Kf5 113. Rhf7+ Kg6 114. Rg7+ Kh5 115. Rd7 Kh4 116. Ke5 Rc5+ 117. Kf6 Rc6+ 118. Kf5 R2c4 119. Rd8 R6c5+ 120. Kf6 Rc6+ 121. Kf5 R4c5+ 122. Ke4 Rc4+ 1/2-1/2
+
+[Event "?"]
+[Site "?"]
+[Date "2026.08.07"]
+[Round "?"]
+[White "Stockfish"]
+[Black "Aditya"]
+[Result "1/2-1/2"]
+[Termination "THREEFOLD_REPETITION"]
+
+1. e3 e5 2. d4 exd4 3. exd4 d5 4. Nf3 Nf6 5. Nc3 Bb4 6. Bd3 Qe7+ 7. Be3 Ng4 8. Qc1 Nxe3 9. Qxe3 Bxc3+ 10. bxc3 Qxe3+ 11. fxe3 O-O 12. c4 dxc4 13. Be2 c3 14. Rb1 Nd7 15. Bd3 Re8 16. Kf2 Nf6 17. h3 a5 18. Rhe1 a4 19. e4 b6 20. g4 h6 21. d5 Ba6 22. Nd4 a3 23. Re3 Kf8 24. Rb4 Bxd3 25. cxd3 Ra5 26. Rb1 h5 27. gxh5 Ra4 28. Nb3 c6 29. dxc6 Rc8 30. Na1 Rxc6 31. h6 gxh6 32. Rf3 Nh7 33. Nc2 Ra5 34. Nd4 Rd6 35. Nf5 Rxf5 36. exf5 Nf6 37. Ke2 Rc6 38. Rf4 Nd5 39. Ra4 c2 40. Ra8+ Kg7 41. Rg1+ Kf6 42. Kd2 Nc3 43. Rh8 Rc7 44. Rc1 Nb1+ 45. Ke1 Kxf5 46. Re8 b5 47. Ke2 b4 48. Rb8 Nc3+ 49. Kd2 Nxa2 50. Rb5+ Ke6 51. Rxc2 Rxc2+ 52. Kxc2 f5 53. Rb6+ Ke7 54. Rb5 Kf6 55. Rb8 h5 56. d4 Ke6 57. Re8+ Kd5 58. Re5+ Kxd4 59. Rxf5 Kc4 60. Rf3 b3+ 61. Kd2 b2 62. Kc2 Nb4+ 63. Kb1 Nd3 64. Rg3 h4 65. Rg7 Nc5 66. Ra7 Kb4 67. Ka2 Ne4 68. Rb7+ Ka4 69. Ra7+ Kb4 70. Rb7+ Ka4 71. Ra7+ 1/2-1/2
+
+[Event "?"]
+[Site "?"]
+[Date "2026.08.07"]
+[Round "?"]
+[White "Aditya"]
+[Black "Stockfish"]
+[Result "0-1"]
+[Termination "CHECKMATE"]
+
+1. d4 d5 2. Bf4 c5 3. e3 Nf6 4. Nc3 cxd4 5. Bb5+ Bd7 6. exd4 e6 7. Bd3 Nc6 8. Nf3 Qb6 9. Na4 Qa5+ 10. Nc3 Qb4 11. a3 Qa5 12. O-O Rc8 13. Re1 a6 14. Ne2 Be7 15. c3 Nh5 16. b4 Qb6 17. Bd2 Bd6 18. a4 Nf6 19. Ng3 O-O 20. Bg5 Ne8 21. Ne5 Qc7 22. Nxd7 Qxd7 23. b5 axb5 24. axb5 Nb8 25. Bd2 Qd8 26. Qc2 g6 27. Ra7 Qc7 28. Bh6 Qb6 29. Rea1 Ng7 30. Qb3 Rfe8 31. Bd2 Na6 32. R1xa6 bxa6 33. Rxa6 Qb8 34. Bg5 Qc7 35. Ne2 Rb8 36. g3 Rb6 37. c4 Rxa6 38. bxa6 Rb8 39. Qa2 dxc4 40. Bxc4 Nf5 41. d5 e5 42. Nc3 Bc5 43. Ne4 Bd4 44. Bf1 Rb2 45. Qc4 Bxf2+ 46. Nxf2 Qb6 47. Be2 Nd6 48. Qc6 Qxc6 49. dxc6 Rxe2 50. c7 Ra2 51. Ne4 Nc8 52. Nc5 Ra5 53. Be3 Ra2 54. Bg5 Ra5 55. Be3 f6 56. Kg2 Ra2+ 57. Kf3 f5 58. h4 Kf7 59. Bg5 Ke8 60. h5 gxh5 61. Bd8 Ra5 62. Ne6 Kf7 63. Ng5+ Kg6 64. a7 h6 65. Ne6 Rxa7 66. Nf8+ Kf7 67. Nd7 Ke6 68. Nf8+ Kd6 69. Ng6 Ra6 70. Ke3 Kd5 71. Nf8 Ra3+ 72. Kf2 Ra2+ 73. Ke3 Ra3+ 74. Kf2 Ke4 75. Nd7 Ra2+ 76. Kg1 Rd2 77. Nf8 Rd6 78. Kf2 f4 79. gxf4 exf4 80. Bh4 Rd2+ 81. Kf1 Ke3 82. Be1 Rd1 83. Ng6 f3 84. Nh4 f2 85. Nf5+ Ke4 86. Kxf2 Kxf5 87. Bb4 Kg4 88. Bc3 h4 89. Be5 Rd7 90. Kg2 Rd5 91. Bf6 Rd2+ 92. Kf1 h3 93. Bc3 Rc2 94. Be5 h2 95. Bxh2 Kf3 96. Bg3 Rb2 97. Ke1 Kxg3 98. Kd1 h5 99. Kc1 Re2 100. Kd1 Rf2 101. Kc1 Rg2 102. Kd1 Rf2 103. Kc1 Ra2 104. Kb1 Rd2 105. Kc1 Rf2 106. Kd1 Rg2 107. Ke1 h4 108. Kf1 h3 109. Ke1 h2 110. Kf1 Rf2+ 111. Ke1 h1=R# 0-1
+
+[Event "?"]
+[Site "?"]
+[Date "2026.08.07"]
+[Round "?"]
+[White "Stockfish"]
+[Black "Aditya"]
+[Result "1/2-1/2"]
+[Termination "THREEFOLD_REPETITION"]
+
+1. e4 e6 2. Nf3 d5 3. e5 c5 4. c3 Nc6 5. g3 Nge7 6. Bg2 d4 7. d3 Ng6 8. Qe2 Qc7 9. Na3 Ncxe5 10. Nxe5 Qxe5 11. h4 h5 12. Be4 dxc3 13. O-O cxb2 14. Bxb2 Qc7 15. Nc4 Bd6 16. Bxg7 Rg8 17. Bf6 Be7 18. Bc3 Nxh4 19. Be5 Qd8 20. Qxh5 Ng6 21. d4 f5 22. Bf3 b5 23. Bxa8 bxc4 24. Rad1 Bd7 25. Bg2 cxd4 26. Qh7 Nxe5 27. Qxg8+ Bf8 28. Rxd4 Qe7 29. Rb1 Qg7 30. Rb8+ Ke7 31. Qxf8+ Qxf8 32. Rxf8 c3 33. Rxd7+ Kxd7 34. Bb7 Kc7 35. Rc8+ Kxb7 36. Rc5 c2 37. Rxc2 Nf3+ 38. Kf1 Kb6 39. Rc8 Nd4 40. Ra8 a5 41. Kg2 Nc6 42. Re8 e5 43. f3 Kc7 44. Ra8 Kb6 45. Re8 Kc7 46. a4 Kd6 47. Rf8 Nd4 48. Rf6+ Kc5 49. Kf2 Kc4 50. g4 e4 51. Rxf5 exf3 52. Rxa5 Nc2 53. Rb5 Nd4 54. Rh5 Ne6 55. a5 Kd4 56. Kxf3 Nc7 57. Rf5 Kc4 58. Re5 Kd4 59. Rf5 Kc4 60. Re5 Kd4 1/2-1/2
+
+[Event "?"]
+[Site "?"]
+[Date "2026.08.07"]
+[Round "?"]
+[White "Aditya"]
+[Black "Stockfish"]
+[Result "1/2-1/2"]
+[Termination "THREEFOLD_REPETITION"]
+
+1. d4 Nf6 2. Nf3 e6 3. c4 d5 4. Nc3 c5 5. cxd5 exd5 6. Bf4 h6 7. e3 c4 8. Ne5 Be6 9. Be2 Be7 10. Bg3 Nc6 11. O-O Bb4 12. Nb5 Qb6 13. Nxc4 dxc4 14. Nc7+ Ke7 15. Nxa8 Rxa8 16. Rc1 Na5 17. f3 Nd5 18. Bf2 Bd7 19. Rxc4 Nxc4 20. Bxc4 Be6 21. Qb3 Nc7 22. d5 Bd7 23. e4 Bc5 24. Qxb6 Bxb6 25. e5 Bxf2+ 26. Rxf2 Na6 27. d6+ Ke8 28. Bxa6 bxa6 29. Rc2 Rc8 30. Rxc8+ Bxc8 31. Kf2 a5 32. Ke3 f6 33. f4 fxe5 34. fxe5 Kd7 35. g3 Kc6 36. Kd4 g6 37. b3 Bf5 38. h4 Bc8 39. Ke4 Be6 40. Kd4 Bg4 41. Kc4 Bf5 42. Kd4 Bc8 43. Ke4 Bg4 44. Kd4 1/2-1/2
+
+[Event "?"]
+[Site "?"]
+[Date "2026.08.07"]
+[Round "?"]
+[White "Stockfish"]
+[Black "Aditya"]
+[Result "1/2-1/2"]
+[Termination "THREEFOLD_REPETITION"]
+
+1. Nf3 Nf6 2. c4 e6 3. g3 c5 4. Bg2 d5 5. cxd5 exd5 6. O-O Nc6 7. d4 Bg4 8. Be3 Be7 9. dxc5 O-O 10. Nd4 Rc8 11. Nxc6 bxc6 12. b4 Rb8 13. h3 Bd7 14. a3 a5 15. bxa5 Qxa5 16. Qd2 Qa7 17. Qc2 Ne4 18. Bxe4 dxe4 19. h4 Be6 20. Nd2 f5 21. Rab1 Rxb1 22. Rxb1 Qxa3 23. Rb7 Re8 24. Rb6 Qa1+ 25. Nf1 Rc8 26. Bc1 Qd4 27. Ba3 f4 28. e3 Qd3 29. Qxd3 exd3 30. gxf4 Bxh4 31. Bb2 Be7 32. Rb7 Bf8 33. e4 g6 34. Bc3 Re8 35. Kg2 h5 36. Ra7 h4 37. Nd2 Rb8 38. Rc7 Rc8 39. Rb7 Ra8 40. Rc7 h3+ 41. Kg3 Rc8 42. Rb7 Bh6 43. Ra7 Rd8 44. Ra6 Rf8 45. Be5 Rc8 46. Bd6 Kf7 47. Nf3 Re8 48. Ra3 Bc4 49. Nd2 Bb5 50. Kxh3 Kg8 51. Kh4 Re6 52. Kg4 Rf6 53. Ra8+ Kh7 54. Ra7+ Kg8 55. Ra8+ Kh7 56. Ra7+ Kg8 1/2-1/2
+
+[Event "?"]
+[Site "?"]
+[Date "2026.08.07"]
+[Round "?"]
+[White "Aditya"]
+[Black "Stockfish"]
+[Result "1/2-1/2"]
+[Termination "FIFTY_MOVES"]
+
+1. Nf3 Nf6 2. d4 d5 3. c4 e6 4. Nc3 c6 5. e3 Be7 6. Bd3 O-O 7. O-O Nbd7 8. b3 b6 9. Bb2 Ba6 10. Re1 Rc8 11. cxd5 Bxd3 12. dxe6 Bg6 13. exd7 Nxd7 14. e4 h6 15. d5 cxd5 16. exd5 Bb4 17. Rc1 Nf6 18. Ne5 Qd6 19. h3 Kh7 20. Nc6 Rfe8 21. Nxb4 Qxb4 22. Qd2 Kg8 23. Rxe8+ Nxe8 24. Qe2 Bf5 25. Nd1 Nd6 26. Rc6 Rxc6 27. dxc6 Qc5 28. Qe5 Qxe5 29. Bxe5 Nc8 30. c7 Bd7 31. Ne3 Bc6 32. Bf4 h5 33. f3 f6 34. Bh2 Kf7 35. Kf2 Ke6 36. g4 hxg4 37. fxg4 Kd7 38. h4 Be4 39. g5 fxg5 40. hxg5 Ne7 41. a3 Nd5 42. Nxd5 Bxd5 43. b4 Kc8 44. Ke3 Be6 45. Kd4 Kd7 46. Be5 g6 47. b5 Ba2 48. Kc3 Kc8 49. Kb4 Bd5 50. a4 Be6 51. a5 Bh3 52. Bf4 Bg4 53. Be5 Bf3 54. Bf4 Bg4 55. Bg3 Kd7 56. Be5 Be6 57. Bf4 Bd5 58. Be5 Be6 59. Bg3 Bg4 60. Bh2 Be2 61. Bd6 Bf3 62. Be5 Bg2 63. Bh2 Bf1 64. Bd6 Be2 65. Be5 Bd3 66. Ka4 Be2 67. axb6 Bd1+ 68. Ka5 axb6+ 69. Kxb6 Kc8 70. Kc5 Kd7 71. b6 Kc8 72. Kc6 Bf3+ 73. Kd6 Bh1 74. Kc5 Bg2 75. Bd4 Bf1 76. Bf6 Ba6 77. Be5 Bb7 78. Bd4 Bc6 79. Bf6 Ba8 80. Kb4 Be4 81. Ka5 Bh1 82. Kb5 Bg2 83. Bd4 Be4 84. Bg7 Bc6+ 85. Kc4 Kb7 86. Bd4 Bg2 87. Kc5 Be4 88. Bf6 Bf3 89. Kd6 Bd1 90. Bd4 Bg4 91. Kc5 Bh5 92. Be5 Kc8 93. Bd4 Kb7 94. Bc3 Bd1 95. Kb5 Bg4 96. Be5 Bc8 97. Bf6 Be6 98. Kc5 Bh3 99. Be5 Bc8 100. Bb2 Bd7 101. Bd4 Bh3 102. Kb5 Bg4 103. Bf2 Bd7+ 104. Kc4 Bc8 105. Kd5 Bd7 106. Bc5 Bc8 107. Bd4 Bd7 108. Be3 Kc8 109. Bc5 Bh3 110. Kc4 Bg4 111. Kb4 Bh3 112. Kb5 Bg2 113. Kc4 Bb7 114. Be3 Kd7 115. Bf2 Ba6+ 116. Kc3 Bc8 117. Bd4 Bb7 118. Be5 Kc6 119. Kc4 Kd7 120. c8=Q+ Kxc8 121. Kb5 Bg2 122. Ka6 Bf3 123. Ka7 Bb7 124. Bd4 Be4 125. Bc3 Bh1 126. Bf6 Be4 127. Bd4 Bg2 128. Bc5 Be4 129. Be3 Bf3 130. Bf4 Bd5 131. Bd6 Bb7 132. Bc7 Bf3 133. Bh2 Bb7 134. Be5 Bc6 135. Bg3 Bg2 136. Be1 Be4 137. Ba5 Bd5 138. Bb4 Bg2 139. Bf8 Bd5 140. Bg7 Bb7 141. Ba1 Bf3 142. Ka6 Bc6 143. Bd4 Bh1 144. Kb5 Kd7 145. Be5 Be4 146. Kc5 Bh1 147. Bd4 Ba8 148. Bf6 Be4 149. Bc3 Bb7 150. Bb4 Bc6 151. Bd2 Bh1 152. Kb5 Be4 153. Bc3 Ba8 154. Ka5 Kc8 155. Bb4 Bh1 156. Kb5 Kb7 157. Bc3 Bc6+ 158. Kc5 Be4 159. Be5 Bc6 160. Bd4 Be4 161. Bf2 Bc2 162. Kd4 Bb1 163. Ke5 Bf5 164. Bc5 Bh3 165. Kf6 Bf5 166. Bd4 Bc2 167. Ke5 Kc6 168. Ke6 Kb7 169. Kd5 Bf5 170. Kc5 1/2-1/2
+
+[Event "?"]
+[Site "?"]
+[Date "2026.08.07"]
+[Round "?"]
+[White "Stockfish"]
+[Black "Aditya"]
+[Result "1-0"]
+[Termination "CHECKMATE"]
+
+1. d4 e6 2. e4 d5 3. Nc3 Be7 4. e5 c5 5. dxc5 Nc6 6. Qg4 g6 7. Qg3 Nb4 8. Bd3 Bxc5 9. h4 Nxd3+ 10. cxd3 Ne7 11. Bg5 Qb6 12. Nge2 O-O 13. Rd1 Nf5 14. Qf4 Qxb2 15. g4 Nd4 16. Qf6 Nxe2 17. Bh6 Qxc3+ 18. Kxe2 Qb2+ 19. Rd2 Qxe5+ 20. Qxe5 f6 21. Qc7 Rf7 22. Qxc5 Bd7 23. Rc1 Bc6 24. Qd6 Ba4 25. Rc7 Re8 26. Rb2 b5 27. Qc6 b4 28. Qxa4 Rff8 29. Qxb4 d4 30. Qxf8+ Rxf8 31. Rbb7 Rd8 32. g5 f5 33. a4 e5 34. Rxh7 Rd5 35. Kd1 Rb5 36. Rbc7 Rb1+ 37. Kd2 Rb2+ 38. Kc1 Rb5 39. Rcg7+ Kf8 40. Rh8# 1-0
+
+[Event "?"]
+[Site "?"]
+[Date "2026.08.07"]
+[Round "?"]
+[White "Aditya"]
+[Black "Stockfish"]
+[Result "1/2-1/2"]
+[Termination "THREEFOLD_REPETITION"]
+
+1. d4 d5 2. c4 c6 3. Nc3 dxc4 4. Nf3 Nf6 5. a4 Bf5 6. e3 Bg6 7. Bxc4 a5 8. e4 e6 9. Bd3 Na6 10. O-O Bh5 11. Be2 Bg6 12. Bg5 Nb4 13. e5 Bc2 14. Qd2 h6 15. Bh4 g5 16. Nxg5 hxg5 17. Bxg5 Be7 18. exf6 Bxf6 19. Be3 Qd6 20. h3 Bf5 21. Bg4 Bxg4 22. Ne4 Qd8 23. hxg4 Be7 24. Bf4 Rg8 25. f3 f5 26. gxf5 exf5 27. Ng3 Qd7 28. Rfe1 Nd5 29. Be5 O-O-O 30. Qxa5 Bd6 31. Bxd6 Qxd6 32. Nxf5 Qg6 33. Nh4 Qf6 34. Re4 Rh8 35. g3 Rdg8 36. Qe1 Nb4 37. Qxb4 Rxh4 38. Qe1 Rh7 39. Re8+ Kd7 40. Rxg8 Qxd4+ 41. Qf2 Rh1+ 42. Kg2 Rh2+ 43. Kxh2 Qxf2+ 44. Kh3 Qxf3 45. Rg4 c5 46. Re1 Qf5 47. Re4 Qf1+ 48. Kh4 Qf2 49. Rg7+ Kd6 50. Rxb7 Kc6 51. Rbe7 Qxb2 52. g4 Kd6 53. a5 Qh8+ 54. Kg5 c4 55. R4e6+ Kd5 56. a6 c3 57. a7 c2 58. Re1 Kc4 59. Kg6 Qd8 60. g5 Kb3 61. Kh7 Kb2 62. R1e2 Qc8 63. Rh2 Kb1 64. Rh1+ c1=Q 65. Rxc1+ Kxc1 66. g6 Kc2 67. Re2+ Kb1 68. Re7 Kb2 69. Re2+ Kb1 70. Re7 Kc1 71. g7 Qf5+ 72. Kg8 Qa5 73. Rd7 Qa2+ 74. Kf8 Qf2+ 75. Ke8 Qa2 76. Rc7+ Kd1 77. Kf8 Qf2+ 78. Kg8 Qg2 79. Rd7+ Ke2 80. Rd8 Qc6 81. a8=Q Qe6+ 82. Kf8 Qf5+ 83. Ke8 Qg6+ 84. Kd7 Qxg7+ 85. Ke6 Qg6+ 86. Ke5 Qg3+ 87. Kf6 Qf2+ 88. Kg6 Qg1+ 89. Kf5 Qf2+ 90. Kg4 Qg1+ 91. Kf5 Qf2+ 92. Kg6 Qg3+ 93. Kf6 Qf2+ 1/2-1/2
+
+[Event "?"]
+[Site "?"]
+[Date "2026.08.07"]
+[Round "?"]
+[White "Stockfish"]
+[Black "Aditya"]
+[Result "1/2-1/2"]
+[Termination "THREEFOLD_REPETITION"]
+
+1. Nf3 Nf6 2. c4 e6 3. d4 d5 4. Nc3 Be7 5. cxd5 exd5 6. h3 Nc6 7. Bf4 Ne4 8. a3 Nxc3 9. bxc3 Bf5 10. e3 Na5 11. Be2 O-O 12. Bd3 Bxd3 13. Qxd3 Nc4 14. Rb1 b6 15. a4 Bd6 16. O-O Bxf4 17. exf4 f6 18. Nd2 Nxd2 19. Qxd2 Re8 20. a5 Qd7 21. Qd3 Re4 22. c4 Qf5 23. Rbc1 c6 24. Rce1 Rxf4 25. Qc3 Qd7 26. axb6 axb6 27. cxd5 Qxd5 28. Re7 h6 29. Rc1 Kf8 30. Rce1 Rxd4 31. Qg3 g5 32. R1e6 Qf5 33. Qe3 Ra1+ 34. Kh2 Qf4+ 35. Qxf4 Rxf4 36. Re8+ Kf7 37. R6e7+ Kg6 38. Rg8+ Kh5 39. Re2 g4 40. g3 Rc4 41. Re6 gxh3 42. Rxf6 Rg4 43. Re8 Rg5 44. Kxh3 Rh1+ 45. Kg2 Rd1 46. Re4 Rg6 47. Rf5+ Rg5 48. Rf6 Rg6 49. Re5+ Rg5 1/2-1/2
+

@@ -32,6 +32,7 @@ public:
     Move* pv = nullptr;
     Move killers[2] = {};
     Move current = MOVE_NONE;
+    Move excludedMove = MOVE_NONE;
     Piece movedPiece = NO_PIECE;
     int ply = 0;
     int staticEval = VALUE_NONE;

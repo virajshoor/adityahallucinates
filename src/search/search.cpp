@@ -325,6 +325,7 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
   ss->pv[0] = MOVE_NONE;
   (ss + 1)->ply = ss->ply + 1;
   (ss + 1)->killers[0] = (ss + 1)->killers[1] = MOVE_NONE;
+  (ss + 1)->excludedMove = MOVE_NONE;
 
   if (!rootNode) {
     if (ss->ply >= MAX_PLY - 1) return VALUE_DRAW;
@@ -339,12 +340,16 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
 
   atomic_max(info->seldepth, ss->ply);
 
+  const Move excludedMove = ss->excludedMove;
+  const bool singularSearch = excludedMove != MOVE_NONE;
+
   bool ttHit = false;
   TTEntry* tte = tt->probe(pos.key(), ttHit);
   Move ttMove = ttHit ? tte->move : MOVE_NONE;
   Value ttValue = ttHit ? value_from_tt(Value(tte->score), ss->ply) : VALUE_NONE;
 
-  if (!pvNode && ttHit && int(tte->depth) >= depth && ttValue != VALUE_NONE) {
+  // Skip TT cutoffs during singular verification (hash is for the full position).
+  if (!pvNode && !singularSearch && ttHit && int(tte->depth) >= depth && ttValue != VALUE_NONE) {
     if (tte->flag == TT_EXACT) return ttValue;
     if (tte->flag == TT_LOWER && ttValue >= beta) return ttValue;
     if (tte->flag == TT_UPPER && ttValue <= alpha) return ttValue;
@@ -382,7 +387,7 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
     return qsearch(pos, ss, alpha, beta);
 
   // Null move with verification at higher depths (avoids zugzwang cutoffs)
-  if (!pvNode && !inCheck && depth >= 2 && eval >= beta &&
+  if (!pvNode && !singularSearch && !inCheck && depth >= 2 && eval >= beta &&
       pos.non_pawn_material(pos.side_to_move()) &&
       (ss - 1)->current != MOVE_NULL &&
       eval >= beta - 20 * depth + (improving ? 180 : 220)) {
@@ -411,13 +416,13 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
   // ProbCut disabled: earlier aggressive variants regressed Elo 2000; revisit with SPRT.
 
   // Internal iterative deepening: shallow search to get a TT move (PV only)
-  if (pvNode && !ttMove && depth >= 6) {
+  if (!singularSearch && pvNode && !ttMove && depth >= 6) {
     search_node(pos, ss, alpha, beta, depth - 2, false);
     if (info->stop.load(std::memory_order_relaxed)) return alpha;
     tte = tt->probe(pos.key(), ttHit);
     ttMove = ttHit ? tte->move : MOVE_NONE;
     ttValue = ttHit ? value_from_tt(Value(tte->score), ss->ply) : VALUE_NONE;
-  } else if (!ttMove && depth >= 7) {
+  } else if (!singularSearch && !ttMove && depth >= 7) {
     depth -= 1; // IIR on non-PV
   }
 
@@ -439,6 +444,7 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
 
   for (ExtMove* em = moves; em != end; ++em) {
     Move m = em->move;
+    if (m == excludedMove) continue;
     if (rootNode && !limits.searchmoves.empty()) {
       bool found = false;
       for (Move sm : limits.searchmoves) if (sm == m) { found = true; break; }
@@ -479,11 +485,24 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
     if (!rootNode && ss->ply >= 1 && (ss - 1)->current &&
         m.to() == (ss - 1)->current.to() && capture)
       extension = std::max(extension, 1);
-    // Conservative singular-style extension: only deep TT hits that failed high
-    if (!rootNode && !extension && depth >= 8 && m == ttMove && ttHit &&
-        tte->depth >= depth - 2 && tte->flag == TT_LOWER &&
-        ttValue >= beta - 20 && std::abs(int(ttValue)) < VALUE_MATE_IN_MAX_PLY)
-      extension = 1;
+    // Proper singular extension: verify TT move is uniquely good via excluded search.
+    // Conservative margins — aggressive singular previously regressed Elo 2000.
+    if (!rootNode && !singularSearch && !extension && depth >= 8 && m == ttMove && ttHit &&
+        tte->depth >= depth - 3 &&
+        (tte->flag == TT_LOWER || tte->flag == TT_EXACT) &&
+        std::abs(int(ttValue)) < VALUE_MATE_IN_MAX_PLY - 100) {
+      Value singularBeta = Value(int(ttValue) - (2 + depth / 2));
+      Depth singularDepth = depth / 2;
+      if (singularDepth >= 1 && singularBeta > -VALUE_MATE_IN_MAX_PLY) {
+        ss->excludedMove = m;
+        Value singularValue = search_node(pos, ss, singularBeta - 1, singularBeta,
+                                          singularDepth, cutNode);
+        ss->excludedMove = MOVE_NONE;
+        if (info->stop.load(std::memory_order_relaxed)) return alpha;
+        if (singularValue < singularBeta)
+          extension = 1;
+      }
+    }
 
     Depth reduction = 0;
     if (depth >= 3 && moveCount > 1 + pvNode && !givesCheck) {
@@ -546,7 +565,11 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
     }
   }
 
-  if (!info->stop.load(std::memory_order_relaxed)) {
+  // Only legal move was excluded (singular verification of a unique move).
+  if (moveCount == 0)
+    return alpha;
+
+  if (!info->stop.load(std::memory_order_relaxed) && !singularSearch) {
     tt->store(pos.key(), depth, value_to_tt(bestScore, ss->ply), flag,
              bestMove ? bestMove : ttMove, ss->staticEval);
     // Update correction history from search residual (non-mate, sufficient depth).
