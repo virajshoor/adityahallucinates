@@ -70,10 +70,11 @@ python3 scripts/match_stockfish.py --elo 2400 --games 16 --movetime 3.0 --target
 - **v23 Lazy SMP Threads=2 @5s:** **37.5%** (16g, W43.8/B31.2) + Elo2400 hold 4/4 — **SMP alone is not enough** for 75%
 - NPS scales (~1.8M→3.2M→5.0M at T=1/2/4); v24 helper diversity; **Threads=4 probe = 12.5% (1/8) — do not use T=4 for Elo3000**
 - **v25 book:** drop London-as-White + `1.d4 e6`; French lines — **34.4%** (no gain)
-- **v26 search (modern classical):** qsearch TT, history gravity (+malus), 2-ply contHistory, capture LMR, NMP verification @depth≥10
-- Stop broad book/KS/LMP churn; NNUE still loses self-play (~2%) — needs HalfKA + much more data
+- **v26 search (modern classical):** qsearch TT, history gravity, 2-ply contHistory, capture LMR, NMP verify — **Elo3000 34.4%** (plateau)
+- **v27:** classical **correction history** under test; AHNNUEF3 dual-persp shipped but still loses self-play
+- Stop broad book/KS/LMP churn; NNUE needs >>1M HalfKA labels before enable
 - Hangs fixed: hardDeadline, no qsearch quiet-checks, SEE cap (do not thread-wrap SimpleEngine.play)
-- After v26 Elo3000 + NNUE wins self-play: then 3190 → unrestricted SF
+- Next after corrhist SPRT: scale NNUE or Elo 3190 if somehow clear 3000
 
 ### 2. Skill 5 — done
 - Cleared Skill 5 @1.5s (**90.6%**)
@@ -81,11 +82,12 @@ python3 scripts/match_stockfish.py --elo 2400 --games 16 --movetime 3.0 --target
 ### 3. NNUE that beats classical (active)
 ```bash
 pip install torch --index-url https://download.pytorch.org/whl/cpu
-mkdir -p tools/datagen/output
-python3 tools/datagen/gen_sf_labels.py --games 400 --depth 8 --out tools/datagen/output/sf_d8.bin --use-aditya
-python3 tools/train/train_nnue_fast.py --data tools/datagen/output/sf_d8.bin --out nets/fast.nnue --epochs 24
-python3 scripts/selfplay_nnue.py --games 40 --movetime 0.15 --blend 0
-# Only enable NNUE in SF matches if self-play score ≥ ~55%
+# Dual-perspective concat (AHNNUEF3):
+python3 tools/datagen/gen_sf_labels.py --games 2000 --depth 8 --move-depth 5 --sf-move-frac 0.9 \
+  --out tools/datagen/output/sf_more.bin
+python3 tools/train/train_nnue_dual.py --data tools/datagen/output/all_v4.bin --out nets/fast.nnue --epochs 32
+python3 scripts/selfplay_nnue.py --games 40 --movetime 0.2 --blend 0
+# Only enable if self-play ≥ ~55%
 ```
 
 ### 4. Lazy SMP — shipped (v23/v24)
@@ -118,9 +120,6 @@ python3 scripts/selfplay_nnue.py --games 40 --movetime 0.15 --blend 0
 | `src/nnue/nnue.cpp` | NNUE + dual accumulator |
 | `src/search/book.cpp` | Opening book |
 | `scripts/match_stockfish.py` | Strength ladder |
-| `nets/fast.nnue` | Bootstrap AHNNUEF2 net |
+| `nets/fast.nnue` | AHNNUEF3 dual-persp net (classical default) |
+| `tools/train/train_nnue_dual.py` | Dual-persp trainer |
 | `results/summary_*.json` | Latest scores |
-
-19. **v26 modern search** Elo3000 **34.4%** — classical plateau (qsearch TT/hist/contHist/NMP verify)
-20. **AHNNUEF3** dual-persp concat net + ~284k labels — still **0/24** vs classical; keep off
-21. **v27** correction history (corrHist) under test
