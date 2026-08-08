@@ -72,6 +72,60 @@ void Search::clear() {
   info->stop.store(false, std::memory_order_relaxed);
 }
 
+void Search::add_history(int& h, int bonus) {
+  h += bonus - h * std::abs(bonus) / 16384;
+  h = std::clamp(h, -16384, 16384);
+}
+
+void Search::update_quiet_stats(Position& pos, Stack* ss, Move best,
+                                const Move* quiets, int quietCount, Depth depth) {
+  const int bonus = depth * depth;
+  const Color us = pos.side_to_move();
+  add_history(history[us][best.from()][best.to()], bonus);
+
+  if (ss->killers[0] != best) {
+    ss->killers[1] = ss->killers[0];
+    ss->killers[0] = best;
+  }
+
+  auto apply_cont = [&](int plyBack, int delta) {
+    if (ss->ply < plyBack) return;
+    Stack* s = ss - plyBack;
+    if (!s->movedPiece || !s->current) return;
+    add_history(contHistory[plyBack - 1][s->movedPiece][s->current.to()][best.to()], delta);
+    if (plyBack == 1) countermove[s->movedPiece][s->current.to()] = best;
+  };
+  apply_cont(1, bonus);
+  apply_cont(2, bonus / 2);
+
+  for (int i = 0; i < quietCount; ++i) {
+    Move q = quiets[i];
+    if (q == best) continue;
+    add_history(history[us][q.from()][q.to()], -bonus);
+    if (ss->ply >= 1 && (ss - 1)->movedPiece)
+      add_history(contHistory[0][(ss - 1)->movedPiece][(ss - 1)->current.to()][q.to()], -bonus);
+    if (ss->ply >= 2 && (ss - 2)->movedPiece)
+      add_history(contHistory[1][(ss - 2)->movedPiece][(ss - 2)->current.to()][q.to()], -bonus / 2);
+  }
+}
+
+void Search::update_capture_stats(Position& pos, Move best, const Move* caps,
+                                  int capCount, Depth depth) {
+  const int bonus = depth * depth;
+  auto hist_for = [&](Move m) -> int& {
+    Piece attacker = pos.piece_on(m.from());
+    int victim = m.type() == EN_PASSANT ? PAWN
+               : (pos.piece_on(m.to()) ? type_of(pos.piece_on(m.to())) : PAWN);
+    return captureHistory[attacker][m.to()][victim];
+  };
+  // Called before undo — board still has the capture position.
+  add_history(hist_for(best), bonus);
+  for (int i = 0; i < capCount; ++i) {
+    if (caps[i] == best) continue;
+    add_history(hist_for(caps[i]), -bonus);
+  }
+}
+
 int64_t Search::now_ms() const {
   using namespace std::chrono;
   return duration_cast<milliseconds>(steady_clock::now().time_since_epoch()).count();
@@ -107,12 +161,16 @@ void Search::update_pv(Stack* ss, Move m) {
 
 void Search::order_moves(Position& pos, ExtMove* begin, ExtMove* end, Move ttMove, Stack* ss) {
   Move cm = MOVE_NONE;
-  Piece prevPc = NO_PIECE;
-  Square prevTo = SQ_NONE;
+  Piece prevPc = NO_PIECE, prev2Pc = NO_PIECE;
+  Square prevTo = SQ_NONE, prev2To = SQ_NONE;
   if (ss->ply > 0 && (ss - 1)->current && (ss - 1)->movedPiece) {
     prevPc = (ss - 1)->movedPiece;
     prevTo = (ss - 1)->current.to();
     cm = countermove[prevPc][prevTo];
+  }
+  if (ss->ply > 1 && (ss - 2)->current && (ss - 2)->movedPiece) {
+    prev2Pc = (ss - 2)->movedPiece;
+    prev2To = (ss - 2)->current.to();
   }
 
   for (ExtMove* m = begin; m != end; ++m) {
@@ -136,7 +194,8 @@ void Search::order_moves(Position& pos, ExtMove* begin, ExtMove* end, Move ttMov
       m->score = 750'000;
     } else {
       m->score = history[pos.side_to_move()][mv.from()][mv.to()];
-      if (prevPc) m->score += contHistory[prevPc][prevTo][mv.to()] / 4;
+      if (prevPc) m->score += contHistory[0][prevPc][prevTo][mv.to()] / 4;
+      if (prev2Pc) m->score += contHistory[1][prev2Pc][prev2To][mv.to()] / 8;
     }
   }
   std::stable_sort(begin, end);
@@ -163,13 +222,34 @@ Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
     return VALUE_DRAW;
   }
 
-  Value stand = eval_pos(pos, ss);
-  if (stand >= beta) return stand;
-  if (stand > alpha) alpha = stand;
+  // Quiescence TT — major NPS/quality win at fixed movetime.
+  bool ttHit = false;
+  TTEntry* tte = tt->probe(pos.key(), ttHit);
+  Move ttMove = ttHit ? tte->move : MOVE_NONE;
+  Value ttValue = ttHit ? value_from_tt(Value(tte->score), ss->ply) : VALUE_NONE;
+  if (ttHit && ttValue != VALUE_NONE) {
+    if (tte->flag == TT_EXACT) return ttValue;
+    if (tte->flag == TT_LOWER && ttValue >= beta) return ttValue;
+    if (tte->flag == TT_UPPER && ttValue <= alpha) return ttValue;
+  }
+
+  const bool inCheck = pos.checkers();
+  Value stand;
+  if (inCheck) {
+    stand = -VALUE_INFINITE;
+  } else {
+    stand = ttHit && tte->eval != int16_t(VALUE_NONE) ? Value(tte->eval) : eval_pos(pos, ss);
+    if (stand >= beta) {
+      if (!ttHit)
+        tt->store(pos.key(), 0, value_to_tt(stand, ss->ply), TT_LOWER, MOVE_NONE, stand);
+      return stand;
+    }
+    if (stand > alpha) alpha = stand;
+  }
 
   ExtMove moves[MAX_MOVES];
   ExtMove* end;
-  if (pos.checkers()) {
+  if (inCheck) {
     end = generate<LEGAL>(pos, moves);
     if (moves == end) return mated_in(ss->ply);
   } else {
@@ -182,12 +262,15 @@ Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
     end = n;
   }
 
-  order_moves(pos, moves, end, MOVE_NONE, ss);
+  order_moves(pos, moves, end, ttMove, ss);
   StateInfo st;
+  Move bestMove = MOVE_NONE;
+  Value bestScore = stand;
+  TTFlag flag = TT_UPPER;
 
   for (ExtMove* em = moves; em != end; ++em) {
     Move m = em->move;
-    if (!pos.checkers()) {
+    if (!inCheck) {
       int captureVal = m.type() == EN_PASSANT ? 100
                      : (m.type() == PROMOTION ? 900 : 0);
       if (m.type() != PROMOTION && pos.piece_on(m.to()))
@@ -202,13 +285,25 @@ Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
     pos.undo_move(m);
     if (info->stop.load(std::memory_order_relaxed)) return alpha;
 
-    if (score > alpha) {
-      alpha = score;
-      update_pv(ss, m);
-      if (score >= beta) return score;
+    if (score > bestScore) {
+      bestScore = score;
+      if (score > alpha) {
+        alpha = score;
+        bestMove = m;
+        flag = TT_EXACT;
+        update_pv(ss, m);
+        if (score >= beta) {
+          flag = TT_LOWER;
+          break;
+        }
+      }
     }
   }
-  return alpha;
+
+  if (!info->stop.load(std::memory_order_relaxed))
+    tt->store(pos.key(), 0, value_to_tt(bestScore, ss->ply), flag,
+              bestMove ? bestMove : ttMove, inCheck ? VALUE_NONE : stand);
+  return bestScore;
 }
 
 Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode) {
@@ -279,7 +374,7 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
   if (!pvNode && !inCheck && depth <= 3 && eval + RazorMargin * depth < alpha)
     return qsearch(pos, ss, alpha, beta);
 
-  // Null move
+  // Null move with verification at higher depths (avoids zugzwang cutoffs)
   if (!pvNode && !inCheck && depth >= 2 && eval >= beta &&
       pos.non_pawn_material(pos.side_to_move()) &&
       (ss - 1)->current != MOVE_NULL &&
@@ -294,9 +389,17 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
     pos.undo_null_move();
     ss->current = prevMove;
     if (info->stop.load(std::memory_order_relaxed)) return alpha;
-    if (nullScore >= beta)
-      return nullScore >= VALUE_MATE_IN_MAX_PLY ? beta : nullScore;
+    if (nullScore >= beta) {
+      if (nullScore >= VALUE_MATE_IN_MAX_PLY) return beta;
+      if (depth >= 10) {
+        Value verify = search_node(pos, ss, beta - 1, beta, depth - R, false);
+        if (info->stop.load(std::memory_order_relaxed)) return alpha;
+        if (verify < beta) goto skip_null; // null move failed verification
+      }
+      return nullScore;
+    }
   }
+  skip_null:
 
   // ProbCut disabled: earlier aggressive variants regressed Elo 2000; revisit with SPRT.
 
@@ -323,6 +426,9 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
   int moveCount = 0;
   StateInfo st;
   TTFlag flag = TT_UPPER;
+  Move quietsTried[64];
+  Move capsTried[32];
+  int quietCount = 0, capCount = 0;
 
   for (ExtMove* em = moves; em != end; ++em) {
     Move m = em->move;
@@ -362,7 +468,7 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
     Depth newDepth = depth - 1;
     int extension = 0;
     if (!rootNode && givesCheck && pos.see_ge(m, 0))
-      extension = depth <= 6 ? 1 : 1;
+      extension = 1;
     if (!rootNode && ss->ply >= 1 && (ss - 1)->current &&
         m.to() == (ss - 1)->current.to() && capture)
       extension = std::max(extension, 1);
@@ -373,15 +479,26 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
       extension = 1;
 
     Depth reduction = 0;
-    if (depth >= 3 && moveCount > 1 + pvNode && !capture && !givesCheck) {
-      reduction = Depth(0.65 + std::log(double(depth)) * std::log(double(moveCount)) / 2.50);
-      if (cutNode) ++reduction;
-      if (!improving) ++reduction;
-      if (ss->killers[0] == m || ss->killers[1] == m) reduction = std::max(0, reduction - 1);
-      if (history[pos.side_to_move()][m.from()][m.to()] > 4000) reduction = std::max(0, reduction - 1);
-      if (history[pos.side_to_move()][m.from()][m.to()] < -2000) ++reduction;
+    if (depth >= 3 && moveCount > 1 + pvNode && !givesCheck) {
+      if (!capture) {
+        reduction = Depth(0.65 + std::log(double(depth)) * std::log(double(moveCount)) / 2.50);
+        if (cutNode) ++reduction;
+        if (!improving) ++reduction;
+        if (ss->killers[0] == m || ss->killers[1] == m) reduction = std::max(0, reduction - 1);
+        int h = history[pos.side_to_move()][m.from()][m.to()];
+        if (ss->ply >= 1 && (ss - 1)->movedPiece)
+          h += contHistory[0][(ss - 1)->movedPiece][(ss - 1)->current.to()][m.to()] / 4;
+        if (h > 4000) reduction = std::max(0, reduction - 1);
+        if (h < -2000) ++reduction;
+      } else if (moveCount > 3 && depth >= 4 && !pos.see_ge(m, -piece_value(PAWN))) {
+        // Capture LMR only for late, SEE-negative-ish captures (not quiet LMR soften)
+        reduction = Depth(1 + (moveCount > 6));
+      }
       reduction = std::clamp(reduction, 0, newDepth - 1 + extension);
     }
+
+    if (!capture && quietCount < 64) quietsTried[quietCount++] = m;
+    if (capture && !givesCheck && m.type() != PROMOTION && capCount < 32) capsTried[capCount++] = m;
 
     if (useNnueAcc) nnue().do_move((ss + 1)->acc, ss->acc, pos, m);
     pos.do_move(m, st);
@@ -407,34 +524,18 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
         update_pv(ss, m);
         if (score >= beta) {
           flag = TT_LOWER;
-          if (!capture) {
-            if (ss->killers[0] != m) {
-              ss->killers[1] = ss->killers[0];
-              ss->killers[0] = m;
-            }
-            int bonus = depth * depth;
-            int& h = history[pos.side_to_move()][m.from()][m.to()];
-            h += bonus - h * bonus / 16384;
-            if (ss->ply > 0 && (ss - 1)->movedPiece) {
-              Piece prev = (ss - 1)->movedPiece;
-              Square prevTo = (ss - 1)->current.to();
-              countermove[prev][prevTo] = m;
-              int& ch = contHistory[prev][prevTo][m.to()];
-              ch += bonus - ch * bonus / 16384;
-            }
-          } else if (pos.piece_on(m.to()) || m.type() == EN_PASSANT) {
-            Piece attacker = pos.piece_on(m.from());
-            int victim = m.type() == EN_PASSANT ? PAWN : type_of(pos.piece_on(m.to()));
-            int& ch = captureHistory[attacker][m.to()][victim];
-            int bonus = depth * depth;
-            ch += bonus - ch * bonus / 16384;
+          // History gravity: bonus best, malus earlier tried moves (pre-undo board state
+          // is restored — update_* use from/to + piece_on for captures before undo... 
+          // We already undid; re-do capture hist using saved capture flag.
+          if (!capture)
+            update_quiet_stats(pos, ss, m, quietsTried, quietCount, depth);
+          else if (capture && m.type() != PROMOTION) {
+            // After undo, board is correct for captureHistory indexing.
+            update_capture_stats(pos, m, capsTried, capCount, depth);
           }
           break;
         }
       }
-    } else if (!capture) {
-      int& h = history[pos.side_to_move()][m.from()][m.to()];
-      h -= depth * depth / 2;
     }
   }
 

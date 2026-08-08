@@ -58,6 +58,9 @@ private:
   Value qsearch(Position& pos, Stack* ss, Value alpha, Value beta);
   void update_pv(Stack* ss, Move m);
   void order_moves(Position& pos, ExtMove* begin, ExtMove* end, Move ttMove, Stack* ss);
+  static void add_history(int& h, int bonus);
+  void update_quiet_stats(Position& pos, Stack* ss, Move best, const Move* quiets, int quietCount, Depth depth);
+  void update_capture_stats(Position& pos, Move best, const Move* caps, int capCount, Depth depth);
   bool time_up() const;
   int64_t now_ms() const;
   Value eval_pos(const Position& pos, Stack* ss) const;
@@ -68,7 +71,8 @@ private:
   Move pv_table[MAX_PLY + 1][MAX_PV]{};
   int history[COLOR_NB][64][64]{};
   int captureHistory[PIECE_NB][64][PIECE_TYPE_NB]{};
-  int contHistory[PIECE_NB][64][64]{};
+  // Continuation history: [0]=1-ply, [1]=2-ply (Stockfish-style)
+  int contHistory[2][PIECE_NB][64][64]{};
   Move countermove[PIECE_NB][64]{};
 
   Move bestRootMove = MOVE_NONE;
