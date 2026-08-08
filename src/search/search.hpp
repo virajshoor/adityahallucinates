@@ -68,12 +68,15 @@ private:
   void helper_loop(const std::string& fen, int helperId);
 
   static constexpr int MAX_PV = MAX_PLY + 1;
+  static constexpr int CORR_SIZE = 32768;
   Move pv_table[MAX_PLY + 1][MAX_PV]{};
   int history[COLOR_NB][64][64]{};
   int captureHistory[PIECE_NB][64][PIECE_TYPE_NB]{};
   // Continuation history: [0]=1-ply, [1]=2-ply (Stockfish-style)
   int contHistory[2][PIECE_NB][64][64]{};
   Move countermove[PIECE_NB][64]{};
+  // Correction history: adjust static eval from prior search residuals
+  int corrHist[COLOR_NB][CORR_SIZE]{};
 
   Move bestRootMove = MOVE_NONE;
   int64_t startTime = 0;

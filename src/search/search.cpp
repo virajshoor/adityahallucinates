@@ -52,6 +52,7 @@ Search::Search(std::shared_ptr<TranspositionTable> sharedTt, SearchInfo* sharedI
   std::memset(captureHistory, 0, sizeof(captureHistory));
   std::memset(contHistory, 0, sizeof(contHistory));
   std::memset(countermove, 0, sizeof(countermove));
+  std::memset(corrHist, 0, sizeof(corrHist));
   std::memset(pv_table, 0, sizeof(pv_table));
   silent = true;
 }
@@ -66,6 +67,7 @@ void Search::clear() {
   std::memset(captureHistory, 0, sizeof(captureHistory));
   std::memset(contHistory, 0, sizeof(contHistory));
   std::memset(countermove, 0, sizeof(countermove));
+  std::memset(corrHist, 0, sizeof(corrHist));
   std::memset(pv_table, 0, sizeof(pv_table));
   info->nodes.store(0, std::memory_order_relaxed);
   info->seldepth.store(0, std::memory_order_relaxed);
@@ -350,10 +352,15 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
 
   const bool inCheck = pos.checkers();
   Value eval;
+  Value rawEval = VALUE_NONE;
   if (inCheck) {
     eval = ss->staticEval = VALUE_NONE;
   } else {
-    eval = ss->staticEval = ttHit && tte->eval != int16_t(VALUE_NONE) ? Value(tte->eval) : eval_pos(pos, ss);
+    rawEval = ttHit && tte->eval != int16_t(VALUE_NONE) ? Value(tte->eval) : eval_pos(pos, ss);
+    ss->staticEval = rawEval;
+    // Correction history (Stockfish-style): nudge static eval from prior residuals.
+    const int corr = corrHist[pos.side_to_move()][pos.key() & (CORR_SIZE - 1)];
+    eval = Value(std::clamp(int(rawEval) + corr / 32, -VALUE_INFINITE + 1, VALUE_INFINITE - 1));
   }
 
   // 2-fold / rule50 draw: soft-draw toward eval when clearly better/worse
@@ -363,7 +370,7 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
   }
 
   const bool improving = !inCheck && ss->ply >= 2 &&
-      (ss - 2)->staticEval != VALUE_NONE && eval >(ss - 2)->staticEval;
+      (ss - 2)->staticEval != VALUE_NONE && rawEval > (ss - 2)->staticEval;
 
   // Reverse futility pruning
   if (!pvNode && !inCheck && depth <= 7 &&
@@ -378,7 +385,7 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
   if (!pvNode && !inCheck && depth >= 2 && eval >= beta &&
       pos.non_pawn_material(pos.side_to_move()) &&
       (ss - 1)->current != MOVE_NULL &&
-      ss->staticEval >= beta - 20 * depth + (improving ? 180 : 220)) {
+      eval >= beta - 20 * depth + (improving ? 180 : 220)) {
     StateInfo st;
     int R = 3 + depth / 3 + std::min(2, (eval - beta) / 220);
     if (useNnueAcc) (ss + 1)->acc.copy_from(ss->acc);
@@ -539,9 +546,21 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
     }
   }
 
-  if (!info->stop.load(std::memory_order_relaxed))
+  if (!info->stop.load(std::memory_order_relaxed)) {
     tt->store(pos.key(), depth, value_to_tt(bestScore, ss->ply), flag,
              bestMove ? bestMove : ttMove, ss->staticEval);
+    // Update correction history from search residual (non-mate, sufficient depth).
+    if (!inCheck && !rootNode && depth >= 4 && rawEval != VALUE_NONE &&
+        std::abs(int(bestScore)) < VALUE_MATE_IN_MAX_PLY - 100) {
+      int diff = int(bestScore) - int(rawEval);
+      diff = std::clamp(diff, -400, 400);
+      int& ch = corrHist[pos.side_to_move()][pos.key() & (CORR_SIZE - 1)];
+      // Stronger weight at deeper searches; keep bounded.
+      int bonus = diff * depth / 8;
+      ch += bonus - ch * std::abs(bonus) / 1024;
+      ch = std::clamp(ch, -4096, 4096);
+    }
+  }
   return bestScore;
 }
 

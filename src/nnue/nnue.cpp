@@ -24,17 +24,16 @@ struct NetWeights {
   int input = 768, h1 = 128, h2 = 32;
   bool loaded = false;
   bool clipped = true;
+  bool dual = false; // AHNNUEF3: concat [us|them] into FC1
   std::vector<int16_t> w0; // feature-major: [feature][h1]
   std::vector<int16_t> b0;
-  std::vector<int16_t> w1; // [h2][h1]
+  std::vector<int16_t> w1; // [h2][h1] or [h2][2*h1] if dual
   std::vector<int16_t> b1;
   std::vector<int16_t> w2;
   int32_t b2 = 0;
-  // Quantization: layer0 uses scale0; hidden activations clipped to [0, QA]
   static constexpr int QA = 255;
   static constexpr int QB = 64;
   float scale0 = 1.f, scale1 = 1.f, scale2 = 1.f;
-  // Output scale: cp ≈ (affine) / scale_out
   float inv_scale0 = 1.f;
 };
 
@@ -102,8 +101,10 @@ bool load_nnue(const std::string& path) {
   char magic[8] = {};
   in.read(magic, 8);
   bool clipped = true;
+  bool dual = false;
   if (std::memcmp(magic, "AHNNUEF1", 8) == 0) clipped = false;
   else if (std::memcmp(magic, "AHNNUEF2", 8) == 0) clipped = true;
+  else if (std::memcmp(magic, "AHNNUEF3", 8) == 0) { clipped = true; dual = true; }
   else return false;
 
   int32_t dims[3] = {};
@@ -111,7 +112,11 @@ bool load_nnue(const std::string& path) {
   if (dims[0] != 768 || dims[2] != 32) return false;
   if (dims[1] != 256 && dims[1] != 128) return false;
 
-  std::vector<float> w0(dims[1] * dims[0]), b0(dims[1]), w1(dims[2] * dims[1]), b1(dims[2]), w2(dims[2]);
+  const int h1 = dims[1];
+  const int h2 = dims[2];
+  const int fc1_in = dual ? h1 * 2 : h1;
+
+  std::vector<float> w0(h1 * dims[0]), b0(h1), w1(h2 * fc1_in), b1(h2), w2(h2);
   float b2 = 0.f;
   in.read(reinterpret_cast<char*>(w0.data()), w0.size() * sizeof(float));
   in.read(reinterpret_cast<char*>(b0.data()), b0.size() * sizeof(float));
@@ -119,8 +124,9 @@ bool load_nnue(const std::string& path) {
   in.read(reinterpret_cast<char*>(b1.data()), b1.size() * sizeof(float));
   in.read(reinterpret_cast<char*>(w2.data()), w2.size() * sizeof(float));
   in.read(reinterpret_cast<char*>(&b2), sizeof(float));
-  quantize_from_float(w0, b0, w1, b1, w2, b2, dims[0], dims[1], dims[2]);
+  quantize_from_float(w0, b0, w1, b1, w2, b2, dims[0], h1, h2);
   g_w.clipped = clipped;
+  g_w.dual = dual;
   return true;
 }
 
@@ -153,24 +159,30 @@ void NnueNet::remove_piece(NnueAccumulator& a, Piece pc, Square sq) const {
 Value NnueNet::evaluate_acc(const NnueAccumulator& a, Color stm) const {
   if (!g_w.loaded || !a.computed) return VALUE_NONE;
   const auto& n = g_w;
-  const int16_t* acc = a.acc[stm];
-
-  // CReLU hidden1 into int (0..QA) after dequant approx: clamp(acc * QA / scale_region)
-  // Use float for correctness with existing F2 nets (trained in float).
-  float h1a[256];
   const float inv0 = n.inv_scale0;
-  for (int i = 0; i < n.h1; ++i) {
-    float v = float(acc[i]) * inv0;
-    if (n.clipped) h1a[i] = v < 0.f ? 0.f : (v > 1.f ? 1.f : v);
-    else h1a[i] = v > 0.f ? v : 0.f;
-  }
+
+  auto crelu1 = [&](const int16_t* acc, float* out) {
+    for (int i = 0; i < n.h1; ++i) {
+      float v = float(acc[i]) * inv0;
+      if (n.clipped) out[i] = v < 0.f ? 0.f : (v > 1.f ? 1.f : v);
+      else out[i] = v > 0.f ? v : 0.f;
+    }
+  };
+
+  float h1a[256];
+  float h1b[256];
+  crelu1(a.acc[stm], h1a);
+  const int fc1_in = n.dual ? n.h1 * 2 : n.h1;
+  if (n.dual) crelu1(a.acc[~stm], h1b);
 
   float h2v[32];
   const float inv1 = 1.f / n.scale1;
   for (int j = 0; j < n.h2; ++j) {
     float sum = float(n.b1[j]) * inv1;
-    const int16_t* row = &n.w1[j * n.h1];
+    const int16_t* row = &n.w1[j * fc1_in];
     for (int i = 0; i < n.h1; ++i) sum += float(row[i]) * inv1 * h1a[i];
+    if (n.dual)
+      for (int i = 0; i < n.h1; ++i) sum += float(row[n.h1 + i]) * inv1 * h1b[i];
     h2v[j] = n.clipped ? (sum < 0.f ? 0.f : (sum > 1.f ? 1.f : sum)) : (sum > 0.f ? sum : 0.f);
   }
 

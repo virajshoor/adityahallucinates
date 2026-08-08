@@ -120,3 +120,7 @@ python3 scripts/selfplay_nnue.py --games 40 --movetime 0.15 --blend 0
 | `scripts/match_stockfish.py` | Strength ladder |
 | `nets/fast.nnue` | Bootstrap AHNNUEF2 net |
 | `results/summary_*.json` | Latest scores |
+
+19. **v26 modern search** Elo3000 **34.4%** — classical plateau (qsearch TT/hist/contHist/NMP verify)
+20. **AHNNUEF3** dual-persp concat net + ~284k labels — still **0/24** vs classical; keep off
+21. **v27** correction history (corrHist) under test
