@@ -71,10 +71,11 @@ python3 scripts/match_stockfish.py --elo 2400 --games 16 --movetime 3.0 --target
 - NPS scales (~1.8M→3.2M→5.0M at T=1/2/4); v24 helper diversity; **Threads=4 probe = 12.5% (1/8) — do not use T=4 for Elo3000**
 - **v25 book:** drop London-as-White + `1.d4 e6`; French lines — **34.4%** (no gain)
 - **v26 search (modern classical):** qsearch TT, history gravity, 2-ply contHistory, capture LMR, NMP verify — **Elo3000 34.4%** (plateau)
-- **v27:** classical **correction history** under test; AHNNUEF3 dual-persp shipped but still loses self-play
+- **v27:** classical **correction history**; Elo2400 hold **4/4 @3s T=2**; Elo3000 @5s T=2 in progress
+- AHNNUEF3 dual-persp shipped but still loses self-play — keep classical default
 - Stop broad book/KS/LMP churn; NNUE needs >>1M HalfKA labels before enable
 - Hangs fixed: hardDeadline, no qsearch quiet-checks, SEE cap (do not thread-wrap SimpleEngine.play)
-- Next after corrhist SPRT: scale NNUE or Elo 3190 if somehow clear 3000
+- Next after corrhist SPRT: true singular extension (not just TT-hint) or scale NNUE
 
 ### 2. Skill 5 — done
 - Cleared Skill 5 @1.5s (**90.6%**)
