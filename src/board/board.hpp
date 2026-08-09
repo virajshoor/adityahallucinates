@@ -10,8 +10,6 @@ namespace ah {
 
 struct StateInfo {
   Key key = 0;
-  Key pawnKey = 0;      // pawns only (for pawnCorrHist)
-  Key materialKey = 0;  // non-pawn pieces (for materialCorrHist)
   Bitboard checkers = 0;
   Bitboard blockers_for_king[COLOR_NB] = {};
   Bitboard pinners[COLOR_NB] = {};
@@ -43,8 +41,6 @@ public:
   bool can_castle(CastlingRights cr) const { return st->castling & cr; }
   Color side_to_move() const { return side; }
   Key key() const { return st->key; }
-  Key pawn_key() const { return st->pawnKey; }
-  Key material_key() const { return st->materialKey; }
   int game_ply() const { return gamePly; }
   int rule50_count() const { return st->rule50; }
   Bitboard checkers() const { return st->checkers; }
@@ -81,8 +77,6 @@ private:
   void set_check_info();
   void set_state();
   Key compute_key() const;
-  Key compute_pawn_key() const;
-  Key compute_material_key() const;
   bool is_discovery_check_on_king(Color c, Bitboard blockers_removed) const;
 
   Piece board[SQUARE_NB] = {};

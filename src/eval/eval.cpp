@@ -456,22 +456,11 @@ Value classical_evaluate(const Position& pos) {
   int score = ((mg[WHITE] - mg[BLACK]) * mgw + (eg[WHITE] - eg[BLACK]) * egw) / 24;
 
   // Advantage-dependent mop-up: when clearly ahead in the endgame, chase the enemy king
-  // and push them toward the rim (corner mates / KPK conversion).
   if (egw >= 12) {
     Square wk = pos.king_square(WHITE), bk = pos.king_square(BLACK);
     int kdist = std::abs(file_of(wk) - file_of(bk)) + std::abs(rank_of(wk) - rank_of(bk));
-    auto rim = [](Square s) {
-      int f = std::min(int(file_of(s)), 7 - int(file_of(s)));
-      int r = std::min(int(rank_of(s)), 7 - int(rank_of(s)));
-      return f + r; // 0 = corner, 7 = center
-    };
-    if (score > 120) {
-      score += (14 - kdist) * (egw / 6);
-      score += (7 - rim(bk)) * (egw / 8);
-    } else if (score < -120) {
-      score -= (14 - kdist) * (egw / 6);
-      score -= (7 - rim(wk)) * (egw / 8);
-    }
+    if (score > 120) score += (14 - kdist) * (egw / 6);
+    else if (score < -120) score -= (14 - kdist) * (egw / 6);
   }
 
   // Opposite-colored bishops: more drawish in endgames

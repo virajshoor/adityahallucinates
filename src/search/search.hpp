@@ -70,8 +70,6 @@ private:
 
   static constexpr int MAX_PV = MAX_PLY + 1;
   static constexpr int CORR_SIZE = 32768;
-  static constexpr int PAWN_CORR_SIZE = 16384;
-  static constexpr int MAT_CORR_SIZE = 16384;
   Move pv_table[MAX_PLY + 1][MAX_PV]{};
   int history[COLOR_NB][64][64]{};
   int captureHistory[PIECE_NB][64][PIECE_TYPE_NB]{};
@@ -80,8 +78,6 @@ private:
   Move countermove[PIECE_NB][64]{};
   // Correction history: adjust static eval from prior search residuals
   int corrHist[COLOR_NB][CORR_SIZE]{};
-  int pawnCorrHist[COLOR_NB][PAWN_CORR_SIZE]{};
-  int materialCorrHist[COLOR_NB][MAT_CORR_SIZE]{};
 
   Move bestRootMove = MOVE_NONE;
   int64_t startTime = 0;
