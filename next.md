@@ -14,7 +14,7 @@ Classical UCI engine `build/aditya` is runnable and strength-tested vs Stockfish
 | `UCI_Elo` 2400 | 3.0s/move | **90.6% pass** |
 | `UCI_Elo` 2600 | **5.0s/move** | **75% pass** (71.9% near-miss @3s) |
 | `UCI_Elo` 2800 | **5.0s/move** | **75% pass (12/16)** |
-| `UCI_Elo` 3000 | **5.0s** | **v28 16g 50%** (W50/B50); v27 43.8%; v22 32g 35.9% — NNUE scale next |
+| `UCI_Elo` 3000 | **5.0s** | **v27 16g 43.8%** (W50/B37.5); v22 32g 35.9%; v28 singular next |
 
 **Default eval is classical.** Critical fixes this session:
 1. PeSTO PSTs were rank-flipped (a1=0 vs rank-8-first) — ~300–500cp inflation + exchange blunders
@@ -71,11 +71,12 @@ python3 scripts/match_stockfish.py --elo 2400 --games 16 --movetime 3.0 --target
 - NPS scales (~1.8M→3.2M→5.0M at T=1/2/4); v24 helper diversity; **Threads=4 probe = 12.5% (1/8) — do not use T=4 for Elo3000**
 - **v25 book:** drop London-as-White + `1.d4 e6`; French lines — **34.4%** (no gain)
 - **v26 search (modern classical):** qsearch TT, history gravity, 2-ply contHistory, capture LMR, NMP verify — **Elo3000 34.4%** (plateau)
-- **v27 corrHist:** Elo2400 hold **4/4**; Elo3000 **43.8%** (W50/B37.5) — best recent 16g; many threefolds; still <<75%
-- **v28:** proper singular extension (excluded-move verification); SF datagen scaling for AHNNUEF3
-- Stop broad book/KS/LMP churn; NNUE needs >>1M HalfKA labels before enable
+- **v27 corrHist:** Elo2400 hold **4/4**; Elo3000 **43.8%** (W50/B37.5) — many threefolds
+- **v28 singular (excluded-move):** Elo2000/2400 holds **4/4**; Elo3000 **50.0%** (W50/B50) — **new best classical**; Black fixed vs v22's 22%
+- Still <<75% — further classical levers are marginal; **scale AHNNUEF3 SF labels >>1M** then self-play gate
+- Stop broad book/KS/LMP churn
 - Hangs fixed: hardDeadline, no qsearch quiet-checks, SEE cap (do not thread-wrap SimpleEngine.play)
-- Next: singular SPRT; if still plateau, NNUE scale is the path to 75%
+- Next: NNUE datagen+train+selfplay; optional 32g confirm of v28; then Elo 3190 if somehow clear 3000
 
 ### 2. Skill 5 — done
 - Cleared Skill 5 @1.5s (**90.6%**)
