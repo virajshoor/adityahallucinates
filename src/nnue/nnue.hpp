@@ -11,6 +11,8 @@ namespace ah {
 struct NnueAccumulator {
   static constexpr int MAX_H1 = 256;
   int16_t acc[COLOR_NB][MAX_H1]{};
+  // Absolute king squares used for HalfKA feature buckets (AHNNUEF4).
+  Square ksq[COLOR_NB]{SQ_NONE, SQ_NONE};
   bool computed = false;
 
   void copy_from(const NnueAccumulator& o) {
