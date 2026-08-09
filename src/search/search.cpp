@@ -601,6 +601,9 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
     const char* b = std::getenv("ADITYA_NNUE_BLEND");
     const int blend = b ? std::clamp(std::atoi(b), 0, 100) : 70;
     useNnueAcc = blend < 100;
+    // Escape hatch: full refresh every eval (debug / validate incremental).
+    if (const char* r = std::getenv("ADITYA_NNUE_REFRESH"); r && r[0] == '1')
+      useNnueAcc = false;
   }
 
   if (!limits.infinite && pos.game_ply() <= 14) {

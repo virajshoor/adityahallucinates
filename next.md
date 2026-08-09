@@ -76,7 +76,7 @@ python3 scripts/match_stockfish.py --elo 2400 --games 16 --movetime 3.0 --target
 - Still <<75% — further classical levers are marginal; **scale AHNNUEF3 SF labels >>1M** then self-play gate
 - Stop broad book/KS/LMP churn
 - Hangs fixed: hardDeadline, no qsearch quiet-checks, SEE cap (do not thread-wrap SimpleEngine.play)
-- Next: NNUE datagen+train+selfplay; optional 32g confirm of v28; then Elo 3190 if somehow clear 3000
+- Next: 32g confirm of v28; NNUE still fails self-play (0/24 H256); ~200knps vs ~1.6M classical + tactical nonsense — need int16 path + HalfKA + >>1M labels
 
 ### 2. Skill 5 — done
 - Cleared Skill 5 @1.5s (**90.6%**)
