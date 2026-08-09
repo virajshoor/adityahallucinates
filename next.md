@@ -79,7 +79,11 @@ python3 scripts/match_stockfish.py --elo 2400 --games 16 --movetime 3.0 --target
 - **v30** pawn/material corrHist + mild double-SE + rim mop-up: Elo2400 hold 4/4, Elo3000 **34.4%** (W31.2/B37.5) — **reverted to v28**
 - Stop broad book/KS/LMP/classical-corr churn; classical plateau ~50–53%
 - Hangs fixed: hardDeadline, no qsearch quiet-checks, SEE cap (do not thread-wrap SimpleEngine.play)
-- Next: scale SF datagen for HalfKA retrain (sf_v7 ~294k ready); keep v28 classical as match default
+- HalfKA v31 (~826k): depth-6 self-play **2.5/24 (10.4%)**; movetime **0/24**
+- HalfKA v32 (~1.21M + sf_v8 d9, 28ep WDL0.6): depth-6 **1.5/24 (6.2%)** — no gain from more soft-CP labels
+- Incremental HalfKA matches refresh (0 mismatches); weakness is net quality, not accumulator bugs
+- Next: need stronger supervision (SF game outcomes / search distillation / deeper labels >>5M), not more classical corrHist
+- Keep v28 classical as match default until NNUE gate passes
 
 ### 2. Skill 5 — done
 - Cleared Skill 5 @1.5s (**90.6%**)
