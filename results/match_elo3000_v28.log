@@ -1,3 +1,19 @@
+game 1/16: aditya=W score=1.0 term=CHECKMATE running=1.000
+game 2/16: aditya=B score=0.5 term=THREEFOLD_REPETITION running=0.750
+game 3/16: aditya=W score=0.5 term=THREEFOLD_REPETITION running=0.667
+game 4/16: aditya=B score=0.0 term=CHECKMATE running=0.500
+game 5/16: aditya=W score=0.5 term=THREEFOLD_REPETITION running=0.500
+game 6/16: aditya=B score=0.5 term=THREEFOLD_REPETITION running=0.500
+game 7/16: aditya=W score=1.0 term=CHECKMATE running=0.571
+game 8/16: aditya=B score=0.5 term=FIFTY_MOVES running=0.562
+game 9/16: aditya=W score=0.5 term=FIFTY_MOVES running=0.556
+game 10/16: aditya=B score=0.5 term=INSUFFICIENT_MATERIAL running=0.550
+game 11/16: aditya=W score=0.0 term=CHECKMATE running=0.500
+game 12/16: aditya=B score=0.5 term=THREEFOLD_REPETITION running=0.500
+game 13/16: aditya=W score=0.0 term=CHECKMATE running=0.462
+game 14/16: aditya=B score=0.5 term=THREEFOLD_REPETITION running=0.464
+game 15/16: aditya=W score=0.5 term=THREEFOLD_REPETITION running=0.467
+game 16/16: aditya=B score=1.0 term=CHECKMATE running=0.500
 {
   "label": "elo3000",
   "movetime": 5.0,
@@ -122,3 +138,4 @@
     }
   ]
 }
+PGN: /workspace/results/match_elo3000_20260808_213752.pgn
