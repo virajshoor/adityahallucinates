@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Train dual-perspective NNUE (768->128 shared, concat 256->32->1).
+"""Train dual-perspective NNUE (768->H1 shared, concat 2*H1->32->1).
 
 Export magic AHNNUEF3. Features match C++ piece-square relative to a
 fixed perspective (White/Black), then evaluate concatenates [us|them].
+Supports H1=128 or 256 (C++ loader accepts both).
 """
 from __future__ import annotations
 
@@ -13,11 +14,10 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, ConcatDataset
 
 ROOT = Path(__file__).resolve().parents[2]
 INPUT = 768
-H1 = 128
 H2 = 32
 
 
@@ -45,10 +45,10 @@ def decode_row(buf: bytes):
     stm = buf[64]
     (score,) = struct.unpack_from("<i", buf, 65)
     stm_white = stm == 1
-    # us = side to move perspective, them = opponent
     us = features_for_perspective(pieces, stm_white)
     them = features_for_perspective(pieces, not stm_white)
-    target = np.float32(np.clip(score, -1200, 1200) / 100.0)
+    cp = float(np.clip(score, -1200, 1200))
+    target = np.float32(cp / 100.0)
     return us, them, target
 
 
@@ -74,10 +74,11 @@ class BinDataset(Dataset):
 
 
 class DualNet(nn.Module):
-    def __init__(self):
+    def __init__(self, h1: int = 128):
         super().__init__()
-        self.fc0 = nn.Linear(INPUT, H1)  # shared across perspectives
-        self.fc1 = nn.Linear(H1 * 2, H2)
+        self.h1 = h1
+        self.fc0 = nn.Linear(INPUT, h1)  # shared across perspectives
+        self.fc1 = nn.Linear(h1 * 2, H2)
         self.fc2 = nn.Linear(H2, 1)
 
     def forward(self, us, them):
@@ -90,42 +91,44 @@ class DualNet(nn.Module):
 
 def export_f3(model: DualNet, path: Path):
     path.parent.mkdir(parents=True, exist_ok=True)
+    h1 = model.h1
     w0 = model.fc0.weight.detach().cpu().numpy().astype(np.float32)  # H1 x IN
     b0 = model.fc0.bias.detach().cpu().numpy().astype(np.float32)
     w1 = model.fc1.weight.detach().cpu().numpy().astype(np.float32)  # H2 x (2*H1)
     b1 = model.fc1.bias.detach().cpu().numpy().astype(np.float32)
     w2 = model.fc2.weight.detach().cpu().numpy().astype(np.float32).reshape(-1)
     b2 = float(model.fc2.bias.detach().cpu().numpy().reshape(-1)[0])
-    # Output in centipawns
     w2_cp = w2 * 100.0
     b2_cp = b2 * 100.0
     with path.open("wb") as f:
         f.write(b"AHNNUEF3")
-        f.write(struct.pack("<iii", INPUT, H1, H2))  # concat implied
+        f.write(struct.pack("<iii", INPUT, h1, H2))
         for arr in (w0, b0, w1, b1, w2_cp):
             f.write(arr.astype(np.float32).tobytes())
         f.write(struct.pack("<f", float(b2_cp)))
-    print(f"exported {path} (AHNNUEF3 {INPUT}->{H1}*2->{H2})")
+    print(f"exported {path} (AHNNUEF3 {INPUT}->{h1}*2->{H2})")
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--data", required=True)
+    ap.add_argument("--data", nargs="+", required=True, help="One or more .bin label files")
     ap.add_argument("--out", default=str(ROOT / "nets" / "fast.nnue"))
     ap.add_argument("--epochs", type=int, default=24)
     ap.add_argument("--batch", type=int, default=1024)
     ap.add_argument("--lr", type=float, default=1e-3)
+    ap.add_argument("--h1", type=int, default=128, choices=[128, 256])
     args = ap.parse_args()
 
-    ds = BinDataset(args.data)
-    print(f"positions: {len(ds)}")
+    datasets = [BinDataset(p) for p in args.data]
+    ds: Dataset = datasets[0] if len(datasets) == 1 else ConcatDataset(datasets)
+    print(f"positions: {len(ds)} from {len(datasets)} file(s); h1={args.h1}")
     n_val = max(500, len(ds) // 20)
     n_train = len(ds) - n_val
     train_ds, val_ds = torch.utils.data.random_split(ds, [n_train, n_val])
     train_loader = DataLoader(train_ds, batch_size=args.batch, shuffle=True, num_workers=0)
     val_loader = DataLoader(val_ds, batch_size=args.batch)
 
-    model = DualNet()
+    model = DualNet(h1=args.h1)
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
     loss_fn = nn.MSELoss()
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.epochs)
