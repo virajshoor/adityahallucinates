@@ -160,12 +160,12 @@ def main():
     ap.add_argument("--epochs", type=int, default=16)
     ap.add_argument("--batch", type=int, default=1024)
     ap.add_argument("--lr", type=float, default=1e-3)
-    ap.add_argument("--h1", type=int, default=256, choices=[128, 256])
+    ap.add_argument("--wdl", type=float, default=0.5, help="Weight of soft-WDL BCE vs MSE on CP")
     args = ap.parse_args()
 
     datasets = [BinDataset(p) for p in args.data]
     ds: Dataset = datasets[0] if len(datasets) == 1 else ConcatDataset(datasets)
-    print(f"positions: {len(ds)} files={len(datasets)} h1={args.h1}")
+    print(f"positions: {len(ds)} files={len(datasets)} h1={args.h1} wdl={args.wdl}")
     n_val = max(1000, len(ds) // 20)
     n_train = len(ds) - n_val
     train_ds, val_ds = torch.utils.data.random_split(ds, [n_train, n_val])
@@ -174,15 +174,22 @@ def main():
 
     model = HalfKANet(h1=args.h1)
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
-    loss_fn = nn.MSELoss()
+    mse = nn.MSELoss()
+    bce = nn.BCELoss()
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.epochs)
+
+    def cp_to_wdl(cp_pawns: torch.Tensor) -> torch.Tensor:
+        # Soft WDL from centipawn-pawns; k≈1.2 matches ~SF-ish scaling in pawn units
+        return torch.sigmoid(cp_pawns * 1.2)
 
     for epoch in range(1, args.epochs + 1):
         model.train()
         tr = n = 0.0
         for us_i, us_m, th_i, th_m, y in train_loader:
             pred = model(us_i, us_m, th_i, th_m)
-            loss = loss_fn(pred, y)
+            loss = mse(pred, y)
+            if args.wdl > 0:
+                loss = (1.0 - args.wdl) * loss + args.wdl * bce(cp_to_wdl(pred), cp_to_wdl(y))
             opt.zero_grad()
             loss.backward()
             opt.step()
@@ -193,11 +200,14 @@ def main():
         va = vn = 0.0
         with torch.no_grad():
             for us_i, us_m, th_i, th_m, y in val_loader:
-                loss = loss_fn(model(us_i, us_m, th_i, th_m), y)
+                pred = model(us_i, us_m, th_i, th_m)
+                loss = mse(pred, y)
+                if args.wdl > 0:
+                    loss = (1.0 - args.wdl) * loss + args.wdl * bce(cp_to_wdl(pred), cp_to_wdl(y))
                 va += loss.item() * us_i.size(0)
                 vn += us_i.size(0)
         print(
-            f"epoch {epoch}: train_mse={tr/n:.4f} val_mse={va/max(1,vn):.4f}",
+            f"epoch {epoch}: train_loss={tr/n:.4f} val_loss={va/max(1,vn):.4f}",
             flush=True,
         )
 
