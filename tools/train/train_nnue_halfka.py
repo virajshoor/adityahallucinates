@@ -160,6 +160,7 @@ def main():
     ap.add_argument("--epochs", type=int, default=16)
     ap.add_argument("--batch", type=int, default=1024)
     ap.add_argument("--lr", type=float, default=1e-3)
+    ap.add_argument("--h1", type=int, default=256, choices=[128, 256])
     ap.add_argument("--wdl", type=float, default=0.5, help="Weight of soft-WDL BCE vs MSE on CP")
     args = ap.parse_args()
 
