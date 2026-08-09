@@ -14,7 +14,7 @@ Classical UCI engine `build/aditya` is runnable and strength-tested vs Stockfish
 | `UCI_Elo` 2400 | 3.0s/move | **90.6% pass** |
 | `UCI_Elo` 2600 | **5.0s/move** | **75% pass** (71.9% near-miss @3s) |
 | `UCI_Elo` 2800 | **5.0s/move** | **75% pass (12/16)** |
-| `UCI_Elo` 3000 | **5.0s** | **v28 32g 53.1%** (W56.2/B50); 16g 50%; v22 32g 35.9% — still short of 75% |
+| `UCI_Elo` 3000 | **5.0s** | **v28 32g 53.1%** (W56.2/B50); v29 soft-draw **46.9%** (reverted); HalfKA still 0/16 self-play |
 
 **Default eval is classical.** Critical fixes this session:
 1. PeSTO PSTs were rank-flipped (a1=0 vs rank-8-first) — ~300–500cp inflation + exchange blunders
@@ -74,10 +74,11 @@ python3 scripts/match_stockfish.py --elo 2400 --games 16 --movetime 3.0 --target
 - **v27 corrHist:** Elo2400 hold **4/4**; Elo3000 **43.8%** (W50/B37.5) — many threefolds
 - **v28 singular (excluded-move):** Elo2000/2400 holds **4/4**; Elo3000 **16g 50%** / **32g 53.1%** (W56.2/B50) — **confirmed best classical**
 - Still <<75% (~+190 Elo needed); NNUE H256 fails self-play (0/24) at ~200knps vs 1.6M classical
-- Int16 NNUE eval path landed (speed); quality/HalfKA still required before enable
+- HalfKA AHNNUEF4 infra+trainer landed; ~456k train still **0/16** self-play — need >>1M labels + WDL
+- v29 soft-draw conversion **regressed** Elo3000 to 46.9% (B18.8%) — reverted to v28 /5 soft-draw
 - Stop broad book/KS/LMP churn
 - Hangs fixed: hardDeadline, no qsearch quiet-checks, SEE cap (do not thread-wrap SimpleEngine.play)
-- Next: HalfKA + much larger SF labels + int16 NPS; optional classical conversion work (many 50-move/threefold draws)
+- Next: scale SF datagen for HalfKA retrain; keep v28 classical as match default
 
 ### 2. Skill 5 — done
 - Cleared Skill 5 @1.5s (**90.6%**)

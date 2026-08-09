@@ -368,15 +368,10 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
     eval = Value(std::clamp(int(rawEval) + corr / 32, -VALUE_INFINITE + 1, VALUE_INFINITE - 1));
   }
 
-  // 2-fold / rule50 draw: soft-draw toward eval when clearly better/worse.
-  // Prefer continuing when clearly winning (conversion); /5 was too drawish vs Elo3000.
+  // 2-fold / rule50 draw: soft-draw toward eval when clearly better/worse
+  // v29 stronger conversion soft-draw regressed Elo3000 (37.5% vs v28 50%) — keep /5.
   if (!rootNode && pos.is_draw(ss->ply)) {
-    if (!inCheck) {
-      const int ae = std::abs(int(eval));
-      if (ae > 250) return Value(eval / 2);
-      if (ae > 100) return Value(eval * 2 / 5);
-      if (ae > 80) return Value(eval / 5);
-    }
+    if (!inCheck && std::abs(int(eval)) > 80) return Value(eval / 5);
     return VALUE_DRAW;
   }
 

@@ -50,11 +50,15 @@ def main():
     env_nnue = os.environ.copy()
     env_nnue["ADITYA_USE_NNUE"] = "1"
     env_nnue["ADITYA_NNUE_BLEND"] = str(args.blend)
+    eval_path = str((ROOT / args.eval_file).resolve() if not Path(args.eval_file).is_absolute()
+                    else Path(args.eval_file))
+    env_nnue["ADITYA_NNUE"] = eval_path
 
     classic = chess.engine.SimpleEngine.popen_uci(str(ADITYA), env=env_classic)
     nnue = chess.engine.SimpleEngine.popen_uci(str(ADITYA), env=env_nnue)
     classic.configure({"Hash": args.hash, "Threads": args.threads})
-    nnue.configure({"Hash": args.hash, "Threads": args.threads, "EvalFile": args.eval_file})
+    nnue.configure({"Hash": args.hash, "Threads": args.threads, "EvalFile": eval_path})
+    print(f"NNUE file={eval_path} blend={args.blend}", flush=True)
 
     limit = chess.engine.Limit(time=args.movetime)
     points = 0.0  # NNUE score
