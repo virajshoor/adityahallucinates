@@ -53,6 +53,8 @@ Search::Search(std::shared_ptr<TranspositionTable> sharedTt, SearchInfo* sharedI
   std::memset(contHistory, 0, sizeof(contHistory));
   std::memset(countermove, 0, sizeof(countermove));
   std::memset(corrHist, 0, sizeof(corrHist));
+  std::memset(pawnCorrHist, 0, sizeof(pawnCorrHist));
+  std::memset(materialCorrHist, 0, sizeof(materialCorrHist));
   std::memset(pv_table, 0, sizeof(pv_table));
   silent = true;
 }
@@ -68,6 +70,8 @@ void Search::clear() {
   std::memset(contHistory, 0, sizeof(contHistory));
   std::memset(countermove, 0, sizeof(countermove));
   std::memset(corrHist, 0, sizeof(corrHist));
+  std::memset(pawnCorrHist, 0, sizeof(pawnCorrHist));
+  std::memset(materialCorrHist, 0, sizeof(materialCorrHist));
   std::memset(pv_table, 0, sizeof(pv_table));
   info->nodes.store(0, std::memory_order_relaxed);
   info->seldepth.store(0, std::memory_order_relaxed);
@@ -363,8 +367,11 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
   } else {
     rawEval = ttHit && tte->eval != int16_t(VALUE_NONE) ? Value(tte->eval) : eval_pos(pos, ss);
     ss->staticEval = rawEval;
-    // Correction history (Stockfish-style): nudge static eval from prior residuals.
-    const int corr = corrHist[pos.side_to_move()][pos.key() & (CORR_SIZE - 1)];
+    // Correction histories (Stockfish-style): position + pawn structure + material.
+    const Color us = pos.side_to_move();
+    const int corr = corrHist[us][pos.key() & (CORR_SIZE - 1)]
+                   + pawnCorrHist[us][pos.pawn_key() & (PAWN_CORR_SIZE - 1)]
+                   + materialCorrHist[us][pos.material_key() & (MAT_CORR_SIZE - 1)];
     eval = Value(std::clamp(int(rawEval) + corr / 32, -VALUE_INFINITE + 1, VALUE_INFINITE - 1));
   }
 
@@ -488,7 +495,8 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
       extension = std::max(extension, 1);
     // Proper singular extension: verify TT move is uniquely good via excluded search.
     // Conservative margins — aggressive singular previously regressed Elo 2000.
-    if (!rootNode && !singularSearch && !extension && depth >= 8 && m == ttMove && ttHit &&
+    // v30: allow SE alongside check/recapture (mild double-SE), hard-cap extension at 2.
+    if (!rootNode && !singularSearch && extension < 2 && depth >= 8 && m == ttMove && ttHit &&
         tte->depth >= depth - 3 &&
         (tte->flag == TT_LOWER || tte->flag == TT_EXACT) &&
         std::abs(int(ttValue)) < VALUE_MATE_IN_MAX_PLY - 100) {
@@ -501,7 +509,7 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
         ss->excludedMove = MOVE_NONE;
         if (info->stop.load(std::memory_order_relaxed)) return alpha;
         if (singularValue < singularBeta)
-          extension = 1;
+          extension = std::min(2, extension + 1);
       }
     }
 
@@ -573,16 +581,26 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
   if (!info->stop.load(std::memory_order_relaxed) && !singularSearch) {
     tt->store(pos.key(), depth, value_to_tt(bestScore, ss->ply), flag,
              bestMove ? bestMove : ttMove, ss->staticEval);
-    // Update correction history from search residual (non-mate, sufficient depth).
+    // Update correction histories from search residual (non-mate, sufficient depth).
     if (!inCheck && !rootNode && depth >= 4 && rawEval != VALUE_NONE &&
         std::abs(int(bestScore)) < VALUE_MATE_IN_MAX_PLY - 100) {
       int diff = int(bestScore) - int(rawEval);
       diff = std::clamp(diff, -400, 400);
-      int& ch = corrHist[pos.side_to_move()][pos.key() & (CORR_SIZE - 1)];
-      // Stronger weight at deeper searches; keep bounded.
       int bonus = diff * depth / 8;
-      ch += bonus - ch * std::abs(bonus) / 1024;
-      ch = std::clamp(ch, -4096, 4096);
+      auto update_corr = [&](int& ch) {
+        ch += bonus - ch * std::abs(bonus) / 1024;
+        ch = std::clamp(ch, -4096, 4096);
+      };
+      const Color us = pos.side_to_move();
+      update_corr(corrHist[us][pos.key() & (CORR_SIZE - 1)]);
+      // Pawn/material tables learn slower (more shared positions).
+      int slowBonus = bonus / 2;
+      auto update_slow = [&](int& ch) {
+        ch += slowBonus - ch * std::abs(slowBonus) / 1024;
+        ch = std::clamp(ch, -4096, 4096);
+      };
+      update_slow(pawnCorrHist[us][pos.pawn_key() & (PAWN_CORR_SIZE - 1)]);
+      update_slow(materialCorrHist[us][pos.material_key() & (MAT_CORR_SIZE - 1)]);
     }
   }
   return bestScore;
