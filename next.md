@@ -74,7 +74,7 @@ python3 scripts/match_stockfish.py --elo 2400 --games 16 --movetime 3.0 --target
 - **v27 corrHist:** Elo2400 hold **4/4**; Elo3000 **43.8%** (W50/B37.5) — many threefolds
 - **v28 singular (excluded-move):** Elo2000/2400 holds **4/4**; Elo3000 **16g 50%** / **32g 53.1%** (W56.2/B50) — **confirmed best classical**
 - Still <<75% (~+190 Elo needed); NNUE H256 fails self-play (0/24) at ~200knps vs 1.6M classical
-- HalfKA AHNNUEF4: float eval path matches trainer; int16 QA was saturating (fixed/capped). Depth-6 self-play **1/16 (6%)** — first nonzero, still far from gate
+- HalfKA AHNNUEF4: float eval OK; int16 QA fixed. Self-play depth6: 1/16 then **0.5/24 (2%)** after 660k WDL retrain — still <<55% gate; need >>5M labels or search-distilled targets
 - v29 soft-draw conversion **regressed** Elo3000 to 46.9% (B18.8%) — reverted to v28 /5 soft-draw
 - Stop broad book/KS/LMP churn
 - Hangs fixed: hardDeadline, no qsearch quiet-checks, SEE cap (do not thread-wrap SimpleEngine.play)
