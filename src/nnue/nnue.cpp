@@ -159,37 +159,54 @@ void NnueNet::remove_piece(NnueAccumulator& a, Piece pc, Square sq) const {
 Value NnueNet::evaluate_acc(const NnueAccumulator& a, Color stm) const {
   if (!g_w.loaded || !a.computed) return VALUE_NONE;
   const auto& n = g_w;
-  const float inv0 = n.inv_scale0;
+  // Integer CReLU path: h = clamp(acc, 0, scale0) represents float activation * scale0.
+  // FC1: y = (b1*scale0 + w1·h) / (scale1*scale0), then clip to [0,1].
+  const int32_t s0 = std::max(1, int32_t(std::lround(n.scale0)));
+  const int32_t s1 = std::max(1, int32_t(std::lround(n.scale1)));
+  const int64_t den1 = int64_t(s0) * int64_t(s1);
 
-  auto crelu1 = [&](const int16_t* acc, float* out) {
+  int16_t h1a[256];
+  int16_t h1b[256];
+  auto crelu_i16 = [&](const int16_t* acc, int16_t* out) {
     for (int i = 0; i < n.h1; ++i) {
-      float v = float(acc[i]) * inv0;
-      if (n.clipped) out[i] = v < 0.f ? 0.f : (v > 1.f ? 1.f : v);
-      else out[i] = v > 0.f ? v : 0.f;
+      int v = int(acc[i]);
+      if (n.clipped) {
+        if (v < 0) v = 0;
+        else if (v > s0) v = s0;
+      } else if (v < 0) {
+        v = 0;
+      }
+      out[i] = int16_t(v);
     }
   };
-
-  float h1a[256];
-  float h1b[256];
-  crelu1(a.acc[stm], h1a);
+  crelu_i16(a.acc[stm], h1a);
   const int fc1_in = n.dual ? n.h1 * 2 : n.h1;
-  if (n.dual) crelu1(a.acc[~stm], h1b);
+  if (n.dual) crelu_i16(a.acc[~stm], h1b);
 
-  float h2v[32];
-  const float inv1 = 1.f / n.scale1;
+  int32_t h2v[32];
   for (int j = 0; j < n.h2; ++j) {
-    float sum = float(n.b1[j]) * inv1;
+    int64_t sum = int64_t(n.b1[j]) * s0;
     const int16_t* row = &n.w1[j * fc1_in];
-    for (int i = 0; i < n.h1; ++i) sum += float(row[i]) * inv1 * h1a[i];
+    for (int i = 0; i < n.h1; ++i) sum += int64_t(row[i]) * int64_t(h1a[i]);
     if (n.dual)
-      for (int i = 0; i < n.h1; ++i) sum += float(row[n.h1 + i]) * inv1 * h1b[i];
-    h2v[j] = n.clipped ? (sum < 0.f ? 0.f : (sum > 1.f ? 1.f : sum)) : (sum > 0.f ? sum : 0.f);
+      for (int i = 0; i < n.h1; ++i) sum += int64_t(row[n.h1 + i]) * int64_t(h1b[i]);
+    if (n.clipped) {
+      if (sum < 0) sum = 0;
+      else if (sum > den1) sum = den1;
+    } else if (sum < 0) {
+      sum = 0;
+    }
+    // Store fixed-point with denominator den1 (so 1.0 == den1).
+    h2v[j] = int32_t(sum);
   }
 
-  float out = float(n.b2);
-  const float inv2 = 1.f / n.scale2;
-  for (int j = 0; j < n.h2; ++j) out += float(n.w2[j]) * inv2 * h2v[j];
-  int cp = int(std::lround(out));
+  const int32_t s2 = std::max(1, int32_t(std::lround(n.scale2)));
+  // out = b2 + sum((w2[j]/s2) * (h2v[j]/den1))
+  //     = b2 + sum(w2[j]*h2v[j]) / (s2*den1)
+  int64_t accOut = int64_t(n.b2) * int64_t(s2) * den1;
+  for (int j = 0; j < n.h2; ++j) accOut += int64_t(n.w2[j]) * int64_t(h2v[j]);
+  const int64_t denOut = int64_t(s2) * den1;
+  int cp = int((accOut + (accOut >= 0 ? denOut / 2 : -(denOut / 2))) / denOut);
   return Value(std::clamp(cp, -VALUE_MATE_IN_MAX_PLY + 1, VALUE_MATE_IN_MAX_PLY - 1));
 }
 
