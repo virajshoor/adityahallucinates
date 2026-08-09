@@ -60,7 +60,9 @@ void quantize_from_float(const std::vector<float>& wf0, const std::vector<float>
   auto qrow = [](const std::vector<float>& src, std::vector<int16_t>& dst, float& scale) {
     float m = 1e-8f;
     for (float v : src) m = std::max(m, std::fabs(v));
-    scale = 32767.f / m;
+    // Cap scale so int16 can represent the clipped activation domain used later.
+    // Unbounded scale (tiny max-weight) saturates most weights to ±32767 and destroys HalfKA.
+    scale = std::min(32767.f / m, 16384.f);
     dst.resize(src.size());
     for (size_t i = 0; i < src.size(); ++i)
       dst[i] = int16_t(std::clamp(int(std::lround(src[i] * scale)), -32767, 32767));
@@ -158,6 +160,8 @@ bool load_nnue(const std::string& path) {
   g_w.clipped = clipped;
   g_w.dual = dual;
   g_w.halfka = halfka;
+  std::cerr << "info string nnue_flags dual=" << dual << " halfka=" << halfka
+            << " input=" << dims[0] << " h1=" << h1 << std::endl;
   return true;
 }
 
@@ -203,27 +207,64 @@ void NnueNet::remove_piece(NnueAccumulator& a, Piece pc, Square sq) const {
 Value NnueNet::evaluate_acc(const NnueAccumulator& a, Color stm) const {
   if (!g_w.loaded || !a.computed) return VALUE_NONE;
   const auto& n = g_w;
+
+  // Prefer float path for HalfKA (int16 QA still lossy on large embedding tables).
+  bool use_float = g_w.halfka;
+  if (const char* e = std::getenv("ADITYA_NNUE_FLOAT")) {
+    if (e[0] == '1') use_float = true;
+    if (e[0] == '0') use_float = false;
+  }
+  if (use_float) {
+    const float inv0 = n.inv_scale0;
+    auto crelu1 = [&](const int16_t* acc, float* out) {
+      for (int i = 0; i < n.h1; ++i) {
+        float v = float(acc[i]) * inv0;
+        out[i] = n.clipped ? (v < 0.f ? 0.f : (v > 1.f ? 1.f : v)) : (v > 0.f ? v : 0.f);
+      }
+    };
+    float h1a[256], h1b[256];
+    crelu1(a.acc[stm], h1a);
+    const int fc1_in = n.dual ? n.h1 * 2 : n.h1;
+    if (n.dual) crelu1(a.acc[~stm], h1b);
+    float h2v[32];
+    const float inv1 = 1.f / n.scale1;
+    for (int j = 0; j < n.h2; ++j) {
+      float sum = float(n.b1[j]) * inv1;
+      const int16_t* row = &n.w1[size_t(j) * size_t(fc1_in)];
+      for (int i = 0; i < n.h1; ++i) sum += float(row[i]) * inv1 * h1a[i];
+      if (n.dual)
+        for (int i = 0; i < n.h1; ++i) sum += float(row[n.h1 + i]) * inv1 * h1b[i];
+      h2v[j] = n.clipped ? (sum < 0.f ? 0.f : (sum > 1.f ? 1.f : sum)) : (sum > 0.f ? sum : 0.f);
+    }
+    float out = float(n.b2);
+    const float inv2 = 1.f / n.scale2;
+    for (int j = 0; j < n.h2; ++j) out += float(n.w2[j]) * inv2 * h2v[j];
+    int cp = int(std::lround(out));
+    return Value(std::clamp(cp, -VALUE_MATE_IN_MAX_PLY + 1, VALUE_MATE_IN_MAX_PLY - 1));
+  }
+
+  // Integer CReLU path. Activations kept in int32 — scale0 may exceed int16 range.
   const int32_t s0 = std::max(1, int32_t(std::lround(n.scale0)));
   const int32_t s1 = std::max(1, int32_t(std::lround(n.scale1)));
   const int64_t den1 = int64_t(s0) * int64_t(s1);
 
-  int16_t h1a[256];
-  int16_t h1b[256];
-  auto crelu_i16 = [&](const int16_t* acc, int16_t* out) {
+  int32_t h1a[256];
+  int32_t h1b[256];
+  auto crelu_i32 = [&](const int16_t* acc, int32_t* out) {
     for (int i = 0; i < n.h1; ++i) {
-      int v = int(acc[i]);
+      int32_t v = int32_t(acc[i]);
       if (n.clipped) {
         if (v < 0) v = 0;
         else if (v > s0) v = s0;
       } else if (v < 0) {
         v = 0;
       }
-      out[i] = int16_t(v);
+      out[i] = v;
     }
   };
-  crelu_i16(a.acc[stm], h1a);
+  crelu_i32(a.acc[stm], h1a);
   const int fc1_in = n.dual ? n.h1 * 2 : n.h1;
-  if (n.dual) crelu_i16(a.acc[~stm], h1b);
+  if (n.dual) crelu_i32(a.acc[~stm], h1b);
 
   int32_t h2v[32];
   for (int j = 0; j < n.h2; ++j) {

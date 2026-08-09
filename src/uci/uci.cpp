@@ -139,6 +139,13 @@ void uci_loop() {
           pos.do_move(m, states[stateIdx]);
         }
       }
+    } else if (token == "eval") {
+      // Static eval from side-to-move in centipawns (debug).
+      if (!nnue_ready() && std::getenv("ADITYA_USE_NNUE") && std::getenv("ADITYA_USE_NNUE")[0]=='1')
+        std::cout << "info string nnue not loaded\n";
+      Value v = evaluate(pos);
+      std::cout << "info string eval " << int(v) << " stm=" << (pos.side_to_move()==WHITE?"w":"b")
+                << std::endl;
     } else if (token == "go") {
       SearchLimits limits;
       while (is >> token) {
