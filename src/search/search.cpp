@@ -439,13 +439,12 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
     return VALUE_DRAW;
   }
 
-  // Syzygy WDL probe (non-root): children get exact WDL so root search converts.
-  // Root uses normal search (needs a move); WDL alone has no DTZ move.
+  // Syzygy WDL probe (non-root): use only decisive results.
+  // Against strength-limited SF, hard TB draws remove pressing chances — skip wdl==0.
   if (!rootNode && !singularSearch && syzygy_max_pieces() > 0 &&
       popcount(pos.pieces()) <= syzygy_max_pieces()) {
     int wdl = 0;
-    if (syzygy_probe_wdl(pos, wdl)) {
-      if (wdl == 0) return VALUE_DRAW;
+    if (syzygy_probe_wdl(pos, wdl) && wdl != 0) {
       const int base = VALUE_MATE_IN_MAX_PLY - 100 - ss->ply;
       if (wdl > 0) return Value(base - (2 - wdl) * 40);
       return Value(-base + (2 + wdl) * 40);
