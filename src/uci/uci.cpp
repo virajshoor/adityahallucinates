@@ -5,6 +5,7 @@
 #include "movegen/magics.hpp"
 #include "nnue/nnue.hpp"
 #include "eval/eval.hpp"
+#include "syzygy/syzygy.hpp"
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -69,6 +70,14 @@ void uci_loop() {
     }
   }
 
+  // Syzygy path: ADITYA_SYZYGY or default nets/tb if present.
+  {
+    const char* p = std::getenv("ADITYA_SYZYGY");
+    std::string path = (p && p[0]) ? p : "nets/tb";
+    if (syzygy_init(path.c_str()) && syzygy_max_pieces() > 0)
+      std::cerr << "info string syzygy " << path << " largest=" << syzygy_max_pieces() << std::endl;
+  }
+
   Position pos;
   StateInfo states[1024];
   int stateIdx = 0;
@@ -90,6 +99,7 @@ void uci_loop() {
       std::cout << "option name Hash type spin default 256 min 1 max 65536\n";
       std::cout << "option name Threads type spin default 1 min 1 max 8\n";
       std::cout << "option name EvalFile type string default nets/default.nnue\n";
+      std::cout << "option name SyzygyPath type string default nets/tb\n";
       std::cout << "uciok" << std::endl;
     } else if (token == "isready") {
       std::cout << "readyok" << std::endl;
@@ -111,13 +121,16 @@ void uci_loop() {
       if (name == "Hash") search.set_hash(std::stoul(value));
       else if (name == "Threads") {
         search.set_threads(std::stoi(value));
-        std::cout << "info string threads " << search.threads() << std::endl;
+        std::cerr << "info string threads " << search.threads() << std::endl;
       }
       else if (name == "EvalFile") {
         if (load_nnue(value))
           std::cout << "info string loaded NNUE " << value << std::endl;
         else
           std::cout << "info string failed to load NNUE " << value << std::endl;
+      } else if (name == "SyzygyPath") {
+        if (syzygy_init(value.c_str()))
+          std::cerr << "info string syzygy " << value << " largest=" << syzygy_max_pieces() << std::endl;
       }
     } else if (token == "position") {
       is >> token;
