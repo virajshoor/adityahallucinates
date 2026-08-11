@@ -1,0 +1,22 @@
+[Event "?"]
+[Site "?"]
+[Date "2026.08.11"]
+[Round "?"]
+[White "Aditya"]
+[Black "Stockfish"]
+[Result "1/2-1/2"]
+[Termination "FIFTY_MOVES"]
+
+1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Nf3 Be7 5. e3 O-O 6. a3 Nbd7 7. h3 b6 8. cxd5 exd5 9. Qa4 a6 10. Nxd5 Nxd5 11. Qc6 Nxe3 12. Bxe3 Rb8 13. Qc2 Bd6 14. Bd3 h6 15. O-O Bb7 16. Bh7+ Kh8 17. Be4 Bxe4 18. Qxe4 Nf6 19. Qc2 Qd7 20. Ne5 Bxe5 21. dxe5 Nd5 22. Bd2 Rbe8 23. Rfe1 c6 24. Rad1 Qc8 25. f4 f6 26. Bb4 Nxb4 27. axb4 c5 28. Rd6 cxb4 29. Qxc8 Rxc8 30. e6 Rfd8 31. Rxd8+ Rxd8 32. Re3 a5 33. Kf2 Rc8 34. f5 b5 35. Rd3 Kg8 36. Rd5 Rb8 37. Rd4 Kf8 38. Ke3 Ra8 39. h4 Ke7 40. Rd7+ Kf8 41. Rd4 Ke8 42. Rd7 a4 43. Rxg7 Kf8 44. Rf7+ Kg8 45. Rxf6 a3 46. bxa3 bxa3 47. e7 Rb8 48. Rb6 Re8 49. f6 Kf7 50. g4 Kg6 51. Kf4 a2 52. Ra6 a1=B 53. Rxa1 Kxf6 54. Ra6+ Kxe7 55. Rxh6 Rb8 56. Ke5 Kf7 57. Rf6+ Ke7 58. Rf3 b4 59. Rb3 Ke8 60. Kd5 Kf7 61. Kc4 Rg8 62. Rf3+ Ke6 63. Re3+ Kf6 64. Re4 Rh8 65. h5 Rb8 66. Kb3 Rd8 67. Rf4+ Kg5 68. Rxb4 Re8 69. Kc2 Rf8 70. Kc3 Rh8 71. Kd2 Re8 72. Kd3 Rd8+ 73. Ke2 Rd7 74. Re4 Rb7 75. Kf3 Rb3+ 76. Re3 Rb5 77. Kg3 Rc5 78. Rf3 Rd5 79. Ra3 Rc5 80. Rb3 Ra5 81. Rd3 Rb5 82. Kh3 Ra5 83. Re3 Rc5 84. Kg3 Rb5 85. Rc3 Rd5 86. Rc4 Ra5 87. Rd4 Rb5 88. Kf3 Rb3+ 89. Ke2 Kh4 90. Rc4 Rh3 91. Kf2 Rb3 92. Rf4 Rb8 93. Ke3 Rb1 94. Ke2 Rb7 95. Kd3 Rb6 96. Kc3 Rh6 97. Kd2 Re6 98. Kc2 Ra6 99. Re4 Kg5 100. Kb3 Ra7 101. Rc4 Ra6 102. Rd4 Rb6+ 103. Kc2 Kh4 104. Kc3 Rc6+ 105. Kd3 Rc1 106. Ke2 Rg1 107. Kf2 Rh1 108. Kf3 Rf1+ 109. Kg2 Ra1 110. Rb4 Rc1 111. Kf2 Rc6 112. Kf3 Ra6 113. Kg2 Ra2+ 114. Kf3 Ra6 115. Kf2 Rf6+ 116. Kg2 Ra6 117. Kf3 Kg5 1/2-1/2
+
+[Event "?"]
+[Site "?"]
+[Date "2026.08.11"]
+[Round "?"]
+[White "Stockfish"]
+[Black "Aditya"]
+[Result "0-1"]
+[Termination "CHECKMATE"]
+
+1. e4 e5 2. Nf3 d6 3. h3 Nf6 4. d4 exd4 5. Bg5 c5 6. c3 Be7 7. Bb5+ Bd7 8. Qe2 Nc6 9. O-O a6 10. Bxc6 Bxc6 11. Re1 h6 12. Bf4 O-O 13. Qc2 d5 14. exd5 Nxd5 15. Bd2 Bf6 16. Qf5 Ne7 17. Qf4 Ng6 18. Qg3 Qd5 19. Na3 Rfe8 20. Rac1 d3 21. b3 Re2 22. Rxe2 dxe2 23. Nc2 Nh4 24. Be3 Qd1+ 25. Nfe1 Nf5 26. Rxd1 exd1=Q 27. Qg4 Nxe3 28. fxe3 Qxg4 29. hxg4 Bxc3 30. Kf2 Rd8 31. e4 Bxe4 32. Na3 Rd2+ 33. Ke3 Bg6 34. Nf3 Rxa2 35. Kf4 Rxa3 36. g5 hxg5+ 37. Kxg5 Bf6+ 38. Kf4 Rxb3 39. Nh2 Rb4+ 40. Ke3 c4 41. g3 c3 42. Nf1 c2 43. g4 c1=Q+ 44. Nd2 Rxg4 45. Kf2 Qxd2+ 46. Kf3 Be4+ 47. Kxg4 Qg2+ 48. Kf4 Qf3# 0-1
+

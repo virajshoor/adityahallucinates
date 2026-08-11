@@ -1,0 +1,44 @@
+[Event "?"]
+[Site "?"]
+[Date "2026.08.11"]
+[Round "?"]
+[White "Aditya"]
+[Black "Stockfish"]
+[Result "1-0"]
+[Termination "CHECKMATE"]
+
+1. e4 c5 2. Nc3 d6 3. Nf3 e5 4. Bc4 Nc6 5. d3 h6 6. a3 a6 7. Nd5 Nge7 8. O-O Nxd5 9. Bxd5 g6 10. c3 Bg7 11. Be3 Ne7 12. Ba2 b6 13. d4 Bb7 14. dxe5 d5 15. exd5 O-O 16. d6 Nf5 17. Bd5 Rb8 18. Bc1 Qd7 19. Bxb7 Qxb7 20. g4 f6 21. gxf5 g5 22. e6 Qc6 23. d7 Qe4 24. Re1 Qc6 25. h4 Rbd8 26. hxg5 fxg5 27. Bxg5 hxg5 28. Nxg5 Rxd7 29. exd7 a5 30. d8=Q Bd4 31. Qe7 Bxf2+ 32. Kxf2 Rxf5+ 33. Kg1 b5 34. Qdd8+ Rf8 35. Qexf8# 1-0
+
+[Event "?"]
+[Site "?"]
+[Date "2026.08.11"]
+[Round "?"]
+[White "Stockfish"]
+[Black "Aditya"]
+[Result "0-1"]
+[Termination "CHECKMATE"]
+
+1. e3 Nf6 2. Be2 e5 3. b3 d5 4. d3 Nc6 5. Nd2 d4 6. Bf3 Bb4 7. Bxc6+ bxc6 8. e4 Bg4 9. Nf3 Nd7 10. Rb1 Qf6 11. h3 Bxf3 12. Qxf3 Qxf3 13. gxf3 O-O 14. Ke2 Rfe8 15. Nc4 Nb6 16. h4 Re6 17. Rg1 Rb8 18. h5 h6 19. f4 exf4 20. Bxf4 Rbe8 21. Kf1 R8e7 22. Bc1 c5 23. a3 Bc3 24. Bf4 Kh7 25. Bg3 f6 26. Ke2 Nd5 27. Kf3 Nb6 28. a4 Nxc4 29. bxc4 Bb4 30. Rb2 Ra6 31. a5 Rxa5 32. Kg4 Ra4 33. Kf5 Ra6 34. f4 Re8 35. Bh4 Ra8 36. c3 dxc3 37. Rbg2 g5 38. hxg6+ Kg7 39. Rb1 Rd6 40. d4 cxd4 41. Rxb4 d3 42. Rb7 d2 43. Rxc7+ Kg8 44. c5 d1=Q 45. Bxf6 Qh5+ 46. Rg5 Qh3+ 47. Rg4 Rxf6+ 48. Ke5 Qxg4 49. c6 Qxf4+ 50. Kd5 Rd6+ 51. Kc5 Qe5+ 52. Kc4 Rd4+ 53. Kxc3 Qc5+ 54. Kb2 Rb4+ 55. Ka2 Qa5# 0-1
+
+[Event "?"]
+[Site "?"]
+[Date "2026.08.11"]
+[Round "?"]
+[White "Aditya"]
+[Black "Stockfish"]
+[Result "1-0"]
+[Termination "CHECKMATE"]
+
+1. e4 c5 2. Nc3 a6 3. Nf3 d6 4. Be2 e6 5. O-O Be7 6. a4 Nf6 7. d4 Nc6 8. dxc5 dxc5 9. Qxd8+ Nxd8 10. Rd1 Nd7 11. e5 O-O 12. Ne4 b6 13. Nd6 Bxd6 14. exd6 Bb7 15. c3 Bc6 16. Bf4 f6 17. Bc4 h6 18. Bg3 Bxf3 19. gxf3 Kh8 20. f4 Re8 21. Re1 g6 22. Rad1 Kg7 23. h3 Ra7 24. Kh2 Nf8 25. f5 e5 26. f4 Nf7 27. a5 gxf5 28. axb6 Rb7 29. Rg1 exf4 30. Bf2+ Kh7 31. Bxc5 Rd7 32. Bxa6 Ne6 33. Bb5 Ne5 34. b4 Ng5 35. Rgf1 Ra8 36. Bxd7 Ngf3+ 37. Rxf3 Nxf3+ 38. Kg2 Ng5 39. Bxf5+ Kg8 40. d7 f3+ 41. Kf2 Ra2+ 42. Kf1 Ra8 43. d8=Q+ Rxd8 44. Rxd8+ Kg7 45. Rd7+ Nf7 46. b7 h5 47. Rxf7+ Kh6 48. Be3# 1-0
+
+[Event "?"]
+[Site "?"]
+[Date "2026.08.11"]
+[Round "?"]
+[White "Stockfish"]
+[Black "Aditya"]
+[Result "0-1"]
+[Termination "CHECKMATE"]
+
+1. Nf3 Nf6 2. g3 c5 3. Bg2 d5 4. O-O Nc6 5. a4 e5 6. Nh4 h6 7. c4 dxc4 8. Nc3 Be7 9. a5 a6 10. Qc2 Nd4 11. Qa4+ Bd7 12. Qa3 Qc7 13. Rd1 O-O 14. Rb1 Be6 15. d3 cxd3 16. Rxd3 c4 17. b4 cxd3 18. Nf3 Qxc3 19. Nxd4 Qe1+ 20. Bf1 Bh3 21. Bxh6 Qxb1 22. Bc1 d2 23. Qd3 dxc1=Q 24. e4 Qxf1+ 25. Qxf1 Qxf1# 0-1
+
