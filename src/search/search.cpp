@@ -557,6 +557,13 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
     if (!rootNode && ss->ply >= 1 && (ss - 1)->current &&
         m.to() == (ss - 1)->current.to() && capture)
       extension = std::max(extension, 1);
+    // Conversion aid: when ahead late in the 50-move cycle, extend progress moves
+    // (pawn pushes / captures) so we don't shuffle into draws (Elo3000 bottleneck).
+    if (!rootNode && !inCheck && rawEval != VALUE_NONE && int(rawEval) > 160 &&
+        pos.rule50_count() >= 50 &&
+        (capture || type_of(pos.piece_on(m.from())) == PAWN) &&
+        pos.see_ge(m, 0))
+      extension = std::max(extension, 1);
     // Singular extension + multi-cut (Stockfish-style, conservative margins).
     if (!rootNode && !singularSearch && !extension && depth >= 8 && m == ttMove && ttHit &&
         tte->depth >= depth - 3 &&
