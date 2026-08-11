@@ -1,0 +1,8 @@
+{
+  "label": "elo3000_v15_partial",
+  "points": 1.0,
+  "games": 2,
+  "score": 0.5,
+  "note": "Hung on game 3 ~50m; removed qsearch quiet-checks; tighter deadline polls",
+  "passed": false
+}

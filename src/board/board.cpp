@@ -433,10 +433,11 @@ bool Position::gives_check(Move m) const {
   Color us = side;
   Square ksq = king_square(~us);
 
-  if (Bitboards::PseudoAttacks[pt][to] & ksq) {
-    if (pt == PAWN) {
-      if (Bitboards::PawnAttacks[us][to] & ksq) return true;
-    } else if (pt == KNIGHT || pt == KING) {
+  // Pawns: PseudoAttacks[PAWN] is empty — use pawn attack tables directly.
+  if (pt == PAWN) {
+    if (Bitboards::PawnAttacks[us][to] & ksq) return true;
+  } else if (Bitboards::PseudoAttacks[pt][to] & ksq) {
+    if (pt == KNIGHT || pt == KING) {
       return true;
     } else if (attacks_bb(pt, to, pieces() ^ from) & ksq)
       return true;
@@ -468,29 +469,44 @@ bool Position::see_ge(Move m, int threshold) const {
   if (m.type() == CASTLING) return 0 >= threshold;
 
   Square from = m.from(), to = m.to();
+  // Use mover color from the piece — critical for threat eval of the non-STM side.
+  Color mover = color_of(piece_on(from));
+
   int swap = PieceValue[type_of(piece_on(to))] - threshold;
   if (m.type() == EN_PASSANT) swap = PieceValue[PAWN] - threshold;
+  if (m.type() == PROMOTION)
+    swap += PieceValue[m.promotion_type()] - PieceValue[PAWN];
   if (swap < 0) return false;
 
-  swap = PieceValue[type_of(piece_on(from))] - swap;
+  // After the move, opponent faces the piece now on `to` (promoted type if any).
+  PieceType nextVictim = m.type() == PROMOTION ? m.promotion_type() : type_of(piece_on(from));
+  swap = PieceValue[nextVictim] - swap;
   if (swap <= 0) return true;
 
   Bitboard occupied = pieces() ^ from ^ to;
-  if (m.type() == EN_PASSANT) occupied ^= Square(to - pawn_push(side));
+  if (m.type() == EN_PASSANT) {
+    Square cap = Square(int(to) - int(pawn_push(mover)));
+    occupied ^= cap;
+  }
 
-  Color stm = side;
+  Color stm = mover;
   Bitboard attackers = attackers_to(to, occupied);
   Bitboard stmAttackers, bb;
   int res = 1;
+  Square ksq;
 
-  while (true) {
+  for (int seePlies = 0; seePlies < 32; ++seePlies) {
     stm = ~stm;
     attackers &= occupied;
-    if (!(stmAttackers = attackers & pieces(stm))) break;
-    if ((st->pinners[~stm] & occupied) &&
-        (Bitboards::BetweenBB[king_square(stm)][to] || true)) {
-      // simplified: allow all
+
+    // Pinned pieces cannot recapture unless capturing along the pin ray.
+    stmAttackers = attackers & pieces(stm);
+    if (st->pinners[~stm] & occupied) {
+      ksq = king_square(stm);
+      stmAttackers &= ~st->blockers_for_king[stm] | Bitboards::LineBB[ksq][to];
     }
+    if (!stmAttackers) break;
+
     res ^= 1;
     if ((bb = stmAttackers & pieces(PAWN))) {
       if ((swap = PieceValue[PAWN] - swap) < res) break;
@@ -512,25 +528,25 @@ bool Position::see_ge(Move m, int threshold) const {
       occupied ^= lsb(bb);
       attackers |= (attacks_bb(BISHOP, to, occupied) & (pieces(BISHOP) | pieces(QUEEN))) |
                    (attacks_bb(ROOK, to, occupied) & (pieces(ROOK) | pieces(QUEEN)));
-    } else {
-      return (attackers & ~pieces(stm)) ? res ^ 1 : res;
+    } else { // king
+      return (attackers & ~pieces(stm)) ? bool(res ^ 1) : bool(res);
     }
   }
   return bool(res);
 }
 
 bool Position::is_draw(int ply) const {
-  if (st->rule50 > 99 && (!checkers() /* would need legal move */)) return true;
-  if (st->rule50 >= 100) return true;
+  // Fifty-move: never claim draw while in check — may be checkmate.
+  if (st->rule50 >= 100 && !checkers()) return true;
 
-  // Repetition
+  // Repetition (two-fold inside search)
   int end = std::min(st->rule50, st->plies_from_null);
   if (end < 4) return false;
   StateInfo* stp = st->previous->previous;
   for (int i = 4; i <= end; i += 2) {
     stp = stp->previous->previous;
     if (stp->key == st->key)
-      return true; // two-fold for search; three-fold at root handled similarly
+      return true;
   }
   (void)ply;
   return false;

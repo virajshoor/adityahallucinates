@@ -40,6 +40,7 @@ def play_game(aditya, sf, aditya_white: bool, movetime: float):
 
     while not board.is_game_over(claim_draw=True):
         engine = aditya if ((board.turn == chess.WHITE) == aditya_white) else sf
+        # Rely on engine hardDeadline; SimpleEngine is not thread-safe for timeouts.
         result = engine.play(board, limit)
         if result.move is None:
             break
@@ -71,7 +72,8 @@ def main() -> int:
     ap.add_argument("--skill", type=int, default=5)
     ap.add_argument("--elo", type=int, default=0)
     ap.add_argument("--movetime", type=float, default=0.1)
-    ap.add_argument("--hash", type=int, default=128)
+    ap.add_argument("--hash", type=int, default=256)
+    ap.add_argument("--threads", type=int, default=1)
     ap.add_argument("--target", type=float, default=0.75)
     args = ap.parse_args()
 
@@ -89,7 +91,7 @@ def main() -> int:
     scores = []
 
     try:
-        aditya.configure({"Hash": args.hash})
+        aditya.configure({"Hash": args.hash, "Threads": args.threads})
         sf.configure({"Hash": args.hash, "Threads": 1})
         if args.elo > 0:
             sf.configure({"UCI_LimitStrength": True, "UCI_Elo": args.elo})
@@ -113,6 +115,7 @@ def main() -> int:
                 }
                 game_results.append(row)
                 print(game, file=pgn_out, end="\n\n")
+                pgn_out.flush()
                 avg = sum(scores) / len(scores)
                 print(
                     f"game {i+1}/{args.games}: aditya={'W' if aditya_white else 'B'} "
@@ -124,6 +127,7 @@ def main() -> int:
         summary = {
             "label": label,
             "movetime": args.movetime,
+            "threads": args.threads,
             "points": sum(scores),
             "games": len(scores),
             "score": avg,

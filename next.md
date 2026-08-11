@@ -6,92 +6,117 @@ Classical UCI engine `build/aditya` is runnable and strength-tested vs Stockfish
 
 | Gate | TC | Result |
 |------|-----|--------|
-| Skill 4 | 0.25s/move | **78.1% pass** |
-| `UCI_Elo` 2000 | 0.25s/move | **75% pass** |
-| `UCI_Elo` 2100 | **1.5s/move** | **78.1% pass** |
-| Skill 5 | 0.5s/move | ~33% fail |
-| `UCI_Elo` 2200 | 1.5s/move | ~41% fail |
+| Skill 4 | 0.25s/move | **78.1% pass** (prior) |
+| Skill 5 | 1.5s/move | **90.6% pass** |
+| `UCI_Elo` 2000 | 0.25s/move | **96.9% pass** |
+| `UCI_Elo` 2100 | 1.5s/move | **100% pass (16/16)** |
+| `UCI_Elo` 2200 | 3.0s/move | **100% pass (16/16)** |
+| `UCI_Elo` 2400 | 3.0s/move | **90.6% pass** |
+| `UCI_Elo` 2600 | **5.0s/move** | **75% pass** (71.9% near-miss @3s) |
+| `UCI_Elo` 2800 | **5.0s/move** | **75% pass (12/16)** |
+| `UCI_Elo` 3000 | **5.0s** | **v28 32g 53.1%** best classical; v30 corrHist/SE/rim **34.4%** (reverted); HalfKA still fails self-play |
 
-**Default eval is classical.** NNUE exists (`nets/fast.nnue`, `ADITYA_USE_NNUE=1`) but is still slower/weaker than classical — do not enable for matches until it wins a classical SPRT.
+**Default eval is classical.** Critical fixes this session:
+1. PeSTO PSTs were rank-flipped (a1=0 vs rank-8-first) — ~300–500cp inflation + exchange blunders
+2. SEE-based threat eval for winning opponent captures (e.g. BxR on “defended” rook)
+3. SEE mover color + pins + promotion next-victim; pawn `gives_check`
+4. Tempo polarity (Black STM was ~80cp too low)
+5. Full Hash TT (multiply-high); null-move `MOVE_NULL`; book ply 14
+6. Advantage-dependent endgame mop-up; per-victim threat aggregation
+7. Search patches (stand-pat/draw/qsearch rewrite) **regressed Elo 2400+** — keep 9848fe5 search skeleton
+8. Elo 3000 bottleneck is **Black** (~22–31%); White ~44–50% — distance-based king shelter + QGD book
+15. **v23 Lazy SMP** (Threads=2) Elo3000 **37.5%** ≈ v22 — need NNUE, not more book/KS churn
+16. v24: Lazy SMP helper diversity (history seed + depth/aspiration offset)
+17. NNUE bootstrap (88k labels) still **0/40** vs classical — net plays Bh7 nonsense; float NNUE ~400knps
+18. Fixed blend≥100 short-circuit (was evaluating net every node); datagen now prefers SF moves
+9. Book gaps closed for QGD+Nf3/Nc3, Catalan, Vienna/3N, Exchange Slav (stop early `...h6` / `...Nge7` / `...Nh5`)
+10. Removed early rook-pawn tempo tax (hurt more than it helped)
+11. Scotch Gambit book: prefer ...Be7/a6 over ...Bd7 after 6.Bb5 Ne4 7.O-O
+12. v17 aggressive king-safety **hurt White** (43.8%) — fully reverted
+13. **v18/v19 regress** — broad book+defender (34.4%) and milder LMP/LMR (21.9%) both hurt; v20 restores v16 pruning + targeted Catalan/Alapin/d4-c6 book only
+14. Do **not** soften LMP/LMR at fixed movetime — depth loss dominates
 
-**Elo 5000 is not a real ladder target.** Stockfish `UCI_Elo` only goes **1320–3190**; full SF ≈3600.
+NNUE (`nets/fast.nnue`, `ADITYA_USE_NNUE=1`) has incremental int16 dual-perspective accumulators in search. Bootstrap net (~20k SF labels) loses heavily to classical in short self-play — **do not enable for matches** until it wins SPRT.
 
-Branch: `cursor/chess-engine-strength-5bbd`  
-PR: https://github.com/virajshoor/adityahallucinates/pull/1
+**Elo 5000 is not a real ladder target.** Stockfish `UCI_Elo` only goes **1320–3190**; full SF ≈3600. Measurable progress: cleared through **2800**; best Elo 3000 so far **56.3%** (pre-hang-fix); recent complete **v16 50%**.
+
+Branch: `cursor/chess-engine-elo-climb-936e`  
+PR: https://github.com/virajshoor/adityahallucinates/pull/2
 
 ---
 
 ## Make it runnable (every machine)
 
 ```bash
-# Toolchain: use g++ (clang often fails linking libstdc++ here)
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++
 cmake --build build -j
 ./build/perft_tests
-./build/aditya   # UCI stdin
-
-# Opponent for matches
 ./scripts/fetch_stockfish.sh
 pip install python-chess
 
-# Sanity match (should still clear)
-python3 scripts/match_stockfish.py --elo 2000 --games 16 --movetime 0.25 --target 0.75
-python3 scripts/match_stockfish.py --elo 2100 --games 16 --movetime 1.5 --target 0.75
+python3 scripts/match_stockfish.py --elo 2800 --games 16 --movetime 5.0 --target 0.75
+python3 scripts/match_stockfish.py --elo 3000 --games 16 --movetime 5.0 --target 0.75
+python3 scripts/match_stockfish.py --elo 2600 --games 16 --movetime 5.0 --target 0.75
+python3 scripts/match_stockfish.py --elo 2400 --games 16 --movetime 3.0 --target 0.75
 ```
-
-Play in a GUI: point Arena / Cute Chess / Nibbler at `build/aditya`.
 
 ---
 
 ## What to do next (priority order)
 
-### 1. Confirm checkpoint (short)
-- Re-run Elo 2000 @ 0.25s and Elo 2100 @ 1.5s (16 games each).
-- If either drops under 75%, treat as regression before climbing.
+### 1. Break Elo 3000 (main goal)
+- Cleared Elo 2800 @5s (**75%**)
+- **Stabler baseline:** Elo 3000 **v22 32-game @5s = 35.9%** (W **50%** / B **21.9%**)
+- **v23 Lazy SMP Threads=2 @5s:** **37.5%** (16g, W43.8/B31.2) + Elo2400 hold 4/4 — **SMP alone is not enough** for 75%
+- NPS scales (~1.8M→3.2M→5.0M at T=1/2/4); v24 helper diversity; **Threads=4 probe = 12.5% (1/8) — do not use T=4 for Elo3000**
+- **v25 book:** drop London-as-White + `1.d4 e6`; French lines — **34.4%** (no gain)
+- **v26 search (modern classical):** qsearch TT, history gravity, 2-ply contHistory, capture LMR, NMP verify — **Elo3000 34.4%** (plateau)
+- **v27 corrHist:** Elo2400 hold **4/4**; Elo3000 **43.8%** (W50/B37.5) — many threefolds
+- **v28 singular (excluded-move):** Elo2000/2400 holds **4/4**; Elo3000 **16g 50%** / **32g 53.1%** (W56.2/B50) — **confirmed best classical**
+- Still <<75% (~+190 Elo needed); NNUE H256 fails self-play (0/24) at ~200knps vs 1.6M classical
+- HalfKA AHNNUEF4: float eval OK; int16 QA fixed. Self-play depth6: 1/16 then **0.5/24 (2%)** after 660k WDL retrain — still <<55% gate; need >>5M labels or search-distilled targets
+- v29 soft-draw conversion **regressed** Elo3000 to 46.9% (B18.8%) — reverted to v28 /5 soft-draw
+- **v30** pawn/material corrHist + mild double-SE + rim mop-up: Elo2400 hold 4/4, Elo3000 **34.4%** (W31.2/B37.5) — **reverted to v28**
+- Stop broad book/KS/LMP/classical-corr churn; classical plateau ~50–53%
+- Hangs fixed: hardDeadline, no qsearch quiet-checks, SEE cap (do not thread-wrap SimpleEngine.play)
+- HalfKA v31 (~826k): depth-6 self-play **2.5/24 (10.4%)**; movetime **0/24**
+- HalfKA v32 (~1.21M + sf_v8 d9, 28ep WDL0.6): depth-6 **1.5/24 (6.2%)** — no gain from more soft-CP labels
+- Incremental HalfKA matches refresh (0 mismatches); weakness is net quality, not accumulator bugs
+- Next: need stronger supervision (SF game outcomes / search distillation / deeper labels >>5M), not more classical corrHist
+- Keep v28 classical as match default until NNUE gate passes
 
-### 2. Climb Elo 2200 (main goal)
-- Start at **2–3s/move**, 16–20 games:
-  ```bash
-  python3 scripts/match_stockfish.py --elo 2200 --games 16 --movetime 3.0 --target 0.75
-  ```
-- If still ~40–55%, do **not** only raise time — improve the engine (below).
-- Then Skill 5 at the same TC as Elo 2100 (1.5s+).
+### 2. Skill 5 — done
+- Cleared Skill 5 @1.5s (**90.6%**)
 
-### 3. Classical strength work (highest ROI until NNUE is fast)
-- Search: careful ProbCut / singular extensions (last attempt of aggressive singular/ProbCut **regressed** Elo 2000 — keep changes SPRT’d).
-- Eval: threats, pawn structure, king safety tuning; avoid expensive full attack-map eval each node.
-- Book: keep expanding mainlines that lose vs limited SF.
-- Optional: 2-thread Lazy SMP sharing TT (Threads UCI option currently max 1).
+### 3. NNUE that beats classical (active)
+```bash
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+# Dual-perspective concat (AHNNUEF3):
+python3 tools/datagen/gen_sf_labels.py --games 2000 --depth 8 --move-depth 5 --sf-move-frac 0.9 \
+  --out tools/datagen/output/sf_more.bin
+python3 tools/train/train_nnue_dual.py --data tools/datagen/output/all_v4.bin --out nets/fast.nnue --epochs 32
+python3 scripts/selfplay_nnue.py --games 40 --movetime 0.2 --blend 0
+# Only enable if self-play ≥ ~55%
+```
 
-### 4. Make NNUE actually usable
-Only enable in matches after it beats classical head-to-head.
-
-1. More SF labels (quiet positions, depth ≥8):
-   ```bash
-   python3 tools/datagen/gen_sf_labels.py --games 200 --depth 8 --out tools/datagen/output/sf_new.bin --use-aditya
-   cat tools/datagen/output/all3.bin tools/datagen/output/sf_new.bin > tools/datagen/output/all4.bin
-   ```
-2. Train fast net:
-   ```bash
-   python3 tools/train/train_nnue_fast.py --data tools/datagen/output/all4.bin --out nets/fast.nnue --epochs 16
-   ```
-3. **Incremental int16 accumulator** (refresh-only is ~5× slower than classical — this is the blocker).
-4. SPRT classical vs `ADITYA_USE_NNUE=1 ADITYA_NNUE_BLEND=0` (or blend 30–50) at fixed TC.
-5. Promote NNUE only if it wins.
-
-### 5. Higher ladder toward max measurable SF
-After 2200: 2400 → 2600 → 2800 → 3000 → 3190, then unrestricted Stockfish (no `UCI_LimitStrength`). Expect NNUE + lots of Fishtest-style testing for the upper end.
+### 4. Lazy SMP — shipped (v23/v24)
 
 ---
 
 ## Pitfalls already learned
 
-- **Do not** claim Elo 5000 via `UCI_Elo` — max is 3190.
-- Aggressive singular + ProbCut **tanked** Elo 2000 (~56%); safer search restored 75%.
-- Pure/float NNUE crushed strength and NPS; keep classical default.
-- Build with **g++**, not clang, in this environment.
-- Long matches: 16 games × 1.5–3s/move × ~80–150 plies ≈ **hours** of wall time — that is expected, not a hang.
-- Match harness writes PGN at end of each game; empty PGN mid-run can be buffering.
+- Timed search can hang for hours on aspiration/fail-high + deep qsearch checks — hard-cap movetime, depth 48, aspiration tries, and break on stop at every depth.
+
+
+- **Do not** claim Elo 5000 via `UCI_Elo` — max is 3190
+- Flipped PeSTO PSTs caused massive eval inflation — verify table orientation vs `a1=0`
+- Aggressive singular/ProbCut regressed Elo 2000; ProbCut currently disabled
+- Extra endgame king/passer inflation did **not** help Elo 2800 @8s
+- Pure NNUE still loses to classical; keep classical default
+- Root-relative draw contempt overpressed at Elo 3000 @8s — reverted to soft-draw
+- Build with **g++**; long matches take hours
+- 16-game Elo 3000 is **high-variance** (v16 50% vs v21 28% identical source) — use 32 games before trusting deltas
+- Softening LMP/LMR at fixed movetime collapses strength (v19 21.9%)
 
 ---
 
@@ -99,11 +124,11 @@ After 2200: 2400 → 2600 → 2800 → 3000 → 3190, then unrestricted Stockfis
 
 | Path | Role |
 |------|------|
-| `src/search/search.cpp` | PVS / pruning |
-| `src/eval/eval.cpp` | Classical eval (+ optional NNUE blend) |
-| `src/nnue/nnue.cpp` | NNUE inference |
+| `src/search/search.cpp` | PVS / pruning / NNUE hooks |
+| `src/eval/eval.cpp` | Classical eval (+ NNUE blend) |
+| `src/nnue/nnue.cpp` | NNUE + dual accumulator |
 | `src/search/book.cpp` | Opening book |
 | `scripts/match_stockfish.py` | Strength ladder |
-| `tools/datagen/gen_sf_labels.py` | SF-labeled data |
-| `tools/train/train_nnue_fast.py` | AHNNUEF2 trainer → `nets/fast.nnue` |
-| `results/summary_*.json` | Latest score per opponent |
+| `nets/fast.nnue` | AHNNUEF3 dual-persp net (classical default) |
+| `tools/train/train_nnue_dual.py` | Dual-persp trainer |
+| `results/summary_*.json` | Latest scores |

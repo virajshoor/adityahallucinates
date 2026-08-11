@@ -1,0 +1,9 @@
+{
+  "label": "elo3000_v12_partial",
+  "points": 0.5,
+  "games": 2,
+  "score": 0.25,
+  "note": "Hung again ~50min on game 3; time_up skipped hard ceiling when allocatedTime edge cases; tighter fix",
+  "target": 0.75,
+  "passed": false
+}

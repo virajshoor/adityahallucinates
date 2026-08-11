@@ -1,0 +1,11 @@
+{
+  "label": "elo3000_v13_partial",
+  "points": 2.5,
+  "games": 5,
+  "score": 0.5,
+  "W": "2/3",
+  "B": "0.5/2",
+  "note": "Hung ~47min on game 6 despite movetime smoke OK \u2014 adding wall-clock hardDeadline",
+  "target": 0.75,
+  "passed": false
+}

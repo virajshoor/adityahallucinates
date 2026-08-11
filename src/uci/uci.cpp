@@ -54,11 +54,19 @@ void uci_loop() {
   Zobrist::init();
   Magics::init();
 
-  // NNUE is opt-in via EvalFile for now (bootstrap nets are weaker/slower than classical)
-  // Auto-load only if ADITYA_NNUE is set.
-  if (const char* env = std::getenv("ADITYA_NNUE")) {
-    if (load_nnue(env))
-      std::cerr << "info string loaded NNUE " << env << std::endl;
+  // NNUE is opt-in via ADITYA_USE_NNUE=1 (classical remains stronger/faster by default).
+  {
+    const char* use = std::getenv("ADITYA_USE_NNUE");
+    const char* env = std::getenv("ADITYA_NNUE");
+    std::string path;
+    if (env && env[0]) path = env;
+    else if (use && use[0] == '1') path = "nets/fast.nnue";
+    if (!path.empty()) {
+      if (load_nnue(path))
+        std::cerr << "info string loaded NNUE " << path << std::endl;
+      else
+        std::cerr << "info string failed NNUE " << path << std::endl;
+    }
   }
 
   Position pos;
@@ -67,7 +75,7 @@ void uci_loop() {
   pos.set_startpos(states[0]);
 
   Search search;
-  search.set_hash(128);
+  search.set_hash(256);
 
   std::string line;
   while (std::getline(std::cin, line)) {
@@ -79,8 +87,8 @@ void uci_loop() {
     if (token == "uci") {
       std::cout << "id name AdityaHallucinates\n";
       std::cout << "id author Viraj Shoor\n";
-      std::cout << "option name Hash type spin default 128 min 1 max 65536\n";
-      std::cout << "option name Threads type spin default 1 min 1 max 1\n";
+      std::cout << "option name Hash type spin default 256 min 1 max 65536\n";
+      std::cout << "option name Threads type spin default 1 min 1 max 8\n";
       std::cout << "option name EvalFile type string default nets/default.nnue\n";
       std::cout << "uciok" << std::endl;
     } else if (token == "isready") {
@@ -101,6 +109,7 @@ void uci_loop() {
       if (!rest.empty()) value += rest;
       while (!value.empty() && value[0] == ' ') value.erase(0, 1);
       if (name == "Hash") search.set_hash(std::stoul(value));
+      else if (name == "Threads") search.set_threads(std::stoi(value));
       else if (name == "EvalFile") {
         if (load_nnue(value))
           std::cout << "info string loaded NNUE " << value << std::endl;
@@ -130,6 +139,13 @@ void uci_loop() {
           pos.do_move(m, states[stateIdx]);
         }
       }
+    } else if (token == "eval") {
+      // Static eval from side-to-move in centipawns (debug).
+      if (!nnue_ready() && std::getenv("ADITYA_USE_NNUE") && std::getenv("ADITYA_USE_NNUE")[0]=='1')
+        std::cout << "info string nnue not loaded\n";
+      Value v = evaluate(pos);
+      std::cout << "info string eval " << int(v) << " stm=" << (pos.side_to_move()==WHITE?"w":"b")
+                << std::endl;
     } else if (token == "go") {
       SearchLimits limits;
       while (is >> token) {

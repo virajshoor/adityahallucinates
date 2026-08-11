@@ -1,0 +1,42 @@
+{
+  "label": "elo3000_v7_partial",
+  "note": "Aborted: book+heavy development eval; White regressed, Black drawing",
+  "movetime": 5.0,
+  "points": 2.0,
+  "games": 5,
+  "score": 0.4,
+  "target": 0.75,
+  "passed": false,
+  "game_results": [
+    {
+      "game": 1,
+      "aditya_white": true,
+      "score": 0.5,
+      "termination": "FIFTY_MOVES"
+    },
+    {
+      "game": 2,
+      "aditya_white": false,
+      "score": 0.5,
+      "termination": "THREEFOLD_REPETITION"
+    },
+    {
+      "game": 3,
+      "aditya_white": true,
+      "score": 0.5,
+      "termination": "THREEFOLD_REPETITION"
+    },
+    {
+      "game": 4,
+      "aditya_white": false,
+      "score": 0.5,
+      "termination": "FIFTY_MOVES"
+    },
+    {
+      "game": 5,
+      "aditya_white": true,
+      "score": 0.0,
+      "termination": "CHECKMATE"
+    }
+  ]
+}

@@ -1,0 +1,141 @@
+game 1/16: aditya=W score=0.0 term=CHECKMATE running=0.000
+game 2/16: aditya=B score=0.0 term=CHECKMATE running=0.000
+game 3/16: aditya=W score=0.5 term=THREEFOLD_REPETITION running=0.167
+game 4/16: aditya=B score=0.5 term=THREEFOLD_REPETITION running=0.250
+game 5/16: aditya=W score=1.0 term=CHECKMATE running=0.400
+game 6/16: aditya=B score=0.0 term=CHECKMATE running=0.333
+game 7/16: aditya=W score=0.5 term=THREEFOLD_REPETITION running=0.357
+game 8/16: aditya=B score=0.5 term=THREEFOLD_REPETITION running=0.375
+game 9/16: aditya=W score=0.0 term=CHECKMATE running=0.333
+game 10/16: aditya=B score=0.5 term=THREEFOLD_REPETITION running=0.350
+game 11/16: aditya=W score=0.5 term=THREEFOLD_REPETITION running=0.364
+game 12/16: aditya=B score=0.5 term=THREEFOLD_REPETITION running=0.375
+game 13/16: aditya=W score=0.5 term=FIFTY_MOVES running=0.385
+game 14/16: aditya=B score=0.0 term=CHECKMATE running=0.357
+game 15/16: aditya=W score=0.5 term=THREEFOLD_REPETITION running=0.367
+game 16/16: aditya=B score=0.5 term=THREEFOLD_REPETITION running=0.375
+{
+  "label": "elo3000",
+  "movetime": 5.0,
+  "threads": 2,
+  "points": 6.0,
+  "games": 16,
+  "score": 0.375,
+  "target": 0.75,
+  "passed": false,
+  "game_results": [
+    {
+      "game": 1,
+      "aditya_white": true,
+      "score": 0.0,
+      "termination": "CHECKMATE",
+      "result": "0-1"
+    },
+    {
+      "game": 2,
+      "aditya_white": false,
+      "score": 0.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 3,
+      "aditya_white": true,
+      "score": 0.5,
+      "termination": "THREEFOLD_REPETITION",
+      "result": "1/2-1/2"
+    },
+    {
+      "game": 4,
+      "aditya_white": false,
+      "score": 0.5,
+      "termination": "THREEFOLD_REPETITION",
+      "result": "1/2-1/2"
+    },
+    {
+      "game": 5,
+      "aditya_white": true,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 6,
+      "aditya_white": false,
+      "score": 0.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 7,
+      "aditya_white": true,
+      "score": 0.5,
+      "termination": "THREEFOLD_REPETITION",
+      "result": "1/2-1/2"
+    },
+    {
+      "game": 8,
+      "aditya_white": false,
+      "score": 0.5,
+      "termination": "THREEFOLD_REPETITION",
+      "result": "1/2-1/2"
+    },
+    {
+      "game": 9,
+      "aditya_white": true,
+      "score": 0.0,
+      "termination": "CHECKMATE",
+      "result": "0-1"
+    },
+    {
+      "game": 10,
+      "aditya_white": false,
+      "score": 0.5,
+      "termination": "THREEFOLD_REPETITION",
+      "result": "1/2-1/2"
+    },
+    {
+      "game": 11,
+      "aditya_white": true,
+      "score": 0.5,
+      "termination": "THREEFOLD_REPETITION",
+      "result": "1/2-1/2"
+    },
+    {
+      "game": 12,
+      "aditya_white": false,
+      "score": 0.5,
+      "termination": "THREEFOLD_REPETITION",
+      "result": "1/2-1/2"
+    },
+    {
+      "game": 13,
+      "aditya_white": true,
+      "score": 0.5,
+      "termination": "FIFTY_MOVES",
+      "result": "1/2-1/2"
+    },
+    {
+      "game": 14,
+      "aditya_white": false,
+      "score": 0.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 15,
+      "aditya_white": true,
+      "score": 0.5,
+      "termination": "THREEFOLD_REPETITION",
+      "result": "1/2-1/2"
+    },
+    {
+      "game": 16,
+      "aditya_white": false,
+      "score": 0.5,
+      "termination": "THREEFOLD_REPETITION",
+      "result": "1/2-1/2"
+    }
+  ]
+}
+PGN: /workspace/results/match_elo3000_20260807_174424.pgn

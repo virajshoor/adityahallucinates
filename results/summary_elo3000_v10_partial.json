@@ -1,0 +1,9 @@
+{
+  "label": "elo3000_v10_partial",
+  "points": 0.0,
+  "games": 4,
+  "score": 0.0,
+  "note": "0/4 \u2014 suspect regression or severe unluck; running holds",
+  "target": 0.75,
+  "passed": false
+}
