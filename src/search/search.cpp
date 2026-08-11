@@ -431,17 +431,10 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
     eval = Value(std::clamp(int(rawEval) + corrVal / 32, -VALUE_INFINITE + 1, VALUE_INFINITE - 1));
   }
 
-  // Graduated soft-draw: convert advantages harder early in the 50-move cycle,
-  // stay conservative late (v29 always-/2 regressed; keep mild graduation).
+  // Soft-draw toward eval when clearly better/worse (v31 graduated scales regressed —
+  // keep v28 /5; conversion comes from progress extensions + endgame eval).
   if (!rootNode && pos.is_draw(ss->ply)) {
-    if (!inCheck && std::abs(int(eval)) > 80) {
-      int scale = 5;
-      const int ae = std::abs(int(eval));
-      const int r50 = pos.rule50_count();
-      if (ae > 220 && r50 < 40) scale = 4;
-      if (ae > 350 && r50 < 24) scale = 3;
-      return Value(eval / scale);
-    }
+    if (!inCheck && std::abs(int(eval)) > 80) return Value(eval / 5);
     return VALUE_DRAW;
   }
 
@@ -581,11 +574,8 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
         if (info->stop.load(std::memory_order_relaxed)) return alpha;
         if (singularValue < singularBeta) {
           extension = 1;
-        } else if (singularValue >= beta &&
-                   std::abs(int(singularValue)) < VALUE_MATE_IN_MAX_PLY - 100) {
-          // Multi-cut: other moves fail high even without ttMove — prune.
-          return singularValue;
         }
+        // Multi-cut disabled: shallow singularDepth false-positives regressed v31 Elo3000.
       }
     }
 
@@ -703,7 +693,7 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
   allocatedTime = 0;
   hardDeadline = 0;
   if (limits.movetime > 0) {
-    allocatedTime = std::max(8, limits.movetime - 10);
+    allocatedTime = std::max(8, limits.movetime - 5);
     hardDeadline = startTime + limits.movetime + 250;
   } else if (limits.wtime || limits.btime) {
     int time = pos.side_to_move() == WHITE ? limits.wtime : limits.btime;

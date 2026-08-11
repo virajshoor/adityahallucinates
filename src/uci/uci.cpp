@@ -109,7 +109,10 @@ void uci_loop() {
       if (!rest.empty()) value += rest;
       while (!value.empty() && value[0] == ' ') value.erase(0, 1);
       if (name == "Hash") search.set_hash(std::stoul(value));
-      else if (name == "Threads") search.set_threads(std::stoi(value));
+      else if (name == "Threads") {
+        search.set_threads(std::stoi(value));
+        std::cout << "info string threads " << search.threads() << std::endl;
+      }
       else if (name == "EvalFile") {
         if (load_nnue(value))
           std::cout << "info string loaded NNUE " << value << std::endl;
