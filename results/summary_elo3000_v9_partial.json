@@ -1,0 +1,9 @@
+{
+  "label": "elo3000_v9_partial",
+  "points": 2.0,
+  "games": 5,
+  "score": 0.4,
+  "note": "W 2/3, B 0/2 \u2014 Black still mating; restart with solid e4 bias",
+  "target": 0.75,
+  "passed": false
+}

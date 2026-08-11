@@ -1,0 +1,11 @@
+{
+  "label": "elo3000_v11_partial",
+  "points": 3.0,
+  "games": 6,
+  "score": 0.5,
+  "note": "Aborted: hung ~2h on game 7 (Aditya infinite search). Black was solid 1.5/3 draws. Fixing time mgmt.",
+  "W": "1.5/3",
+  "B": "1.5/3",
+  "target": 0.75,
+  "passed": false
+}

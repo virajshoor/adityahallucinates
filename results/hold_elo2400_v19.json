@@ -1,0 +1,39 @@
+{
+  "label": "elo2400",
+  "movetime": 3.0,
+  "points": 3.5,
+  "games": 4,
+  "score": 0.875,
+  "target": 0.5,
+  "passed": true,
+  "game_results": [
+    {
+      "game": 1,
+      "aditya_white": true,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 2,
+      "aditya_white": false,
+      "score": 0.5,
+      "termination": "THREEFOLD_REPETITION",
+      "result": "1/2-1/2"
+    },
+    {
+      "game": 3,
+      "aditya_white": true,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 4,
+      "aditya_white": false,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "0-1"
+    }
+  ]
+}

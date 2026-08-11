@@ -167,7 +167,8 @@ Value classical_evaluate(const Position& pos) {
       Square s = pop_lsb(b);
       Piece pc = pos.piece_on(s);
       PieceType pt = type_of(pc);
-      Square rel = relative_square(c, s);
+      // PSTs are stored rank-8-first (visual); board squares are a1=0 — flip ranks.
+      Square rel = Square(relative_square(c, s) ^ 56);
       mg[c] += PieceValueMg[pt] + MgPST[pt][rel];
       eg[c] += PieceValueEg[pt] + EgPST[pt][rel];
     }
@@ -229,16 +230,16 @@ Value classical_evaluate(const Position& pos) {
       Bitboard support = Bitboards::PawnAttacks[~c][s] & ourPawns;
       Bitboard phalanx = neighbors & rank_bb(rank_of(s));
       if (support | phalanx) {
-        mg[c] += 6 + 2 * int(r);
-        eg[c] += 4 + int(r);
+        mg[c] += 4 + int(r);
+        eg[c] += 3 + int(r) / 2;
       }
 
       // Backward pawn: no neighbor able to protect advance, enemy controls stop square
       Square stop = s + pawn_push(c);
       if (is_ok(stop) && !(neighbors & Bitboards::ForwardRanksBB[~c][rank_of(s)]) &&
           (Bitboards::PawnAttacks[c][stop] & enemyPawns) && !(ourPawns & square_bb(stop))) {
-        mg[c] -= 8;
-        eg[c] -= 12;
+        mg[c] -= 6;
+        eg[c] -= 10;
       }
 
       Bitboard forward = Bitboards::ForwardRanksBB[c][rank_of(s)];
@@ -337,23 +338,36 @@ Value classical_evaluate(const Position& pos) {
     if (pos.can_castle(c == WHITE ? WHITE_OOO : BLACK_OOO)) mg[c] += 10;
 
     File kf = file_of(ksq);
-    Bitboard shelterMask = file_bb(kf) | Bitboards::AdjacentFilesBB[kf];
-    Bitboard shelterPawns = pos.pieces(c, PAWN) &
-        Bitboards::ForwardRanksBB[c][rank_of(ksq)] & shelterMask;
-    int shelter = popcount(shelterPawns);
-    mg[c] += 10 * std::min(3, shelter);
-    if ((kf <= FILE_C || kf >= FILE_G) && shelter == 0 && relative_rank(c, ksq) == RANK_1)
-      mg[c] -= 28;
+    // Shelter: nearest friendly pawn distance on king file ±1 (far pawns count less)
+    int shelterScore = 0;
+    for (int ff = std::max(0, int(kf) - 1); ff <= std::min(7, int(kf) + 1); ++ff) {
+      Bitboard filePawns = pos.pieces(c, PAWN) & file_bb(File(ff)) &
+                           Bitboards::ForwardRanksBB[c][rank_of(ksq)];
+      if (!filePawns) {
+        shelterScore -= 14;
+        continue;
+      }
+      int bestDist = 8;
+      Bitboard fp = filePawns;
+      while (fp) {
+        Square s = pop_lsb(fp);
+        bestDist = std::min(bestDist, std::abs(int(rank_of(s)) - int(rank_of(ksq))));
+      }
+      shelterScore += std::max(0, 18 - 5 * bestDist);
+    }
+    mg[c] += shelterScore;
+    if ((kf <= FILE_C || kf >= FILE_G) && shelterScore < 0 && relative_rank(c, ksq) == RANK_1)
+      mg[c] -= 20;
 
-    // Pawn storm against enemy king (computed from our pawns toward their king)
+    // Pawn storm: closer enemy-oriented pawns are more dangerous
     Square eks = pos.king_square(~c);
     File ekf = file_of(eks);
     Bitboard stormFiles = file_bb(ekf) | Bitboards::AdjacentFilesBB[ekf];
     Bitboard stormers = ourPawns & stormFiles & Bitboards::ForwardRanksBB[~c][rank_of(eks)];
     while (stormers) {
       Square s = pop_lsb(stormers);
-      int dist = std::abs(int(relative_rank(c, s)) - int(RANK_7));
-      mg[c] += std::max(0, 18 - 4 * dist);
+      int dist = std::abs(int(rank_of(s)) - int(rank_of(eks)));
+      mg[c] += std::max(0, 22 - 5 * dist);
     }
 
     // King safety: weighted attackers on king ring
@@ -383,31 +397,49 @@ Value classical_evaluate(const Position& pos) {
     // Open files near king amplify danger
     if (!(pos.pieces(PAWN) & file_bb(kf))) attackUnits += 2;
     if (attackerCount >= 2)
-      mg[c] -= attackUnits * attackUnits / 2 + 4 * attackerCount;
+      mg[c] -= attackUnits * attackUnits / 3 + 3 * attackerCount;
 
-    // Hanging / under-defended pieces (cheap attack approx)
-    Bitboard ours = pos.pieces(c, KNIGHT) | pos.pieces(c, BISHOP) | pos.pieces(c, ROOK) | pos.pieces(c, QUEEN);
-    Bitboard atk = pawn_attacks_bb(~c, pos.pieces(~c, PAWN));
-    Bitboard enemyKn = pos.pieces(~c, KNIGHT);
-    while (enemyKn) atk |= Bitboards::PseudoAttacks[KNIGHT][pop_lsb(enemyKn)];
-    Bitboard hang = ours & atk;
-    while (hang) {
-      Square s = pop_lsb(hang);
-      PieceType pt = type_of(pos.piece_on(s));
-      bool byPawn = pawn_attacks_bb(~c, pos.pieces(~c, PAWN)) & square_bb(s);
-      if (!pos.attackers_to(s, c)) {
-        int pen = PieceValueMg[pt] / 4;
-        mg[c] -= pen;
-        eg[c] -= pen / 2;
-      } else if (byPawn) {
-        mg[c] -= PieceValueMg[pt] / 10;
+    // Threats: best winning opponent capture per our piece (mutually exclusive victims)
+    Bitboard ours = pos.pieces(c, PAWN) | pos.pieces(c, KNIGHT) | pos.pieces(c, BISHOP)
+                  | pos.pieces(c, ROOK) | pos.pieces(c, QUEEN);
+    int bestThreat[SQUARE_NB] = {};
+    Bitboard opp = pos.pieces(~c) & ~pos.pieces(~c, KING);
+    while (opp) {
+      Square from = pop_lsb(opp);
+      PieceType apt = type_of(pos.piece_on(from));
+      Bitboard targets;
+      if (apt == PAWN) targets = Bitboards::PawnAttacks[~c][from] & ours;
+      else if (apt == KNIGHT) targets = Bitboards::PseudoAttacks[KNIGHT][from] & ours;
+      else if (apt == BISHOP) targets = attacks_bb(BISHOP, from, occ) & ours;
+      else if (apt == ROOK) targets = attacks_bb(ROOK, from, occ) & ours;
+      else if (apt == QUEEN) targets = attacks_bb(QUEEN, from, occ) & ours;
+      else continue;
+      while (targets) {
+        Square to = pop_lsb(targets);
+        PieceType vpt = type_of(pos.piece_on(to));
+        if (PieceValueMg[vpt] < PieceValueMg[apt]) continue;
+        Move threat(from, to);
+        if (pos.see_ge(threat, 0)) {
+          int pen = (PieceValueMg[vpt] - PieceValueMg[apt] / 2) / 2;
+          pen = std::clamp(pen, 20, 180);
+          bestThreat[to] = std::max(bestThreat[to], pen);
+        }
+      }
+    }
+    Bitboard threatened = ours;
+    while (threatened) {
+      Square to = pop_lsb(threatened);
+      if (bestThreat[to]) {
+        mg[c] -= bestThreat[to];
+        eg[c] -= bestThreat[to] * 2 / 3;
       }
     }
 
-    // Endgame king activity toward enemy king
+    // Endgame mop-up: only the side that's ahead benefits from driving kings together
+    // (identical penalties on both colors previously cancelled to zero).
     Square eksq = pos.king_square(~c);
     int dist = std::abs(file_of(ksq) - file_of(eksq)) + std::abs(rank_of(ksq) - rank_of(eksq));
-    eg[c] -= 4 * dist;
+    eg[c] -= dist; // small base activity; advantage term applied after blend
   }
 
   // Encourage castled king positions already via PST; discourage early king walks
@@ -423,6 +455,38 @@ Value classical_evaluate(const Position& pos) {
   int mgw = 24 - phase;
   int score = ((mg[WHITE] - mg[BLACK]) * mgw + (eg[WHITE] - eg[BLACK]) * egw) / 24;
 
+  // Advantage-dependent mop-up: when clearly ahead in the endgame, chase the enemy king
+  // and push passed pawns / restrict the defending king to the rim.
+  if (egw >= 12) {
+    Square wk = pos.king_square(WHITE), bk = pos.king_square(BLACK);
+    int kdist = std::abs(file_of(wk) - file_of(bk)) + std::abs(rank_of(wk) - rank_of(bk));
+    auto rim = [](Square s) {
+      int f = std::min(int(file_of(s)), 7 - int(file_of(s)));
+      int r = std::min(int(rank_of(s)), 7 - int(rank_of(s)));
+      return f + r;
+    };
+    if (score > 120) {
+      score += (14 - kdist) * (egw / 6);
+      score += (7 - rim(bk)) * (egw / 10); // milder than v30 (which used /8 and hurt)
+      // Encourage advancing our furthest passer when winning.
+      Bitboard wp = pos.pieces(WHITE, PAWN);
+      while (wp) {
+        Square s = pop_lsb(wp);
+        int rr = int(rank_of(s));
+        if (rr >= RANK_5) score += (rr - RANK_4) * (egw / 8);
+      }
+    } else if (score < -120) {
+      score -= (14 - kdist) * (egw / 6);
+      score -= (7 - rim(wk)) * (egw / 10);
+      Bitboard bp = pos.pieces(BLACK, PAWN);
+      while (bp) {
+        Square s = pop_lsb(bp);
+        int rr = 7 - int(rank_of(s));
+        if (rr >= RANK_5) score -= (rr - RANK_4) * (egw / 8);
+      }
+    }
+  }
+
   // Opposite-colored bishops: more drawish in endgames
   if (popcount(pos.pieces(BISHOP)) == 2 &&
       popcount(pos.pieces(WHITE, BISHOP)) == 1 &&
@@ -436,13 +500,42 @@ Value classical_evaluate(const Position& pos) {
     }
   }
 
-  // Tempo scales down in simplified endgames
-  score += (28 * mgw) / 24;
+  // Tempo: side-to-move advantage (score is White-relative until return)
+  {
+    int tempo = (40 * mgw) / 24;
+    score += (pos.side_to_move() == WHITE ? tempo : -tempo);
+  }
+
+  // Exact insufficient-material draws / near-draws
+  const int wp = popcount(pos.pieces(WHITE, PAWN));
+  const int bp = popcount(pos.pieces(BLACK, PAWN));
+  const int wn = popcount(pos.pieces(WHITE, KNIGHT));
+  const int bn = popcount(pos.pieces(BLACK, KNIGHT));
+  const int wb = popcount(pos.pieces(WHITE, BISHOP));
+  const int bb = popcount(pos.pieces(BLACK, BISHOP));
+  const int wr = popcount(pos.pieces(WHITE, ROOK));
+  const int br = popcount(pos.pieces(BLACK, ROOK));
+  const int wq = popcount(pos.pieces(WHITE, QUEEN));
+  const int bq = popcount(pos.pieces(BLACK, QUEEN));
+  if (!wp && !bp && !wr && !br && !wq && !bq) {
+    // K vs K, KB/KN vs K, KNN vs K
+    int minorsW = wn + wb, minorsB = bn + bb;
+    if (minorsW + minorsB <= 1) score = 0;
+    else if (minorsW == 2 && !minorsB && wb == 0 && wn == 2) score = 0;
+    else if (minorsB == 2 && !minorsW && bb == 0 && bn == 2) score = 0;
+    else if (minorsW <= 1 && minorsB <= 1) score = score / 8;
+  }
+
+  // Note: do not scale by rule50 here — TT key ignores rule50.
 
   return Value(pos.side_to_move() == WHITE ? score : -score);
 }
 
 Value evaluate(const Position& pos) {
+  return evaluate(pos, nullptr);
+}
+
+Value evaluate(const Position& pos, const NnueAccumulator* acc) {
   // Classical is the strength default. NNUE only when ADITYA_USE_NNUE=1 and loaded.
   static int use_nnue = -1;
   static int blend = -1; // percent classical, default 70
@@ -452,12 +545,12 @@ Value evaluate(const Position& pos) {
     const char* b = std::getenv("ADITYA_NNUE_BLEND");
     blend = b ? std::clamp(std::atoi(b), 0, 100) : 70;
   }
-  if (use_nnue && nnue_ready()) {
-    Value net = nnue().evaluate(pos);
+  if (use_nnue && nnue_ready() && blend < 100) {
+    // Skip net when blend=100 (pure classical) so NPS is not destroyed.
+    Value net = (acc && acc->computed) ? nnue().evaluate(pos, *acc) : nnue().evaluate(pos);
     if (net != VALUE_NONE) {
-      Value classical = classical_evaluate(pos);
-      if (blend >= 100) return classical;
       if (blend <= 0) return net;
+      Value classical = classical_evaluate(pos);
       return Value((int(classical) * blend + int(net) * (100 - blend)) / 100);
     }
   }

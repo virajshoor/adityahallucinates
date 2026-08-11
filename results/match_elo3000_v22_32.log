@@ -1,0 +1,268 @@
+game 1/32: aditya=W score=0.5 term=THREEFOLD_REPETITION running=0.500
+game 2/32: aditya=B score=0.0 term=CHECKMATE running=0.250
+game 3/32: aditya=W score=0.5 term=FIFTY_MOVES running=0.333
+game 4/32: aditya=B score=0.0 term=CHECKMATE running=0.250
+game 5/32: aditya=W score=1.0 term=CHECKMATE running=0.400
+game 6/32: aditya=B score=0.5 term=THREEFOLD_REPETITION running=0.417
+game 7/32: aditya=W score=0.5 term=FIFTY_MOVES running=0.429
+game 8/32: aditya=B score=0.0 term=CHECKMATE running=0.375
+game 9/32: aditya=W score=1.0 term=CHECKMATE running=0.444
+game 10/32: aditya=B score=0.5 term=THREEFOLD_REPETITION running=0.450
+game 11/32: aditya=W score=0.0 term=CHECKMATE running=0.409
+game 12/32: aditya=B score=0.5 term=THREEFOLD_REPETITION running=0.417
+game 13/32: aditya=W score=0.0 term=CHECKMATE running=0.385
+game 14/32: aditya=B score=0.0 term=CHECKMATE running=0.357
+game 15/32: aditya=W score=1.0 term=CHECKMATE running=0.400
+game 16/32: aditya=B score=0.5 term=FIFTY_MOVES running=0.406
+game 17/32: aditya=W score=0.0 term=CHECKMATE running=0.382
+game 18/32: aditya=B score=0.0 term=CHECKMATE running=0.361
+game 19/32: aditya=W score=0.5 term=THREEFOLD_REPETITION running=0.368
+game 20/32: aditya=B score=0.0 term=CHECKMATE running=0.350
+game 21/32: aditya=W score=1.0 term=CHECKMATE running=0.381
+game 22/32: aditya=B score=0.5 term=THREEFOLD_REPETITION running=0.386
+game 23/32: aditya=W score=0.0 term=CHECKMATE running=0.370
+game 24/32: aditya=B score=0.0 term=CHECKMATE running=0.354
+game 25/32: aditya=W score=0.0 term=CHECKMATE running=0.340
+game 26/32: aditya=B score=0.0 term=CHECKMATE running=0.327
+game 27/32: aditya=W score=1.0 term=CHECKMATE running=0.352
+game 28/32: aditya=B score=0.5 term=FIFTY_MOVES running=0.357
+game 29/32: aditya=W score=1.0 term=CHECKMATE running=0.379
+game 30/32: aditya=B score=0.0 term=CHECKMATE running=0.367
+game 31/32: aditya=W score=0.0 term=CHECKMATE running=0.355
+game 32/32: aditya=B score=0.5 term=THREEFOLD_REPETITION running=0.359
+{
+  "label": "elo3000",
+  "movetime": 5.0,
+  "points": 11.5,
+  "games": 32,
+  "score": 0.359375,
+  "target": 0.75,
+  "passed": false,
+  "game_results": [
+    {
+      "game": 1,
+      "aditya_white": true,
+      "score": 0.5,
+      "termination": "THREEFOLD_REPETITION",
+      "result": "1/2-1/2"
+    },
+    {
+      "game": 2,
+      "aditya_white": false,
+      "score": 0.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 3,
+      "aditya_white": true,
+      "score": 0.5,
+      "termination": "FIFTY_MOVES",
+      "result": "1/2-1/2"
+    },
+    {
+      "game": 4,
+      "aditya_white": false,
+      "score": 0.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 5,
+      "aditya_white": true,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 6,
+      "aditya_white": false,
+      "score": 0.5,
+      "termination": "THREEFOLD_REPETITION",
+      "result": "1/2-1/2"
+    },
+    {
+      "game": 7,
+      "aditya_white": true,
+      "score": 0.5,
+      "termination": "FIFTY_MOVES",
+      "result": "1/2-1/2"
+    },
+    {
+      "game": 8,
+      "aditya_white": false,
+      "score": 0.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 9,
+      "aditya_white": true,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 10,
+      "aditya_white": false,
+      "score": 0.5,
+      "termination": "THREEFOLD_REPETITION",
+      "result": "1/2-1/2"
+    },
+    {
+      "game": 11,
+      "aditya_white": true,
+      "score": 0.0,
+      "termination": "CHECKMATE",
+      "result": "0-1"
+    },
+    {
+      "game": 12,
+      "aditya_white": false,
+      "score": 0.5,
+      "termination": "THREEFOLD_REPETITION",
+      "result": "1/2-1/2"
+    },
+    {
+      "game": 13,
+      "aditya_white": true,
+      "score": 0.0,
+      "termination": "CHECKMATE",
+      "result": "0-1"
+    },
+    {
+      "game": 14,
+      "aditya_white": false,
+      "score": 0.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 15,
+      "aditya_white": true,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 16,
+      "aditya_white": false,
+      "score": 0.5,
+      "termination": "FIFTY_MOVES",
+      "result": "1/2-1/2"
+    },
+    {
+      "game": 17,
+      "aditya_white": true,
+      "score": 0.0,
+      "termination": "CHECKMATE",
+      "result": "0-1"
+    },
+    {
+      "game": 18,
+      "aditya_white": false,
+      "score": 0.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 19,
+      "aditya_white": true,
+      "score": 0.5,
+      "termination": "THREEFOLD_REPETITION",
+      "result": "1/2-1/2"
+    },
+    {
+      "game": 20,
+      "aditya_white": false,
+      "score": 0.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 21,
+      "aditya_white": true,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 22,
+      "aditya_white": false,
+      "score": 0.5,
+      "termination": "THREEFOLD_REPETITION",
+      "result": "1/2-1/2"
+    },
+    {
+      "game": 23,
+      "aditya_white": true,
+      "score": 0.0,
+      "termination": "CHECKMATE",
+      "result": "0-1"
+    },
+    {
+      "game": 24,
+      "aditya_white": false,
+      "score": 0.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 25,
+      "aditya_white": true,
+      "score": 0.0,
+      "termination": "CHECKMATE",
+      "result": "0-1"
+    },
+    {
+      "game": 26,
+      "aditya_white": false,
+      "score": 0.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 27,
+      "aditya_white": true,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 28,
+      "aditya_white": false,
+      "score": 0.5,
+      "termination": "FIFTY_MOVES",
+      "result": "1/2-1/2"
+    },
+    {
+      "game": 29,
+      "aditya_white": true,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 30,
+      "aditya_white": false,
+      "score": 0.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 31,
+      "aditya_white": true,
+      "score": 0.0,
+      "termination": "CHECKMATE",
+      "result": "0-1"
+    },
+    {
+      "game": 32,
+      "aditya_white": false,
+      "score": 0.5,
+      "termination": "THREEFOLD_REPETITION",
+      "result": "1/2-1/2"
+    }
+  ]
+}
+PGN: /workspace/results/match_elo3000_20260804_025204.pgn

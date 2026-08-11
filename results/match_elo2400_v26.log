@@ -1,0 +1,77 @@
+game 1/8: aditya=W score=1.0 term=CHECKMATE running=1.000
+game 2/8: aditya=B score=1.0 term=CHECKMATE running=1.000
+game 3/8: aditya=W score=1.0 term=CHECKMATE running=1.000
+game 4/8: aditya=B score=1.0 term=CHECKMATE running=1.000
+game 5/8: aditya=W score=1.0 term=CHECKMATE running=1.000
+game 6/8: aditya=B score=1.0 term=CHECKMATE running=1.000
+game 7/8: aditya=W score=1.0 term=CHECKMATE running=1.000
+game 8/8: aditya=B score=1.0 term=CHECKMATE running=1.000
+{
+  "label": "elo2400",
+  "movetime": 3.0,
+  "threads": 2,
+  "points": 8.0,
+  "games": 8,
+  "score": 1.0,
+  "target": 0.75,
+  "passed": true,
+  "game_results": [
+    {
+      "game": 1,
+      "aditya_white": true,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 2,
+      "aditya_white": false,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "0-1"
+    },
+    {
+      "game": 3,
+      "aditya_white": true,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 4,
+      "aditya_white": false,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "0-1"
+    },
+    {
+      "game": 5,
+      "aditya_white": true,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 6,
+      "aditya_white": false,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "0-1"
+    },
+    {
+      "game": 7,
+      "aditya_white": true,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "1-0"
+    },
+    {
+      "game": 8,
+      "aditya_white": false,
+      "score": 1.0,
+      "termination": "CHECKMATE",
+      "result": "0-1"
+    }
+  ]
+}
+PGN: /workspace/results/match_elo2400_20260808_124558.pgn

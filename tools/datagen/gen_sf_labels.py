@@ -34,10 +34,10 @@ def pack_position(board: chess.Board, score_cp: int) -> bytes:
     return bytes(pieces) + bytes([stm]) + struct.pack("<i", int(score_cp))
 
 
-def play_game(aditya, sf, label_limit, max_plies=160):
+def play_game(aditya, sf, label_limit, move_limit, max_plies=160, sf_move_frac=0.85):
     board = chess.Board()
     rows = []
-    # Mix of engine moves and random for diversity
+    # Mix of SF moves (quality) and random for diversity
     for ply in range(max_plies):
         if board.is_game_over(claim_draw=True):
             break
@@ -60,19 +60,23 @@ def play_game(aditya, sf, label_limit, max_plies=160):
         if ply >= 4 and abs(cp) < 15000:
             rows.append(pack_position(board, cp))
 
-        # Move selection
-        if random.random() < 0.7 and aditya is not None:
+        # Move selection: prefer SF (stronger distribution), else aditya/random
+        mv = None
+        r = random.random()
+        if r < sf_move_frac:
+            try:
+                mv = sf.play(board, move_limit).move
+            except Exception:
+                mv = None
+        elif aditya is not None and r < sf_move_frac + 0.1:
             try:
                 mv = aditya.play(board, chess.engine.Limit(time=0.01)).move
             except Exception:
                 mv = None
-        else:
-            mv = None
         if mv is None:
             legal = list(board.legal_moves)
             if not legal:
                 break
-            # Prefer captures sometimes
             caps = [m for m in legal if board.is_capture(m)]
             mv = random.choice(caps) if caps and random.random() < 0.3 else random.choice(legal)
         board.push(mv)
@@ -85,6 +89,8 @@ def main():
     ap.add_argument("--out", type=str, default=str(OUT_DIR / "sf_labels.bin"))
     ap.add_argument("--depth", type=int, default=6)
     ap.add_argument("--nodes", type=int, default=0)
+    ap.add_argument("--move-depth", type=int, default=4, help="SF depth for move selection")
+    ap.add_argument("--sf-move-frac", type=float, default=0.85)
     ap.add_argument("--use-aditya", action="store_true")
     args = ap.parse_args()
 
@@ -97,11 +103,12 @@ def main():
         aditya.configure({"Hash": 32})
 
     limit = chess.engine.Limit(depth=args.depth) if args.nodes <= 0 else chess.engine.Limit(nodes=args.nodes)
+    move_limit = chess.engine.Limit(depth=args.move_depth)
     total = 0
     try:
         with open(args.out, "wb") as out:
             for g in range(args.games):
-                rows = play_game(aditya, sf, limit)
+                rows = play_game(aditya, sf, limit, move_limit, sf_move_frac=args.sf_move_frac)
                 for r in rows:
                     out.write(r)
                 total += len(rows)

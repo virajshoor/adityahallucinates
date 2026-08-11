@@ -1,0 +1,45 @@
+---
+pid: 43759
+cwd: "/workspace"
+command: "cd /workspace && python3 - <<'PY'\n\"\"\"Fixed-depth classical vs HalfKA self-play.\"\"\"\nfrom __future__ import annotations\nimport os, chess, chess.engine\nfrom pathlib import Path\nROOT=Path('.').resolve()\nADITYA=str(ROOT/'build/aditya')\nNET=str(ROOT/'nets/halfka.nnue')\nGAMES=24\nDEPTH=6\n\ndef play(white, black, depth):\n    board=chess.Board()\n    engines={chess.WHITE:white, chess.BLACK:black}\n    lim=chess.engine.Limit(depth=depth)\n    while not board.is_game_over(claim_draw=True):\n        eng=engines[board.turn]\n        try:\n            mv=eng.play(board, lim).move\n        except Exception:\n            return 0.0 if board.turn==chess.WHITE else 1.0\n        if mv is None or mv not in board.legal_moves:\n            return 0.0 if board.turn==chess.WHITE else 1.0\n        board.push(mv)\n        if board.ply()>300: break\n    res=board.result(claim_draw=True)\n    return 1.0 if res=='1-0' else 0.0 if res=='0-1' else 0.5\n\nenv_c=os.environ.copy(); env_c['ADITYA_USE_NNUE']='0'\nenv_n=os.environ.copy(); env_n['ADITYA_USE_NNUE']='1'; env_n['ADITYA_NNUE_BLEND']='0'; env_n['ADITYA_NNUE']=NET\n# Prefer float for correctness; optional int16 speed via ADITYA_NNUE_FLOAT=0\nclassic=chess.engine.SimpleEngine.popen_uci(ADITYA, env=env_c)\nnnue=chess.engine.SimpleEngine.popen_uci(ADITYA, env=env_n)\nclassic.configure({'Hash':128,'Threads':1})\nnnue.configure({'Hash':128,'Threads':1,'EvalFile':NET})\nprint(f'HalfKA depth={DEPTH} games={GAMES}', flush=True)\npoints=0.0\ntry:\n  for g in range(GAMES):\n    nnue_w=(g%2==0)\n    if nnue_w:\n      w=play(nnue,classic,DEPTH); n=w\n    else:\n      w=play(classic,nnue,DEPTH); n=1.0-w\n    points+=n\n    print(f'game {g+1}/{GAMES}: nnue={\"W\" if nnue_w else \"B\"} score={n} running={points/(g+1):.3f}', flush=True)\n  print(f'NNUE score {points}/{GAMES} = {points/GAMES:.3f} depth={DEPTH}')\nfinally:\n  classic.quit(); nnue.quit()\nPY\necho DONE_DEPTH_SELFPLAY"
+title: "Fixed depth-6 HalfKA vs classical self-play"
+status: succeeded
+started_at: 2026-08-09T18:21:23.224Z
+running_for_ms: 48139    
+---
+<UciProtocol (pid=43775)>: stderr >> info string nnue_flags dual=1 halfka=1 input=40960 h1=256
+<UciProtocol (pid=43775)>: stderr >> info string loaded NNUE /workspace/nets/halfka.nnue
+HalfKA depth=6 games=24
+<UciProtocol (pid=43775)>: stderr >> info string nnue_flags dual=1 halfka=1 input=40960 h1=256
+game 1/24: nnue=W score=0.0 running=0.000
+game 2/24: nnue=B score=1.0 running=0.500
+game 3/24: nnue=W score=0.0 running=0.333
+game 4/24: nnue=B score=0.0 running=0.250
+game 5/24: nnue=W score=0.0 running=0.200
+game 6/24: nnue=B score=0.0 running=0.167
+game 7/24: nnue=W score=0.0 running=0.143
+game 8/24: nnue=B score=0.0 running=0.125
+game 9/24: nnue=W score=0.0 running=0.111
+game 10/24: nnue=B score=0.0 running=0.100
+game 11/24: nnue=W score=0.0 running=0.091
+game 12/24: nnue=B score=0.0 running=0.083
+game 13/24: nnue=W score=1.0 running=0.154
+game 14/24: nnue=B score=0.0 running=0.143
+game 15/24: nnue=W score=0.0 running=0.133
+game 16/24: nnue=B score=0.5 running=0.156
+game 17/24: nnue=W score=0.0 running=0.147
+game 18/24: nnue=B score=0.0 running=0.139
+game 19/24: nnue=W score=0.0 running=0.132
+game 20/24: nnue=B score=0.0 running=0.125
+game 21/24: nnue=W score=0.0 running=0.119
+game 22/24: nnue=B score=0.0 running=0.114
+game 23/24: nnue=W score=0.0 running=0.109
+game 24/24: nnue=B score=0.0 running=0.104
+NNUE score 2.5/24 = 0.104 depth=6
+DONE_DEPTH_SELFPLAY
+
+---
+exit_code: 0
+elapsed_ms: 48138
+ended_at: 2026-08-09T18:22:11.362Z
+---
