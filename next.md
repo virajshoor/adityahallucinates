@@ -14,7 +14,7 @@ Classical UCI engine `build/aditya` is runnable and strength-tested vs Stockfish
 | `UCI_Elo` 2400 | 3.0s/move | **90.6% pass** |
 | `UCI_Elo` 2600 | **5.0s/move** | **75% pass** (71.9% near-miss @3s) |
 | `UCI_Elo` 2800 | **5.0s/move** | **75% pass (12/16)** |
-| `UCI_Elo` 3000 | **5.0s** | **v28 32g 53.1%** best classical; v30 corrHist/SE/rim **34.4%** (reverted); HalfKA still fails self-play |
+| `UCI_Elo` 3000 | **5.0s** | **v34 62.5%** (Syzygy decisive WDL) best; v28 53.1%; v35 root DTZ next |
 
 **Default eval is classical.** Critical fixes this session:
 1. PeSTO PSTs were rank-flipped (a1=0 vs rank-8-first) — ~300–500cp inflation + exchange blunders
