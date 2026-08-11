@@ -456,11 +456,35 @@ Value classical_evaluate(const Position& pos) {
   int score = ((mg[WHITE] - mg[BLACK]) * mgw + (eg[WHITE] - eg[BLACK]) * egw) / 24;
 
   // Advantage-dependent mop-up: when clearly ahead in the endgame, chase the enemy king
+  // and push passed pawns / restrict the defending king to the rim.
   if (egw >= 12) {
     Square wk = pos.king_square(WHITE), bk = pos.king_square(BLACK);
     int kdist = std::abs(file_of(wk) - file_of(bk)) + std::abs(rank_of(wk) - rank_of(bk));
-    if (score > 120) score += (14 - kdist) * (egw / 6);
-    else if (score < -120) score -= (14 - kdist) * (egw / 6);
+    auto rim = [](Square s) {
+      int f = std::min(int(file_of(s)), 7 - int(file_of(s)));
+      int r = std::min(int(rank_of(s)), 7 - int(rank_of(s)));
+      return f + r;
+    };
+    if (score > 120) {
+      score += (14 - kdist) * (egw / 6);
+      score += (7 - rim(bk)) * (egw / 10); // milder than v30 (which used /8 and hurt)
+      // Encourage advancing our furthest passer when winning.
+      Bitboard wp = pos.pieces(WHITE, PAWN);
+      while (wp) {
+        Square s = pop_lsb(wp);
+        int rr = int(rank_of(s));
+        if (rr >= RANK_5) score += (rr - RANK_4) * (egw / 8);
+      }
+    } else if (score < -120) {
+      score -= (14 - kdist) * (egw / 6);
+      score -= (7 - rim(wk)) * (egw / 10);
+      Bitboard bp = pos.pieces(BLACK, PAWN);
+      while (bp) {
+        Square s = pop_lsb(bp);
+        int rr = 7 - int(rank_of(s));
+        if (rr >= RANK_5) score -= (rr - RANK_4) * (egw / 8);
+      }
+    }
   }
 
   // Opposite-colored bishops: more drawish in endgames

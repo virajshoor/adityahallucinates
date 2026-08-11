@@ -36,6 +36,8 @@ public:
     Piece movedPiece = NO_PIECE;
     int ply = 0;
     int staticEval = VALUE_NONE;
+    int statScore = 0;
+    bool ttPv = false;
     NnueAccumulator acc{};
   };
 
@@ -62,22 +64,30 @@ private:
   static void add_history(int& h, int bonus);
   void update_quiet_stats(Position& pos, Stack* ss, Move best, const Move* quiets, int quietCount, Depth depth);
   void update_capture_stats(Position& pos, Move best, const Move* caps, int capCount, Depth depth);
+  void update_corr_hist(Position& pos, Stack* ss, Value bestScore, Value rawEval, Depth depth,
+                        TTFlag flag, Move bestMove, bool capture);
+  int correction_value(const Position& pos, Stack* ss) const;
   bool time_up() const;
   int64_t now_ms() const;
   Value eval_pos(const Position& pos, Stack* ss) const;
   void iterative_deepening(Position& pos, bool emitInfo, int startDepth = 1, int aspBase = 28);
   void helper_loop(const std::string& fen, int helperId);
+  void seed_helper_histories(Search& helper, int helperId) const;
 
   static constexpr int MAX_PV = MAX_PLY + 1;
   static constexpr int CORR_SIZE = 32768;
+  static constexpr int PAWN_CORR_SIZE = 16384;
+  static constexpr int CONT_CORR_SIZE = PIECE_NB * 64;
   Move pv_table[MAX_PLY + 1][MAX_PV]{};
   int history[COLOR_NB][64][64]{};
   int captureHistory[PIECE_NB][64][PIECE_TYPE_NB]{};
   // Continuation history: [0]=1-ply, [1]=2-ply (Stockfish-style)
   int contHistory[2][PIECE_NB][64][64]{};
   Move countermove[PIECE_NB][64]{};
-  // Correction history: adjust static eval from prior search residuals
+  // Correction histories (modern multi-table): position + pawn + continuation
   int corrHist[COLOR_NB][CORR_SIZE]{};
+  int pawnCorrHist[COLOR_NB][PAWN_CORR_SIZE]{};
+  int contCorrHist[COLOR_NB][CONT_CORR_SIZE]{};
 
   Move bestRootMove = MOVE_NONE;
   int64_t startTime = 0;

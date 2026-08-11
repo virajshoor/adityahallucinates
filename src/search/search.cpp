@@ -53,6 +53,8 @@ Search::Search(std::shared_ptr<TranspositionTable> sharedTt, SearchInfo* sharedI
   std::memset(contHistory, 0, sizeof(contHistory));
   std::memset(countermove, 0, sizeof(countermove));
   std::memset(corrHist, 0, sizeof(corrHist));
+  std::memset(pawnCorrHist, 0, sizeof(pawnCorrHist));
+  std::memset(contCorrHist, 0, sizeof(contCorrHist));
   std::memset(pv_table, 0, sizeof(pv_table));
   silent = true;
 }
@@ -68,6 +70,8 @@ void Search::clear() {
   std::memset(contHistory, 0, sizeof(contHistory));
   std::memset(countermove, 0, sizeof(countermove));
   std::memset(corrHist, 0, sizeof(corrHist));
+  std::memset(pawnCorrHist, 0, sizeof(pawnCorrHist));
+  std::memset(contCorrHist, 0, sizeof(contCorrHist));
   std::memset(pv_table, 0, sizeof(pv_table));
   info->nodes.store(0, std::memory_order_relaxed);
   info->seldepth.store(0, std::memory_order_relaxed);
@@ -77,6 +81,61 @@ void Search::clear() {
 void Search::add_history(int& h, int bonus) {
   h += bonus - h * std::abs(bonus) / 16384;
   h = std::clamp(h, -16384, 16384);
+}
+
+int Search::correction_value(const Position& pos, Stack* ss) const {
+  const Color us = pos.side_to_move();
+  int corr = corrHist[us][pos.key() & (CORR_SIZE - 1)];
+  corr += pawnCorrHist[us][pos.pawn_key() & (PAWN_CORR_SIZE - 1)];
+  if (ss->ply >= 1 && (ss - 1)->movedPiece && (ss - 1)->current) {
+    const int idx = int((ss - 1)->movedPiece) * 64 + int((ss - 1)->current.to());
+    corr += contCorrHist[us][idx];
+  }
+  return corr;
+}
+
+void Search::update_corr_hist(Position& pos, Stack* ss, Value bestScore, Value rawEval,
+                              Depth depth, TTFlag flag, Move bestMove, bool capture) {
+  // Modern correction conditions (Chess Programming Wiki / Stockfish):
+  // update only when the residual is informative for quiet/fail types.
+  if (rawEval == VALUE_NONE) return;
+  if (bestMove && capture) return;
+  if (flag == TT_LOWER && bestScore <= rawEval) return;
+  if (flag == TT_UPPER && bestScore >= rawEval) return;
+
+  int diff = int(bestScore) - int(rawEval);
+  diff = std::clamp(diff, -400, 400);
+  int bonus = diff * depth / 8;
+  auto apply = [&](int& ch, int b) {
+    ch += b - ch * std::abs(b) / 1024;
+    ch = std::clamp(ch, -4096, 4096);
+  };
+  const Color us = pos.side_to_move();
+  apply(corrHist[us][pos.key() & (CORR_SIZE - 1)], bonus);
+  apply(pawnCorrHist[us][pos.pawn_key() & (PAWN_CORR_SIZE - 1)], bonus * 3 / 4);
+  if (ss->ply >= 1 && (ss - 1)->movedPiece && (ss - 1)->current) {
+    const int idx = int((ss - 1)->movedPiece) * 64 + int((ss - 1)->current.to());
+    apply(contCorrHist[us][idx], bonus / 2);
+  }
+}
+
+void Search::seed_helper_histories(Search& helper, int helperId) const {
+  // Seed helpers with main-thread learned histories (Lazy SMP shared-hist idea).
+  std::memcpy(helper.history, history, sizeof(history));
+  std::memcpy(helper.captureHistory, captureHistory, sizeof(captureHistory));
+  std::memcpy(helper.contHistory, contHistory, sizeof(contHistory));
+  std::memcpy(helper.countermove, countermove, sizeof(countermove));
+  std::memcpy(helper.corrHist, corrHist, sizeof(corrHist));
+  std::memcpy(helper.pawnCorrHist, pawnCorrHist, sizeof(pawnCorrHist));
+  std::memcpy(helper.contCorrHist, contCorrHist, sizeof(contCorrHist));
+  // Small diversity noise so helpers don't clone main move ordering exactly.
+  unsigned seed = 0x9e3779b9u * static_cast<unsigned>(helperId + 1);
+  for (int c = 0; c < COLOR_NB; ++c)
+    for (int f = 0; f < 64; ++f)
+      for (int t = 0; t < 64; ++t) {
+        seed = seed * 1664525u + 1013904223u;
+        helper.history[c][f][t] += static_cast<int>(seed % 17) - 8;
+      }
 }
 
 void Search::update_quiet_stats(Position& pos, Stack* ss, Move best,
@@ -347,6 +406,9 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
   TTEntry* tte = tt->probe(pos.key(), ttHit);
   Move ttMove = ttHit ? tte->move : MOVE_NONE;
   Value ttValue = ttHit ? value_from_tt(Value(tte->score), ss->ply) : VALUE_NONE;
+  // Track whether this node sits on a known PV / prior PV TT hit (SF-style).
+  ss->ttPv = pvNode || (ttHit && (tte->flag == TT_EXACT));
+  if (ss->ply > 0) ss->ttPv = ss->ttPv || (ss - 1)->ttPv;
 
   // Skip TT cutoffs during singular verification (hash is for the full position).
   if (!pvNode && !singularSearch && ttHit && int(tte->depth) >= depth && ttValue != VALUE_NONE) {
@@ -358,29 +420,38 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
   const bool inCheck = pos.checkers();
   Value eval;
   Value rawEval = VALUE_NONE;
+  int corrVal = 0;
   if (inCheck) {
     eval = ss->staticEval = VALUE_NONE;
   } else {
     rawEval = ttHit && tte->eval != int16_t(VALUE_NONE) ? Value(tte->eval) : eval_pos(pos, ss);
     ss->staticEval = rawEval;
-    // Correction history (Stockfish-style): nudge static eval from prior residuals.
-    const int corr = corrHist[pos.side_to_move()][pos.key() & (CORR_SIZE - 1)];
-    eval = Value(std::clamp(int(rawEval) + corr / 32, -VALUE_INFINITE + 1, VALUE_INFINITE - 1));
+    // Multi-table correction history + corrplexity proxy for pruning.
+    corrVal = correction_value(pos, ss);
+    eval = Value(std::clamp(int(rawEval) + corrVal / 32, -VALUE_INFINITE + 1, VALUE_INFINITE - 1));
   }
 
-  // 2-fold / rule50 draw: soft-draw toward eval when clearly better/worse
-  // v29 stronger conversion soft-draw regressed Elo3000 (37.5% vs v28 50%) — keep /5.
+  // Graduated soft-draw: convert advantages harder early in the 50-move cycle,
+  // stay conservative late (v29 always-/2 regressed; keep mild graduation).
   if (!rootNode && pos.is_draw(ss->ply)) {
-    if (!inCheck && std::abs(int(eval)) > 80) return Value(eval / 5);
+    if (!inCheck && std::abs(int(eval)) > 80) {
+      int scale = 5;
+      const int ae = std::abs(int(eval));
+      const int r50 = pos.rule50_count();
+      if (ae > 220 && r50 < 40) scale = 4;
+      if (ae > 350 && r50 < 24) scale = 3;
+      return Value(eval / scale);
+    }
     return VALUE_DRAW;
   }
 
   const bool improving = !inCheck && ss->ply >= 2 &&
       (ss - 2)->staticEval != VALUE_NONE && rawEval > (ss - 2)->staticEval;
 
-  // Reverse futility pruning
+  // Reverse futility pruning — corrplexity: trust RFP less when |corr| is large.
   if (!pvNode && !inCheck && depth <= 7 &&
-      eval - ReverseFutilityMargin * depth - (improving ? 0 : 35) >= beta)
+      eval - ReverseFutilityMargin * depth - (improving ? 0 : 35)
+          - std::min(60, std::abs(corrVal) / 64) >= beta)
     return eval;
 
   // Razoring
@@ -486,13 +557,14 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
     if (!rootNode && ss->ply >= 1 && (ss - 1)->current &&
         m.to() == (ss - 1)->current.to() && capture)
       extension = std::max(extension, 1);
-    // Proper singular extension: verify TT move is uniquely good via excluded search.
-    // Conservative margins — aggressive singular previously regressed Elo 2000.
+    // Singular extension + multi-cut (Stockfish-style, conservative margins).
     if (!rootNode && !singularSearch && !extension && depth >= 8 && m == ttMove && ttHit &&
         tte->depth >= depth - 3 &&
         (tte->flag == TT_LOWER || tte->flag == TT_EXACT) &&
         std::abs(int(ttValue)) < VALUE_MATE_IN_MAX_PLY - 100) {
-      Value singularBeta = Value(int(ttValue) - (2 + depth / 2));
+      // Slightly tighter singularBeta on known PV (SF: higher singularBeta on ttPv).
+      const int margin = 2 + depth / 2 - (ss->ttPv ? 1 : 0);
+      Value singularBeta = Value(int(ttValue) - margin);
       Depth singularDepth = depth / 2;
       if (singularDepth >= 1 && singularBeta > -VALUE_MATE_IN_MAX_PLY) {
         ss->excludedMove = m;
@@ -500,8 +572,13 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
                                           singularDepth, cutNode);
         ss->excludedMove = MOVE_NONE;
         if (info->stop.load(std::memory_order_relaxed)) return alpha;
-        if (singularValue < singularBeta)
+        if (singularValue < singularBeta) {
           extension = 1;
+        } else if (singularValue >= beta &&
+                   std::abs(int(singularValue)) < VALUE_MATE_IN_MAX_PLY - 100) {
+          // Multi-cut: other moves fail high even without ttMove — prune.
+          return singularValue;
+        }
       }
     }
 
@@ -515,8 +592,12 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
         int h = history[pos.side_to_move()][m.from()][m.to()];
         if (ss->ply >= 1 && (ss - 1)->movedPiece)
           h += contHistory[0][(ss - 1)->movedPiece][(ss - 1)->current.to()][m.to()] / 4;
+        ss->statScore = h;
+        // History-adjusted LMR (SF-style).
         if (h > 4000) reduction = std::max(0, reduction - 1);
         if (h < -2000) ++reduction;
+        // Corrplexity: complex positions (large |corr|) reduce less.
+        if (std::abs(corrVal) > 1200) reduction = std::max(0, reduction - 1);
       } else if (moveCount > 3 && depth >= 4 && !pos.see_ge(m, -piece_value(PAWN))) {
         // Capture LMR only for late, SEE-negative-ish captures (not quiet LMR soften)
         reduction = Depth(1 + (moveCount > 6));
@@ -573,16 +654,12 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
   if (!info->stop.load(std::memory_order_relaxed) && !singularSearch) {
     tt->store(pos.key(), depth, value_to_tt(bestScore, ss->ply), flag,
              bestMove ? bestMove : ttMove, ss->staticEval);
-    // Update correction history from search residual (non-mate, sufficient depth).
+    // Update correction histories with modern quiet/bound conditions.
     if (!inCheck && !rootNode && depth >= 4 && rawEval != VALUE_NONE &&
         std::abs(int(bestScore)) < VALUE_MATE_IN_MAX_PLY - 100) {
-      int diff = int(bestScore) - int(rawEval);
-      diff = std::clamp(diff, -400, 400);
-      int& ch = corrHist[pos.side_to_move()][pos.key() & (CORR_SIZE - 1)];
-      // Stronger weight at deeper searches; keep bounded.
-      int bonus = diff * depth / 8;
-      ch += bonus - ch * std::abs(bonus) / 1024;
-      ch = std::clamp(ch, -4096, 4096);
+      const bool bestCapture = bestMove && (pos.piece_on(bestMove.to()) ||
+                               bestMove.type() == EN_PASSANT || bestMove.type() == PROMOTION);
+      update_corr_hist(pos, ss, bestScore, rawEval, depth, flag, bestMove, bestCapture);
     }
   }
   return bestScore;
@@ -669,14 +746,8 @@ void Search::helper_loop(const std::string& fen, int helperId) {
   helper.silent = true;
   helper.numThreads = 1;
 
-  // Asymmetric history so helpers diverge in move ordering (Lazy SMP diversity).
-  unsigned seed = 0x9e3779b9u * static_cast<unsigned>(helperId + 1);
-  for (int c = 0; c < COLOR_NB; ++c)
-    for (int f = 0; f < 64; ++f)
-      for (int t = 0; t < 64; ++t) {
-        seed = seed * 1664525u + 1013904223u;
-        helper.history[c][f][t] = static_cast<int>(seed % 17) - 8;
-      }
+  // Share learned histories with helpers (SF shared-corrHist idea for Lazy SMP).
+  seed_helper_histories(helper, helperId);
 
   Position hpos;
   StateInfo states[MAX_PLY + 8];
