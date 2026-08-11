@@ -716,6 +716,19 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
     allocatedTime = std::max<int64_t>(15, std::min<int64_t>(allocatedTime, time * 4 / 5));
     hardDeadline = startTime + allocatedTime + 500;
   }
+
+  // Root Syzygy DTZ: play the converting move immediately in decisive endings.
+  if (syzygy_max_pieces() > 0 && popcount(pos.pieces()) <= syzygy_max_pieces()) {
+    int wdl = 0;
+    Move tbMove = syzygy_probe_root(pos, wdl);
+    if (tbMove) {
+      if (!silent)
+        std::cout << "info string syzygy_root wdl=" << wdl
+                  << " move=" << move_to_uci(tbMove) << std::endl;
+      return tbMove;
+    }
+  }
+
   if (!silent) {
     std::cout << "info string time_ctrl movetime=" << limits.movetime
               << " allocated=" << allocatedTime
