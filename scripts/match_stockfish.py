@@ -92,6 +92,13 @@ def main() -> int:
 
     try:
         aditya.configure({"Hash": args.hash, "Threads": args.threads})
+        # Prefer local Syzygy WDL if present (endgame conversion).
+        tb = ROOT / "nets" / "tb"
+        if tb.is_dir() and any(tb.glob("*.rtbw")):
+            try:
+                aditya.configure({"SyzygyPath": str(tb)})
+            except Exception:
+                pass
         sf.configure({"Hash": args.hash, "Threads": 1})
         if args.elo > 0:
             sf.configure({"UCI_LimitStrength": True, "UCI_Elo": args.elo})
