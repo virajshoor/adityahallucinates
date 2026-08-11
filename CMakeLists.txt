@@ -15,7 +15,7 @@ add_link_options(-flto)
 find_package(Threads REQUIRED)
 
 # Fathom Syzygy (C99) — compile with gcc, no LTO (clang LTO bitcode won't link with g++)
-set(FATHOM_DIR ${CMAKE_SOURCE_DIR}/third_party/Fathom/src)
+set(FATHOM_DIR ${CMAKE_SOURCE_DIR}/third_party/fathom)
 add_library(fathom STATIC ${FATHOM_DIR}/tbprobe.c)
 set_source_files_properties(${FATHOM_DIR}/tbprobe.c PROPERTIES LANGUAGE C)
 target_include_directories(fathom PUBLIC ${FATHOM_DIR})
