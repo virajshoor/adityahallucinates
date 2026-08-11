@@ -466,40 +466,23 @@ Value classical_evaluate(const Position& pos) {
       return f + r;
     };
     if (score > 120) {
-      score += (14 - kdist) * (egw / 5);
-      score += (7 - rim(bk)) * (egw / 9);
+      score += (14 - kdist) * (egw / 6);
+      score += (7 - rim(bk)) * (egw / 10);
       // Encourage advancing our furthest passer when winning.
       Bitboard wp = pos.pieces(WHITE, PAWN);
       while (wp) {
         Square s = pop_lsb(wp);
         int rr = int(rank_of(s));
-        if (rr >= RANK_4) score += (rr - RANK_3) * (egw / 6);
-      }
-      // Rook endings with an extra pawn: keep the rook active (checks / cutoffs).
-      if (popcount(pos.pieces(WHITE, ROOK)) && popcount(pos.pieces(BLACK, ROOK)) &&
-          popcount(pos.pieces(WHITE, PAWN)) > popcount(pos.pieces(BLACK, PAWN))) {
-        Bitboard wr = pos.pieces(WHITE, ROOK);
-        while (wr) {
-          Square rs = pop_lsb(wr);
-          score += popcount(attacks_bb(ROOK, rs, pos.pieces()) & ~pos.pieces(WHITE)) / 2;
-        }
+        if (rr >= RANK_5) score += (rr - RANK_4) * (egw / 7);
       }
     } else if (score < -120) {
-      score -= (14 - kdist) * (egw / 5);
-      score -= (7 - rim(wk)) * (egw / 9);
+      score -= (14 - kdist) * (egw / 6);
+      score -= (7 - rim(wk)) * (egw / 10);
       Bitboard bp = pos.pieces(BLACK, PAWN);
       while (bp) {
         Square s = pop_lsb(bp);
         int rr = 7 - int(rank_of(s));
-        if (rr >= RANK_4) score -= (rr - RANK_3) * (egw / 6);
-      }
-      if (popcount(pos.pieces(BLACK, ROOK)) && popcount(pos.pieces(WHITE, ROOK)) &&
-          popcount(pos.pieces(BLACK, PAWN)) > popcount(pos.pieces(WHITE, PAWN))) {
-        Bitboard br = pos.pieces(BLACK, ROOK);
-        while (br) {
-          Square rs = pop_lsb(br);
-          score -= popcount(attacks_bb(ROOK, rs, pos.pieces()) & ~pos.pieces(BLACK)) / 2;
-        }
+        if (rr >= RANK_5) score -= (rr - RANK_4) * (egw / 7);
       }
     }
   }

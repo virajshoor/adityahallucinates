@@ -88,6 +88,13 @@ const BookEntry kBook[] = {
   {"r1bqkbnr/pppp1ppp/2n5/4p3/4P3/2N5/PPPP1PPP/R1BQKBNR w", "g1f3", 45},
   {"r1bqkbnr/pppp1ppp/2n5/4p3/4P3/2N5/PPPP1PPP/R1BQKBNR w", "f1c4", 30},
   {"r1bqkbnr/pppp1ppp/2n5/4p3/4P3/2N5/PPPP1PPP/R1BQKBNR w", "f2f4", 15},
+  // Three Knights / 3...Bb4: prefer solid development over early Nxe5 adventures
+  {"rnbqk2r/pppp1ppp/5n2/4p3/1b2P3/2N2N2/PPPP1PPP/R1BQKB1R w", "f1c4", 40},
+  {"rnbqk2r/pppp1ppp/5n2/4p3/1b2P3/2N2N2/PPPP1PPP/R1BQKB1R w", "d2d3", 35},
+  {"rnbqk2r/pppp1ppp/5n2/4p3/1b2P3/2N2N2/PPPP1PPP/R1BQKB1R w", "f3e5", 15},
+  {"r1bqk2r/pppp1ppp/2n2n2/4p3/1b2P3/2N2N2/PPPP1PPP/R1BQKB1R w", "f1c4", 40},
+  {"r1bqk2r/pppp1ppp/2n2n2/4p3/1b2P3/2N2N2/PPPP1PPP/R1BQKB1R w", "d2d3", 30},
+  {"r1bqk2r/pppp1ppp/2n2n2/4p3/1b2P3/2N2N2/PPPP1PPP/R1BQKB1R w", "f3e5", 20},
 
   // Ruy Lopez: 1.e4 e5 2.Nf3 Nc6 3.Bb5
   {"r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b", "a7a6", 50},

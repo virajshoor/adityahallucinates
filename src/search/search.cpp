@@ -771,35 +771,6 @@ Move Search::think(Position& pos, const SearchLimits& lim) {
   info->stop.store(true, std::memory_order_relaxed);
   for (auto& t : helpers) t.join();
 
-  // Root conversion gate: if clearly ahead late in the 50-move cycle and the
-  // chosen move doesn't make progress, prefer a safe pawn push / capture.
-  if (bestRootMove && pos.rule50_count() >= 64) {
-    Value se = evaluate(pos);
-    const bool bestProgress =
-        pos.piece_on(bestRootMove.to()) || bestRootMove.type() == EN_PASSANT ||
-        bestRootMove.type() == PROMOTION ||
-        type_of(pos.piece_on(bestRootMove.from())) == PAWN;
-    if (!bestProgress && int(se) > 120) {
-      MoveListWrapper list(pos);
-      Move alt = MOVE_NONE;
-      for (const ExtMove* em = list.begin(); em != list.end(); ++em) {
-        Move m = em->move;
-        const bool prog = pos.piece_on(m.to()) || m.type() == EN_PASSANT ||
-                          m.type() == PROMOTION ||
-                          type_of(pos.piece_on(m.from())) == PAWN;
-        if (!prog || !pos.see_ge(m, 0)) continue;
-        alt = m;
-        break;
-      }
-      if (alt) {
-        if (!silent)
-          std::cout << "info string convert_progress " << move_to_uci(bestRootMove)
-                    << " -> " << move_to_uci(alt) << std::endl;
-        bestRootMove = alt;
-      }
-    }
-  }
-
   if (!bestRootMove) {
     MoveListWrapper list(pos);
     if (list.size()) bestRootMove = list.begin()->move;
