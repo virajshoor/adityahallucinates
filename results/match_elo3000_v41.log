@@ -1,0 +1,7 @@
+<UciProtocol (pid=19692)>: stderr >> info string syzygy nets/tb largest=6
+<UciProtocol (pid=19692)>: stderr >> info string threads 2
+<UciProtocol (pid=19692)>: stderr >> info string syzygy /workspace/nets/tb largest=6
+game 1/16: aditya=W score=0.5 term=THREEFOLD_REPETITION running=0.500
+game 2/16: aditya=B score=0.0 term=CHECKMATE running=0.250
+game 3/16: aditya=W score=0.5 term=THREEFOLD_REPETITION running=0.333
+game 4/16: aditya=B score=0.5 term=THREEFOLD_REPETITION running=0.375

@@ -439,16 +439,15 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
     return VALUE_DRAW;
   }
 
-  // Syzygy WDL probe (non-root): decisive results only, and only up to 5-man.
-  // 6-man WDL cutoffs during search regressed Elo3000 vs limited SF (v39);
-  // keep 6-man for root DTZ conversion only.
+  // Syzygy WDL probe (non-root): strict wins/losses only, up to 5-man.
+  // Skip draws and cursed/blessed (50-move) results — they remove pressing chances.
   if (!rootNode && !singularSearch && syzygy_max_pieces() > 0 &&
       popcount(pos.pieces()) <= std::min(5, syzygy_max_pieces())) {
     int wdl = 0;
-    if (syzygy_probe_wdl(pos, wdl) && wdl != 0) {
+    if (syzygy_probe_wdl(pos, wdl) && (wdl == 2 || wdl == -2)) {
       const int base = VALUE_MATE_IN_MAX_PLY - 100 - ss->ply;
-      if (wdl > 0) return Value(base - (2 - wdl) * 40);
-      return Value(-base + (2 + wdl) * 40);
+      if (wdl > 0) return Value(base);
+      return Value(-base);
     }
   }
 

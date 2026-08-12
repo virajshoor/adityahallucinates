@@ -72,8 +72,9 @@ Move syzygy_probe_root(const Position& pos, int& wdl) {
     case TB_LOSS: wdl = -2; break;
     default: return MOVE_NONE;
   }
-  // Only play DTZ move when decisive — keep pressing theoretical draws.
-  if (wdl == 0) return MOVE_NONE;
+  // Only play DTZ for strict wins/losses. Cursed/blessed (wdl==±1) still
+  // fifty-move draw under FIDE — playing them caused conversion failures.
+  if (wdl != 2 && wdl != -2) return MOVE_NONE;
 
   Square from = Square(TB_GET_FROM(result));
   Square to = Square(TB_GET_TO(result));
