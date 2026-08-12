@@ -260,12 +260,12 @@ void Search::order_moves(Position& pos, ExtMove* begin, ExtMove* end, Move ttMov
       if (prev2Pc) m->score += contHistory[1][prev2Pc][prev2To][mv.to()] / 8;
       // Late in the 50-move cycle, surface pawn pushes earlier so conversion
       // lines aren't buried behind shuffle history (Elo3000 draw bottleneck).
-      if (pos.rule50_count() >= 40 && type_of(pos.piece_on(mv.from())) == PAWN)
-        m->score += 50'000 + 200 * pos.rule50_count();
+      if (pos.rule50_count() >= 48 && type_of(pos.piece_on(mv.from())) == PAWN)
+        m->score += 20'000 + 100 * (pos.rule50_count() - 48);
     }
-    if (pos.rule50_count() >= 40 &&
+    if (pos.rule50_count() >= 48 &&
         (pos.piece_on(mv.to()) || mv.type() == EN_PASSANT || mv.type() == PROMOTION))
-      m->score += 25'000;
+      m->score += 10'000;
   }
   std::stable_sort(begin, end);
 }
@@ -287,10 +287,8 @@ Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
 
   if (pos.is_draw(ss->ply)) {
     Value stand = eval_pos(pos, ss);
-    if (std::abs(int(stand)) > 80) {
-      const int scale = (pos.rule50_count() >= 60 || std::abs(int(stand)) > 280) ? 3 : 5;
-      return Value(stand / scale);
-    }
+    if (int(stand) > 80) return Value(-45);
+    if (int(stand) < -80) return Value(+45);
     return VALUE_DRAW;
   }
 
@@ -442,12 +440,13 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
     eval = Value(std::clamp(int(rawEval) + corrVal / 32, -VALUE_INFINITE + 1, VALUE_INFINITE - 1));
   }
 
-  // Soft-draw toward eval when clearly better/worse. Near the 50-move limit,
-  // use a stronger fraction so the side that's ahead keeps pressing.
+  // Contempt-style draw scores: when clearly ahead, treat a draw as slightly
+  // negative so we keep pressing; when clearly behind, prefer the draw.
+  // (Soft-draw eval/N made draws look too good vs small advantages.)
   if (!rootNode && pos.is_draw(ss->ply)) {
-    if (!inCheck && std::abs(int(eval)) > 80) {
-      const int scale = (pos.rule50_count() >= 60 || std::abs(int(eval)) > 280) ? 3 : 5;
-      return Value(eval / scale);
+    if (!inCheck) {
+      if (int(eval) > 80) return Value(-45);
+      if (int(eval) < -80) return Value(+45);
     }
     return VALUE_DRAW;
   }
