@@ -280,7 +280,8 @@ Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
 
   if (pos.is_draw(ss->ply)) {
     Value stand = eval_pos(pos, ss);
-    if (std::abs(int(stand)) > 80) return Value(stand / 5);
+    if (int(stand) > 100) return Value(-20);
+    if (int(stand) < -100) return Value(stand / 5);
     return VALUE_DRAW;
   }
 
@@ -432,17 +433,21 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
     eval = Value(std::clamp(int(rawEval) + corrVal / 32, -VALUE_INFINITE + 1, VALUE_INFINITE - 1));
   }
 
-  // Soft-draw toward eval when clearly better/worse (v31 graduated scales regressed —
-  // keep v28 /5; conversion comes from progress extensions + endgame eval).
+  // Asymmetric draw scores for conversion vs limited opponents:
+  // ahead → mild contempt (avoid shuffle/perpetual); behind → soft draw OK.
   if (!rootNode && pos.is_draw(ss->ply)) {
-    if (!inCheck && std::abs(int(eval)) > 80) return Value(eval / 5);
+    if (!inCheck) {
+      if (int(eval) > 100) return Value(-20);
+      if (int(eval) < -100) return Value(eval / 5);
+    }
     return VALUE_DRAW;
   }
 
-  // Syzygy WDL probe (non-root): use only decisive results.
-  // Against strength-limited SF, hard TB draws remove pressing chances — skip wdl==0.
+  // Syzygy WDL probe (non-root): decisive results only, and only up to 5-man.
+  // 6-man WDL cutoffs during search regressed Elo3000 vs limited SF (v39);
+  // keep 6-man for root DTZ conversion only.
   if (!rootNode && !singularSearch && syzygy_max_pieces() > 0 &&
-      popcount(pos.pieces()) <= syzygy_max_pieces()) {
+      popcount(pos.pieces()) <= std::min(5, syzygy_max_pieces())) {
     int wdl = 0;
     if (syzygy_probe_wdl(pos, wdl) && wdl != 0) {
       const int base = VALUE_MATE_IN_MAX_PLY - 100 - ss->ply;
