@@ -258,14 +258,7 @@ void Search::order_moves(Position& pos, ExtMove* begin, ExtMove* end, Move ttMov
       m->score = history[pos.side_to_move()][mv.from()][mv.to()];
       if (prevPc) m->score += contHistory[0][prevPc][prevTo][mv.to()] / 4;
       if (prev2Pc) m->score += contHistory[1][prev2Pc][prev2To][mv.to()] / 8;
-      // Late in the 50-move cycle, surface pawn pushes earlier so conversion
-      // lines aren't buried behind shuffle history (Elo3000 draw bottleneck).
-      if (pos.rule50_count() >= 48 && type_of(pos.piece_on(mv.from())) == PAWN)
-        m->score += 20'000 + 100 * (pos.rule50_count() - 48);
     }
-    if (pos.rule50_count() >= 48 &&
-        (pos.piece_on(mv.to()) || mv.type() == EN_PASSANT || mv.type() == PROMOTION))
-      m->score += 10'000;
   }
   std::stable_sort(begin, end);
 }
@@ -287,8 +280,7 @@ Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
 
   if (pos.is_draw(ss->ply)) {
     Value stand = eval_pos(pos, ss);
-    if (int(stand) > 80) return Value(-45);
-    if (int(stand) < -80) return Value(+45);
+    if (std::abs(int(stand)) > 80) return Value(stand / 5);
     return VALUE_DRAW;
   }
 
@@ -440,14 +432,10 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
     eval = Value(std::clamp(int(rawEval) + corrVal / 32, -VALUE_INFINITE + 1, VALUE_INFINITE - 1));
   }
 
-  // Contempt-style draw scores: when clearly ahead, treat a draw as slightly
-  // negative so we keep pressing; when clearly behind, prefer the draw.
-  // (Soft-draw eval/N made draws look too good vs small advantages.)
+  // Soft-draw toward eval when clearly better/worse (v31 graduated scales regressed —
+  // keep v28 /5; conversion comes from progress extensions + endgame eval).
   if (!rootNode && pos.is_draw(ss->ply)) {
-    if (!inCheck) {
-      if (int(eval) > 80) return Value(-45);
-      if (int(eval) < -80) return Value(+45);
-    }
+    if (!inCheck && std::abs(int(eval)) > 80) return Value(eval / 5);
     return VALUE_DRAW;
   }
 
@@ -575,15 +563,12 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
     if (!rootNode && ss->ply >= 1 && (ss - 1)->current &&
         m.to() == (ss - 1)->current.to() && capture)
       extension = std::max(extension, 1);
-    // Conversion aid: when ahead in the 50-move cycle, extend progress moves
+    // Conversion aid: when ahead late in the 50-move cycle, extend progress moves
     // (pawn pushes / captures) so we don't shuffle into draws (Elo3000 bottleneck).
-    const bool progressMove = capture || type_of(pos.piece_on(m.from())) == PAWN;
-    if (!rootNode && !inCheck && rawEval != VALUE_NONE && int(rawEval) > 100 &&
-        pos.rule50_count() >= 32 && progressMove && pos.see_ge(m, 0))
-      extension = std::max(extension, 1);
-    // At root, also extend progress when the half-move clock is critical.
-    if (rootNode && !inCheck && rawEval != VALUE_NONE && int(rawEval) > 80 &&
-        pos.rule50_count() >= 48 && progressMove && pos.see_ge(m, 0))
+    if (!rootNode && !inCheck && rawEval != VALUE_NONE && int(rawEval) > 160 &&
+        pos.rule50_count() >= 50 &&
+        (capture || type_of(pos.piece_on(m.from())) == PAWN) &&
+        pos.see_ge(m, 0))
       extension = std::max(extension, 1);
     // Singular extension + multi-cut (Stockfish-style, conservative margins).
     if (!rootNode && !singularSearch && !extension && depth >= 8 && m == ttMove && ttHit &&
@@ -623,9 +608,6 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
         if (h < -2000) ++reduction;
         // Corrplexity: complex positions (large |corr|) reduce less.
         if (std::abs(corrVal) > 1200) reduction = std::max(0, reduction - 1);
-        // Don't reduce progress moves when we need to beat the 50-move clock.
-        if (pos.rule50_count() >= 40 && type_of(pos.piece_on(m.from())) == PAWN)
-          reduction = 0;
       } else if (moveCount > 3 && depth >= 4 && !pos.see_ge(m, -piece_value(PAWN))) {
         // Capture LMR only for late, SEE-negative-ish captures (not quiet LMR soften)
         reduction = Depth(1 + (moveCount > 6));

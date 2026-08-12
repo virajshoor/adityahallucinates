@@ -1,0 +1,44 @@
+[Event "?"]
+[Site "?"]
+[Date "2026.08.12"]
+[Round "?"]
+[White "Aditya"]
+[Black "Stockfish"]
+[Result "1-0"]
+[Termination "CHECKMATE"]
+
+1. e4 e5 2. Nf3 Nf6 3. d4 exd4 4. e5 Qe7 5. Be2 Nd5 6. Qxd4 Nb6 7. Nc3 Nc6 8. Qf4 d6 9. exd6 Qxd6 10. O-O Be6 11. Rd1 Qxf4 12. Bxf4 Be7 13. Nb5 Kf8 14. Nxc7 Rc8 15. a4 Bc4 16. Bxc4 g5 17. Be6 Rxc7 18. Bxc7 fxe6 19. Bxb6 Bf6 20. Bc5+ Kf7 21. Rd7+ Kg6 22. Rxb7 Re8 23. Nd2 Na5 24. Rxa7 Nc6 25. Rb7 Na5 26. Rb5 Ra8 27. Re1 Rd8 28. Ne4 Nc4 29. b3 Nd2 30. Nxf6 Kxf6 31. a5 Rd5 32. a6 h5 33. Be7+ Kf7 34. Rxd5 g4 35. Rxd2 g3 36. a7 gxh2+ 37. Kxh2 e5 38. Rxe5 Kg6 39. a8=Q Kg7 40. Qf8+ Kh7 41. Qf7+ Kh6 42. Rxh5# 1-0
+
+[Event "?"]
+[Site "?"]
+[Date "2026.08.12"]
+[Round "?"]
+[White "Stockfish"]
+[Black "Aditya"]
+[Result "0-1"]
+[Termination "CHECKMATE"]
+
+1. e3 d5 2. d4 e6 3. c4 Nf6 4. Nc3 c5 5. Nf3 a6 6. cxd5 exd5 7. a3 Nc6 8. Be2 c4 9. Ne5 Bd6 10. f4 Na5 11. Ra2 b5 12. Qc2 Nb3 13. Bf3 Bb7 14. O-O O-O 15. Rd1 Qb6 16. Bd2 Rad8 17. Be1 Rfe8 18. Kh1 a5 19. Kg1 b4 20. Ne2 Nxd4 21. exd4 b3 22. Qc1 bxa2 23. Qa1 Bxe5 24. fxe5 Rxe5 25. Bxa5 Qxa5 26. dxe5 Nd7 27. Qxa2 Nxe5 28. b4 Qa7+ 29. Kf1 Nxf3 30. gxf3 Ra8 31. Nd4 Qxa3 32. Qxa3 Rxa3 33. Nb5 Rxf3+ 34. Ke2 Rb3 35. Nd6 Rxb4 36. h4 Bc6 37. Rg1 d4 38. Ra1 Rb2+ 39. Kf1 c3 40. Rc1 Rh2 41. Rd1 c2 42. Ra1 Rh1+ 43. Ke2 Rxa1 44. Ne4 c1=Q 45. Nd2 Qd1+ 46. Kd3 Ra3+ 47. Kxd4 Qg1+ 48. Kc4 Qc1+ 49. Kb4 Qc3# 0-1
+
+[Event "?"]
+[Site "?"]
+[Date "2026.08.12"]
+[Round "?"]
+[White "Aditya"]
+[Black "Stockfish"]
+[Result "1-0"]
+[Termination "CHECKMATE"]
+
+1. d4 Nf6 2. c4 c6 3. Nf3 g6 4. Bf4 d6 5. Nc3 Bg7 6. e4 O-O 7. h3 a6 8. Be2 Nbd7 9. Qc2 e5 10. dxe5 dxe5 11. Be3 Qe7 12. O-O Nh5 13. g3 f5 14. exf5 Nc5 15. fxg6 Bf5 16. gxh7+ Kh8 17. Qd2 Nf4 18. gxf4 Ne6 19. fxe5 Bxh7 20. Rad1 Bh6 21. Bxh6 Bc2 22. Qxc2 Nc5 23. Bxf8 Qe6 24. Bxc5 Rf8 25. Bxf8 c5 26. Ng5 Qxh3 27. Nf7+ Kg8 28. Qg6+ Kxf8 29. Rd8+ Ke7 30. Qf6# 1-0
+
+[Event "?"]
+[Site "?"]
+[Date "2026.08.12"]
+[Round "?"]
+[White "Stockfish"]
+[Black "Aditya"]
+[Result "1-0"]
+[Termination "CHECKMATE"]
+
+1. e3 e5 2. c4 Nf6 3. Nf3 e4 4. Ng1 c6 5. d3 d5 6. Bd2 Bd6 7. cxd5 cxd5 8. Nc3 O-O 9. Nge2 Nc6 10. dxe4 dxe4 11. a3 Ne5 12. Ng3 Nd3+ 13. Bxd3 exd3 14. O-O Bg4 15. f3 Be6 16. e4 Qb6+ 17. Kh1 Bxg3 18. hxg3 Bb3 19. Qb1 Qa6 20. Qe1 Rac8 21. a4 Rfd8 22. Ra3 Qe6 23. g4 Nd7 24. f4 Bc4 25. g5 Nc5 26. Rf3 Qb6 27. Ra1 Ra8 28. a5 Qc7 29. f5 b5 30. Rh3 Nd7 31. Qh4 Nf8 32. Rf1 Qxa5 33. f6 Qc7 34. b3 Bxb3 35. fxg7 Kxg7 36. g6 Qe5 37. Rf5 Qd4 38. Rxb5 Bc4 39. gxf7 Kxf7 40. Qh5+ Ke7 41. Rg5 Rab8 42. e5 Rd7 43. Rh4 Bf7 44. Rxd4 Bxh5 45. Rxd7+ Kxd7 46. e6+ Kxe6 47. Rxh5 Rb2 48. Ne4 Nd7 49. Ng5+ Kd6 50. Nf3 Nb6 51. Rh6+ Kd5 52. Rh4 Nc4 53. Bc3 Rb1+ 54. Kh2 a5 55. Bxa5 Kc5 56. Rxc4+ Kxc4 57. Nd2+ Kb5 58. Nxb1 Kc6 59. Nd2 Kd5 60. g4 Ke6 61. Kh3 Kd7 62. Kh4 Ke6 63. Bc3 Kf7 64. Kg5 Ke6 65. Kh6 Kf7 66. Kxh7 Ke6 67. Bd4 Kd5 68. Bc3 Ke6 69. Ba1 Ke7 70. Kh6 Kd7 71. g5 Kc6 72. g6 Kb6 73. g7 Kc5 74. g8=Q Kb4 75. Qd5 Ka4 76. Bd4 Kb4 77. Qc4+ Ka3 78. Qb3# 1-0
+

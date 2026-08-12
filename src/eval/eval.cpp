@@ -467,13 +467,13 @@ Value classical_evaluate(const Position& pos) {
     };
     if (score > 120) {
       score += (14 - kdist) * (egw / 6);
-      score += (7 - rim(bk)) * (egw / 10);
+      score += (7 - rim(bk)) * (egw / 10); // milder than v30 (which used /8 and hurt)
       // Encourage advancing our furthest passer when winning.
       Bitboard wp = pos.pieces(WHITE, PAWN);
       while (wp) {
         Square s = pop_lsb(wp);
         int rr = int(rank_of(s));
-        if (rr >= RANK_5) score += (rr - RANK_4) * (egw / 7);
+        if (rr >= RANK_5) score += (rr - RANK_4) * (egw / 8);
       }
     } else if (score < -120) {
       score -= (14 - kdist) * (egw / 6);
@@ -482,7 +482,7 @@ Value classical_evaluate(const Position& pos) {
       while (bp) {
         Square s = pop_lsb(bp);
         int rr = 7 - int(rank_of(s));
-        if (rr >= RANK_5) score -= (rr - RANK_4) * (egw / 7);
+        if (rr >= RANK_5) score -= (rr - RANK_4) * (egw / 8);
       }
     }
   }
