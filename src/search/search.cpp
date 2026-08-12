@@ -280,8 +280,7 @@ Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
 
   if (pos.is_draw(ss->ply)) {
     Value stand = eval_pos(pos, ss);
-    if (int(stand) > 100) return Value(-20);
-    if (int(stand) < -100) return Value(stand / 5);
+    if (std::abs(int(stand)) > 80) return Value(stand / 5);
     return VALUE_DRAW;
   }
 
@@ -433,13 +432,10 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
     eval = Value(std::clamp(int(rawEval) + corrVal / 32, -VALUE_INFINITE + 1, VALUE_INFINITE - 1));
   }
 
-  // Asymmetric draw scores for conversion vs limited opponents:
-  // ahead → mild contempt (avoid shuffle/perpetual); behind → soft draw OK.
+  // Soft-draw toward eval when clearly better/worse (v28 /5 — contempt
+  // variants in v38/v40 lost games; conversion from root DTZ + progress ext).
   if (!rootNode && pos.is_draw(ss->ply)) {
-    if (!inCheck) {
-      if (int(eval) > 100) return Value(-20);
-      if (int(eval) < -100) return Value(eval / 5);
-    }
+    if (!inCheck && std::abs(int(eval)) > 80) return Value(eval / 5);
     return VALUE_DRAW;
   }
 
