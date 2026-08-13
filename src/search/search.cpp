@@ -280,11 +280,9 @@ Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
 
   if (pos.is_draw(ss->ply)) {
     Value stand = eval_pos(pos, ss);
-    // Asymmetric soft-draw (v45): press when ahead (draw=0); keep eval/5 when
-    // behind so we still prefer draws over losing. Symmetric /5 drew too many
-    // White edges; strong contempt (v38/v40) overpressed into losses.
-    if (!pos.checkers() && int(stand) > 100) return VALUE_DRAW;
-    if (!pos.checkers() && int(stand) < -100) return Value(stand / 5);
+    // Soft-draw toward eval when clearly better/worse (v28 /5). Asymmetric
+    // draw=0 when ahead (v45) overpressed a +8 White edge into mate.
+    if (std::abs(int(stand)) > 80) return Value(stand / 5);
     return VALUE_DRAW;
   }
 
@@ -436,10 +434,10 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
     eval = Value(std::clamp(int(rawEval) + corrVal / 32, -VALUE_INFINITE + 1, VALUE_INFINITE - 1));
   }
 
-  // Soft-draw (v45 asymmetric): press when ahead; accept draws when behind.
+  // Soft-draw toward eval when clearly better/worse (v28 /5 — contempt and
+  // v45 asymmetric draw=0 when ahead overpressed winning games into losses).
   if (!rootNode && pos.is_draw(ss->ply)) {
-    if (!inCheck && int(eval) > 100) return VALUE_DRAW;
-    if (!inCheck && int(eval) < -100) return Value(eval / 5);
+    if (!inCheck && std::abs(int(eval)) > 80) return Value(eval / 5);
     return VALUE_DRAW;
   }
 

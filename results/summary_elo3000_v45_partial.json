@@ -1,0 +1,6 @@
+{
+  "label": "elo3000_v45_partial",
+  "games": 3,
+  "score": 0.5,
+  "notes": "W win, B draw, W mate loss overpress; abort"
+}
