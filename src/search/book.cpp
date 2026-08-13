@@ -135,10 +135,10 @@ const BookEntry kBook[] = {
   {"r1bqkb1r/ppp2ppp/2n5/1B1pP3/3pn3/5N2/PPP2PPP/RNBQ1RK1 b", "a7a6", 30},
   {"r1bqkb1r/ppp2ppp/2n5/1B1pP3/3pn3/5N2/PPP2PPP/RNBQ1RK1 b", "c8d7", 20},
 
-  // Petroff: 1.e4 e5 2.Nf3 Nf6
-  {"rnbqkb1r/pppp1ppp/5n2/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w", "f3e5", 45},
-  {"rnbqkb1r/pppp1ppp/5n2/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w", "d2d4", 30},
-  {"rnbqkb1r/pppp1ppp/5n2/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w", "b1c3", 15},
+  // Petroff: 1.e4 e5 2.Nf3 Nf6 — prefer d4; Nxe5 lines lost Elo3000 g3
+  {"rnbqkb1r/pppp1ppp/5n2/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w", "d2d4", 55},
+  {"rnbqkb1r/pppp1ppp/5n2/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w", "b1c3", 25},
+  {"rnbqkb1r/pppp1ppp/5n2/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w", "f3e5", 12},
 
   // Sicilian: 1.e4 c5
   {"rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w", "g1f3", 70},

@@ -563,13 +563,23 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
     if (!rootNode && ss->ply >= 1 && (ss - 1)->current &&
         m.to() == (ss - 1)->current.to() && capture)
       extension = std::max(extension, 1);
-    // Conversion aid: when ahead late in the 50-move cycle, extend progress moves
+    // Conversion aid: when ahead in the 50-move cycle, extend progress moves
     // (pawn pushes / captures) so we don't shuffle into draws (Elo3000 bottleneck).
-    if (!rootNode && !inCheck && rawEval != VALUE_NONE && int(rawEval) > 160 &&
-        pos.rule50_count() >= 50 &&
+    // Trigger earlier than v42 (30/120) — wins were reaching TB too late.
+    if (!rootNode && !inCheck && rawEval != VALUE_NONE && int(rawEval) > 120 &&
+        pos.rule50_count() >= 30 &&
         (capture || type_of(pos.piece_on(m.from())) == PAWN) &&
         pos.see_ge(m, 0))
       extension = std::max(extension, 1);
+    // Advanced passer: always extend safe pawn pushes to rank 6/7 when ahead.
+    if (!rootNode && !inCheck && rawEval != VALUE_NONE && int(rawEval) > 150 &&
+        type_of(pos.piece_on(m.from())) == PAWN && !capture && pos.see_ge(m, 0)) {
+      const Square to = m.to();
+      const Rank r = rank_of(to);
+      if ((pos.side_to_move() == WHITE && r >= RANK_6) ||
+          (pos.side_to_move() == BLACK && r <= RANK_3))
+        extension = std::max(extension, 1);
+    }
     // Singular extension + multi-cut (Stockfish-style, conservative margins).
     if (!rootNode && !singularSearch && !extension && depth >= 8 && m == ttMove && ttHit &&
         tte->depth >= depth - 3 &&
