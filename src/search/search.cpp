@@ -612,9 +612,6 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
         if (h < -2000) ++reduction;
         // Corrplexity: complex positions (large |corr|) reduce less.
         if (std::abs(corrVal) > 1200) reduction = std::max(0, reduction - 1);
-        // When clearly ahead, reduce less so we convert instead of shuffling.
-        if (rawEval != VALUE_NONE && int(rawEval) > 200)
-          reduction = std::max(0, reduction - 1);
       } else if (moveCount > 3 && depth >= 4 && !pos.see_ge(m, -piece_value(PAWN))) {
         // Capture LMR only for late, SEE-negative-ish captures (not quiet LMR soften)
         reduction = Depth(1 + (moveCount > 6));
