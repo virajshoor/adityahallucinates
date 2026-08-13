@@ -1,3 +1,8 @@
+<UciProtocol (pid=26611)>: stderr >> info string syzygy nets/tb largest=6
+<UciProtocol (pid=26611)>: stderr >> info string threads 2
+<UciProtocol (pid=26611)>: stderr >> info string syzygy /workspace/nets/tb largest=6
+game 1/2: aditya=W score=1.0 term=CHECKMATE running=1.000
+game 2/2: aditya=B score=1.0 term=CHECKMATE running=1.000
 {
   "label": "elo2400",
   "movetime": 3.0,
@@ -24,3 +29,4 @@
     }
   ]
 }
+PGN: /workspace/results/match_elo2400_20260813_094251.pgn
