@@ -130,6 +130,10 @@ const BookEntry kBook[] = {
   {"r1bqkb1r/pppp1ppp/2n2n2/4P3/2Bp4/5N2/PPP2PPP/RNBQK2R b", "d7d5", 85},
   {"r1bqkb1r/ppp2ppp/2n2n2/3pP3/2Bp4/5N2/PPP2PPP/RNBQK2R w", "e5f6", 40},
   {"r1bqkb1r/ppp2ppp/2n2n2/3pP3/2Bp4/5N2/PPP2PPP/RNBQK2R w", "c4b5", 45},
+  // Scotch Gambit 5.O-O (no e5) — prefer ...Bc5 / ...Be7 over passive ...d6
+  {"r1bqkb1r/pppp1ppp/2n2n2/8/2BpP3/5N2/PPP2PPP/RNBQ1RK1 b", "f8c5", 50},
+  {"r1bqkb1r/pppp1ppp/2n2n2/8/2BpP3/5N2/PPP2PPP/RNBQ1RK1 b", "f8e7", 30},
+  {"r1bqkb1r/pppp1ppp/2n2n2/8/2BpP3/5N2/PPP2PPP/RNBQ1RK1 b", "d7d6", 15},
   // After 6.Bb5 Ne4 7.O-O — prefer Be7 / a6 over Bd7
   {"r1bqkb1r/ppp2ppp/2n5/1B1pP3/3pn3/5N2/PPP2PPP/RNBQ1RK1 b", "f8e7", 45},
   {"r1bqkb1r/ppp2ppp/2n5/1B1pP3/3pn3/5N2/PPP2PPP/RNBQ1RK1 b", "a7a6", 30},
@@ -240,6 +244,14 @@ const BookEntry kBook[] = {
   // 1.d4 d5 — prefer QG/Nf3; do NOT play London as White (lost Elo3000 games)
   {"rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBQKBNR w", "c2c4", 58},
   {"rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBQKBNR w", "g1f3", 42},
+  // 1.d4 d5 2.Nf3 — develop ...Nf6 (feeds London / QG lines)
+  {"rnbqkbnr/ppp1pppp/8/3p4/3P4/5N2/PPP1PPPP/RNBQKB1R b", "g8f6", 70},
+  {"rnbqkbnr/ppp1pppp/8/3p4/3P4/5N2/PPP1PPPP/RNBQKB1R b", "c7c6", 20},
+  {"rnbqkbnr/ppp1pppp/8/3p4/3P4/5N2/PPP1PPPP/RNBQKB1R b", "e7e6", 10},
+  // London as Black: 1.d4 d5 2.Nf3 Nf6 3.Bf4 — solid ...c5 / ...e6 / ...c6
+  {"rnbqkb1r/ppp1pppp/5n2/3p4/3P1B2/5N2/PPP1PPPP/RN1QKB1R b", "c7c5", 45},
+  {"rnbqkb1r/ppp1pppp/5n2/3p4/3P1B2/5N2/PPP1PPPP/RN1QKB1R b", "e7e6", 30},
+  {"rnbqkb1r/ppp1pppp/5n2/3p4/3P1B2/5N2/PPP1PPPP/RN1QKB1R b", "c7c6", 20},
   {"rnbqkbnr/ppp1pppp/8/3p4/2PP4/8/PP2PPPP/RNBQKBNR b", "e7e6", 35},
   {"rnbqkbnr/ppp1pppp/8/3p4/2PP4/8/PP2PPPP/RNBQKBNR b", "c7c6", 35},
   {"rnbqkbnr/ppp1pppp/8/3p4/2PP4/8/PP2PPPP/RNBQKBNR b", "d5c4", 20},

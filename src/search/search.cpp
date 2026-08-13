@@ -280,7 +280,11 @@ Value Search::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) {
 
   if (pos.is_draw(ss->ply)) {
     Value stand = eval_pos(pos, ss);
-    if (std::abs(int(stand)) > 80) return Value(stand / 5);
+    // Asymmetric soft-draw (v45): press when ahead (draw=0); keep eval/5 when
+    // behind so we still prefer draws over losing. Symmetric /5 drew too many
+    // White edges; strong contempt (v38/v40) overpressed into losses.
+    if (!pos.checkers() && int(stand) > 100) return VALUE_DRAW;
+    if (!pos.checkers() && int(stand) < -100) return Value(stand / 5);
     return VALUE_DRAW;
   }
 
@@ -432,10 +436,10 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
     eval = Value(std::clamp(int(rawEval) + corrVal / 32, -VALUE_INFINITE + 1, VALUE_INFINITE - 1));
   }
 
-  // Soft-draw toward eval when clearly better/worse (v28 /5 — contempt
-  // variants in v38/v40 lost games; conversion from root DTZ + progress ext).
+  // Soft-draw (v45 asymmetric): press when ahead; accept draws when behind.
   if (!rootNode && pos.is_draw(ss->ply)) {
-    if (!inCheck && std::abs(int(eval)) > 80) return Value(eval / 5);
+    if (!inCheck && int(eval) > 100) return VALUE_DRAW;
+    if (!inCheck && int(eval) < -100) return Value(eval / 5);
     return VALUE_DRAW;
   }
 
@@ -610,6 +614,9 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
         if (h < -2000) ++reduction;
         // Corrplexity: complex positions (large |corr|) reduce less.
         if (std::abs(corrVal) > 1200) reduction = std::max(0, reduction - 1);
+        // When clearly ahead, reduce less so we convert instead of shuffling.
+        if (rawEval != VALUE_NONE && int(rawEval) > 200)
+          reduction = std::max(0, reduction - 1);
       } else if (moveCount > 3 && depth >= 4 && !pos.see_ge(m, -piece_value(PAWN))) {
         // Capture LMR only for late, SEE-negative-ish captures (not quiet LMR soften)
         reduction = Depth(1 + (moveCount > 6));
