@@ -1,0 +1,44 @@
+[Event "?"]
+[Site "?"]
+[Date "2026.08.12"]
+[Round "?"]
+[White "Aditya"]
+[Black "Stockfish"]
+[Result "1-0"]
+[Termination "CHECKMATE"]
+
+1. d4 Nf6 2. Nf3 b6 3. c4 Ba6 4. e3 e6 5. Bd3 d5 6. cxd5 Bb4+ 7. Bd2 Bxd2+ 8. Qxd2 Qxd5 9. O-O Qb7 10. Nc3 Bxd3 11. Qxd3 Nbd7 12. e4 h6 13. e5 Nd5 14. Rfc1 Nxc3 15. Qxc3 c5 16. dxc5 bxc5 17. Nd2 Qb5 18. b3 Qb4 19. Nc4 O-O 20. Qg3 Rfd8 21. Rd1 Nb6 22. Nd6 Nd5 23. Rac1 Ne7 24. Qf3 Rf8 25. Rc4 Qb6 26. Qe3 Rad8 27. Qxc5 Nf5 28. Qxb6 Nxd6 29. Qxd6 Rxd6 30. exd6 Rb8 31. d7 Rb4 32. d8=Q+ Kh7 33. Rxb4 h5 34. Qg5 g6 35. Rb7 Kg7 36. Rxf7+ Kxf7 37. Rd7+ Ke8 38. Qd8# 1-0
+
+[Event "?"]
+[Site "?"]
+[Date "2026.08.12"]
+[Round "?"]
+[White "Stockfish"]
+[Black "Aditya"]
+[Result "0-1"]
+[Termination "CHECKMATE"]
+
+1. Nf3 c5 2. Nc3 d5 3. e3 a6 4. d4 e6 5. e4 cxd4 6. Qxd4 Nc6 7. Qa4 d4 8. Nb1 Bd7 9. Qb3 Nf6 10. e5 Nxe5 11. Nxd4 Bc5 12. c3 Qc7 13. Qd1 Rd8 14. Nd2 Ng6 15. Be2 e5 16. N4f3 Nf4 17. b4 Bxf2+ 18. Kxf2 Ng4+ 19. Kg3 Ne3 20. Qb3 Qb6 21. Bd3 Nh5+ 22. Kf2 Ng4+ 23. Kf1 Qf2# 0-1
+
+[Event "?"]
+[Site "?"]
+[Date "2026.08.12"]
+[Round "?"]
+[White "Aditya"]
+[Black "Stockfish"]
+[Result "1-0"]
+[Termination "CHECKMATE"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bc4 d6 4. Nc3 Be7 5. h3 Be6 6. Bxe6 fxe6 7. O-O Qd7 8. Re1 h6 9. a4 Nf6 10. a5 O-O 11. a6 b6 12. d3 Nh7 13. Ne2 Rxf3 14. gxf3 Rf8 15. Kg2 Rf7 16. f4 exf4 17. Bxf4 Ne5 18. Bxe5 Bh4 19. Bg3 Bxg3 20. fxg3 d5 21. Rf1 Rxf1 22. Qxf1 dxe4 23. dxe4 Qe8 24. Rd1 e5 25. Nc3 b5 26. Nxb5 c6 27. Qc4+ Kf8 28. Nxa7 c5 29. Qxc5+ Kf7 30. Nc6 Nf8 31. Rf1+ Kg6 32. Qxf8 Qe6 33. Ne7+ Kh5 34. Rf5+ Qxf5 35. Qxf5+ g5 36. Qf7# 1-0
+
+[Event "?"]
+[Site "?"]
+[Date "2026.08.12"]
+[Round "?"]
+[White "Stockfish"]
+[Black "Aditya"]
+[Result "1-0"]
+[Termination "CHECKMATE"]
+
+1. e4 e5 2. d4 exd4 3. Bc4 Nf6 4. Qe2 Bc5 5. Bg5 O-O 6. Nd2 Nc6 7. h4 h6 8. Ngf3 hxg5 9. hxg5 d5 10. gxf6 dxc4 11. Qxc4 Bb6 12. e5 gxf6 13. Qd3 f5 14. g4 Qd5 15. O-O-O Nb4 16. Qa3 Bc5 17. Rh5 Rd8 18. gxf5 Nxa2+ 19. Qxa2 Qxa2 20. f6 Bg4 21. Rg1 Qe6 22. Nh2 Bb4 23. Nxg4 Bxd2+ 24. Kxd2 Qxf6 25. exf6 b5 26. Ne5+ Kf8 27. b3 Re8 28. f3 Rad8 29. Nd7+ Rxd7 30. Rh8# 1-0
+
