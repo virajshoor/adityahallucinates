@@ -487,7 +487,8 @@ Value classical_evaluate(const Position& pos) {
     }
   }
 
-  // Opposite-colored bishops: more drawish in endgames
+  // Opposite-colored bishops: more drawish in endgames (v47 g1 failed to convert
+  // B+P vs B into anything but a fifty-move shuffle — scale harder).
   if (popcount(pos.pieces(BISHOP)) == 2 &&
       popcount(pos.pieces(WHITE, BISHOP)) == 1 &&
       popcount(pos.pieces(BLACK, BISHOP)) == 1) {
@@ -495,8 +496,13 @@ Value classical_evaluate(const Position& pos) {
     Bitboard bb = pos.pieces(BLACK, BISHOP);
     Square ws = lsb(wb), bs = lsb(bb);
     if (((int(file_of(ws)) + int(rank_of(ws))) & 1) != ((int(file_of(bs)) + int(rank_of(bs))) & 1)) {
-      if (pos.non_pawn_material() <= 2 * 365)
-        score = score * 2 / 3;
+      if (pos.non_pawn_material() <= 2 * 365) {
+        score = score / 2;
+        // Nearly equal pawn counts: essentially drawn with only opposite bishops.
+        const int pdiff = std::abs(popcount(pos.pieces(WHITE, PAWN)) -
+                                   popcount(pos.pieces(BLACK, PAWN)));
+        if (pdiff <= 1) score = score / 2;
+      }
     }
   }
 

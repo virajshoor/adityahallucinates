@@ -61,10 +61,10 @@ const BookEntry kBook[] = {
   {"rnbqk2r/ppp1bppp/4pn2/3p4/2PP4/2N2N2/PP2PPPP/R1BQKB1R b", "e8g8", 70},
   {"rnbqk2r/ppp1bppp/4pn2/3p4/2PP4/2N2N2/PP2PPPP/R1BQKB1R b", "c7c6", 20},
 
-  // 1.e4 e5
-  {"rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w", "g1f3", 70},
-  {"rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w", "b1c3", 15},
-  {"rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w", "f1c4", 10},
+  // 1.e4 e5 — strongly prefer Open Games (Nf3); Nc3 led to weak Four Knights Bd3 (v47 g3)
+  {"rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w", "g1f3", 82},
+  {"rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w", "f1c4", 12},
+  {"rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w", "b1c3", 5},
 
   // 1.e4 e5 2.Nf3
   {"rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b", "b8c6", 55},
@@ -88,6 +88,11 @@ const BookEntry kBook[] = {
   {"r1bqkbnr/pppp1ppp/2n5/4p3/4P3/2N5/PPPP1PPP/R1BQKBNR w", "g1f3", 45},
   {"r1bqkbnr/pppp1ppp/2n5/4p3/4P3/2N5/PPPP1PPP/R1BQKBNR w", "f1c4", 30},
   {"r1bqkbnr/pppp1ppp/2n5/4p3/4P3/2N5/PPPP1PPP/R1BQKBNR w", "f2f4", 15},
+  // Four Knights (2.Nc3 Nf6 3.Nf3 Nc6): Spanish/Italian/Scotch — NEVER Bd3 (v47 g3 loss)
+  {"r1bqkb1r/pppp1ppp/2n2n2/4p3/4P3/2N2N2/PPPP1PPP/R1BQKB1R w", "f1b5", 50},
+  {"r1bqkb1r/pppp1ppp/2n2n2/4p3/4P3/2N2N2/PPPP1PPP/R1BQKB1R w", "f1c4", 30},
+  {"r1bqkb1r/pppp1ppp/2n2n2/4p3/4P3/2N2N2/PPPP1PPP/R1BQKB1R w", "d2d4", 18},
+  {"r1bqkb1r/pppp1ppp/2n2n2/4p3/4P3/2N2N2/PPPP1PPP/R1BQKB1R w", "f1d3", 2},
   // Three Knights / 3...Bb4: prefer solid development over early Nxe5 adventures
   {"rnbqk2r/pppp1ppp/5n2/4p3/1b2P3/2N2N2/PPPP1PPP/R1BQKB1R w", "f1c4", 40},
   {"rnbqk2r/pppp1ppp/5n2/4p3/1b2P3/2N2N2/PPPP1PPP/R1BQKB1R w", "d2d3", 35},
@@ -195,6 +200,10 @@ const BookEntry kBook[] = {
   // French: 1.e4 e6
   {"rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w", "d2d4", 75},
   {"rnbqkbnr/pppp1ppp/4p3/8/3PP3/8/PPP2PPP/RNBQKBNR b", "d7d5", 85},
+  // Franco-Sicilian 2...c5 (v47 g1) — space with d5 / develop, not soft waits
+  {"rnbqkbnr/pp1p1ppp/4p3/2p5/3PP3/8/PPP2PPP/RNBQKBNR w", "d4d5", 45},
+  {"rnbqkbnr/pp1p1ppp/4p3/2p5/3PP3/8/PPP2PPP/RNBQKBNR w", "g1f3", 35},
+  {"rnbqkbnr/pp1p1ppp/4p3/2p5/3PP3/8/PPP2PPP/RNBQKBNR w", "c2c3", 15},
   {"rnbqkbnr/ppp2ppp/4p3/3p4/3PP3/8/PPP2PPP/RNBQKBNR w", "b1c3", 40},
   {"rnbqkbnr/ppp2ppp/4p3/3p4/3PP3/8/PPP2PPP/RNBQKBNR w", "e4e5", 35},
   {"rnbqkbnr/ppp2ppp/4p3/3p4/3PP3/8/PPP2PPP/RNBQKBNR w", "e4d5", 15},
