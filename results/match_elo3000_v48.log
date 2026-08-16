@@ -4,3 +4,5 @@
 game 1/16: aditya=W score=1.0 term=CHECKMATE running=1.000
 game 2/16: aditya=B score=1.0 term=CHECKMATE running=1.000
 game 3/16: aditya=W score=0.0 term=CHECKMATE running=0.667
+game 4/16: aditya=B score=0.0 term=CHECKMATE running=0.500
+game 5/16: aditya=W score=0.5 term=THREEFOLD_REPETITION running=0.500

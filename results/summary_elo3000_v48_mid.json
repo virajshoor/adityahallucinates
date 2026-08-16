@@ -1,6 +1,5 @@
 {
-  "label": "elo3000_v48_mid",
-  "games": 3,
-  "score": 0.667,
-  "notes": "W win, B win, W mate loss"
+  "label": "elo3000_v48_mid5",
+  "games": 5,
+  "score": 0.5
 }
