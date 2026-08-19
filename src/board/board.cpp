@@ -107,8 +107,19 @@ Key Position::compute_key() const {
   return k;
 }
 
+Key Position::compute_pawn_key() const {
+  Key k = 0;
+  Bitboard b = pieces(PAWN);
+  while (b) {
+    Square s = pop_lsb(b);
+    k ^= Zobrist::psq[piece_on(s)][s];
+  }
+  return k;
+}
+
 void Position::set_state() {
   st->key = compute_key();
+  st->pawnKey = compute_pawn_key();
   set_check_info();
 }
 
@@ -229,6 +240,7 @@ Bitboard Position::attackers_to(Square s, Color c) const {
 void Position::do_move(Move m, StateInfo& new_st) {
   assert(m);
   Key k = st->key ^ Zobrist::side;
+  Key pk = st->pawnKey;
 
   std::memcpy(&new_st, st, sizeof(StateInfo));
   new_st.previous = st;
@@ -265,12 +277,16 @@ void Position::do_move(Move m, StateInfo& new_st) {
       if (m.type() == EN_PASSANT)
         capsq = Square(to - pawn_push(us));
       k ^= Zobrist::psq[captured][capsq];
+      if (type_of(captured) == PAWN)
+        pk ^= Zobrist::psq[captured][capsq];
       remove_piece(capsq);
       st->captured = captured;
       st->rule50 = 0;
     }
 
     k ^= Zobrist::psq[pc][from] ^ Zobrist::psq[pc][to];
+    if (type_of(pc) == PAWN)
+      pk ^= Zobrist::psq[pc][from] ^ Zobrist::psq[pc][to];
     move_piece(from, to);
 
     if (m.type() == PROMOTION) {
@@ -300,6 +316,7 @@ void Position::do_move(Move m, StateInfo& new_st) {
   k ^= Zobrist::castling[st->castling & 15];
 
   st->key = k;
+  st->pawnKey = pk;
   side = them;
   set_check_info();
 }

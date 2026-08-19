@@ -53,6 +53,8 @@ Search::Search(std::shared_ptr<TranspositionTable> sharedTt, SearchInfo* sharedI
   std::memset(contHistory, 0, sizeof(contHistory));
   std::memset(countermove, 0, sizeof(countermove));
   std::memset(corrHist, 0, sizeof(corrHist));
+  std::memset(pawnCorrHist, 0, sizeof(pawnCorrHist));
+  std::memset(contCorrHist, 0, sizeof(contCorrHist));
   std::memset(pv_table, 0, sizeof(pv_table));
   silent = true;
 }
@@ -68,6 +70,8 @@ void Search::clear() {
   std::memset(contHistory, 0, sizeof(contHistory));
   std::memset(countermove, 0, sizeof(countermove));
   std::memset(corrHist, 0, sizeof(corrHist));
+  std::memset(pawnCorrHist, 0, sizeof(pawnCorrHist));
+  std::memset(contCorrHist, 0, sizeof(contCorrHist));
   std::memset(pv_table, 0, sizeof(pv_table));
   info->nodes.store(0, std::memory_order_relaxed);
   info->seldepth.store(0, std::memory_order_relaxed);
@@ -77,6 +81,39 @@ void Search::clear() {
 void Search::add_history(int& h, int bonus) {
   h += bonus - h * std::abs(bonus) / 16384;
   h = std::clamp(h, -16384, 16384);
+}
+
+int Search::correction_value(const Position& pos, Stack* ss) const {
+  const Color us = pos.side_to_move();
+  int corr = corrHist[us][pos.key() & (CORR_SIZE - 1)];
+  corr += pawnCorrHist[us][pos.pawn_key() & (PAWN_CORR_SIZE - 1)];
+  if (ss->ply >= 1 && (ss - 1)->movedPiece && (ss - 1)->current) {
+    const int index = int((ss - 1)->movedPiece) * 64 + int((ss - 1)->current.to());
+    corr += contCorrHist[us][index];
+  }
+  return std::clamp(corr, -8192, 8192);
+}
+
+void Search::update_corr_hist(Position& pos, Stack* ss, Value bestScore, Value rawEval,
+                              Depth depth, TTFlag flag, Move bestMove, bool capture) {
+  if (rawEval == VALUE_NONE || (bestMove && capture)) return;
+  if (flag == TT_LOWER && bestScore <= rawEval) return;
+  if (flag == TT_UPPER && bestScore >= rawEval) return;
+
+  int diff = std::clamp(int(bestScore) - int(rawEval), -400, 400);
+  int bonus = diff * depth / 8;
+  auto apply = [](int& value, int amount) {
+    value += amount - value * std::abs(amount) / 1024;
+    value = std::clamp(value, -4096, 4096);
+  };
+
+  const Color us = pos.side_to_move();
+  apply(corrHist[us][pos.key() & (CORR_SIZE - 1)], bonus);
+  apply(pawnCorrHist[us][pos.pawn_key() & (PAWN_CORR_SIZE - 1)], bonus * 3 / 4);
+  if (ss->ply >= 1 && (ss - 1)->movedPiece && (ss - 1)->current) {
+    const int index = int((ss - 1)->movedPiece) * 64 + int((ss - 1)->current.to());
+    apply(contCorrHist[us][index], bonus / 2);
+  }
 }
 
 void Search::update_quiet_stats(Position& pos, Stack* ss, Move best,
@@ -358,14 +395,17 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
   const bool inCheck = pos.checkers();
   Value eval;
   Value rawEval = VALUE_NONE;
+  int corrVal = 0;
   if (inCheck) {
     eval = ss->staticEval = VALUE_NONE;
   } else {
     rawEval = ttHit && tte->eval != int16_t(VALUE_NONE) ? Value(tte->eval) : eval_pos(pos, ss);
     ss->staticEval = rawEval;
-    // Correction history (Stockfish-style): nudge static eval from prior residuals.
-    const int corr = corrHist[pos.side_to_move()][pos.key() & (CORR_SIZE - 1)];
-    eval = Value(std::clamp(int(rawEval) + corr / 32, -VALUE_INFINITE + 1, VALUE_INFINITE - 1));
+    // Correct static evaluation using position, pawn-structure, and move-context
+    // residuals learned during this search.
+    corrVal = correction_value(pos, ss);
+    eval = Value(std::clamp(int(rawEval) + corrVal / 32,
+                            -VALUE_INFINITE + 1, VALUE_INFINITE - 1));
   }
 
   // 2-fold / rule50 draw: soft-draw toward eval when clearly better/worse
@@ -573,16 +613,13 @@ Value Search::search_node(Position& pos, Stack* ss, Value alpha, Value beta, Dep
   if (!info->stop.load(std::memory_order_relaxed) && !singularSearch) {
     tt->store(pos.key(), depth, value_to_tt(bestScore, ss->ply), flag,
              bestMove ? bestMove : ttMove, ss->staticEval);
-    // Update correction history from search residual (non-mate, sufficient depth).
+    // Update correction histories only when the bound makes the residual useful.
     if (!inCheck && !rootNode && depth >= 4 && rawEval != VALUE_NONE &&
         std::abs(int(bestScore)) < VALUE_MATE_IN_MAX_PLY - 100) {
-      int diff = int(bestScore) - int(rawEval);
-      diff = std::clamp(diff, -400, 400);
-      int& ch = corrHist[pos.side_to_move()][pos.key() & (CORR_SIZE - 1)];
-      // Stronger weight at deeper searches; keep bounded.
-      int bonus = diff * depth / 8;
-      ch += bonus - ch * std::abs(bonus) / 1024;
-      ch = std::clamp(ch, -4096, 4096);
+      const bool bestCapture = bestMove && (pos.piece_on(bestMove.to()) ||
+                               bestMove.type() == EN_PASSANT ||
+                               bestMove.type() == PROMOTION);
+      update_corr_hist(pos, ss, bestScore, rawEval, depth, flag, bestMove, bestCapture);
     }
   }
   return bestScore;
