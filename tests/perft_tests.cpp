@@ -14,10 +14,56 @@ struct PerftCase {
   uint64_t nodes;
 };
 
+Key recompute_pawn_key(const Position& pos) {
+  Key key = 0;
+  Bitboard pawns = pos.pieces(PAWN);
+  while (pawns) {
+    Square sq = pop_lsb(pawns);
+    key ^= Zobrist::psq[pos.piece_on(sq)][sq];
+  }
+  return key;
+}
+
+bool pawn_key_tests() {
+  struct Case {
+    const char* fen;
+    Move move;
+  };
+  const Case cases[] = {
+    {"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+     Move(SQ_E2, SQ_E4)},
+    {"4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1",
+     Move(SQ_E5, SQ_D6, EN_PASSANT)},
+    {"4k3/P7/8/8/8/8/8/4K2k w - - 0 1",
+     Move(SQ_A7, SQ_A8, PROMOTION, QUEEN)},
+  };
+
+  for (const auto& c : cases) {
+    Position pos;
+    StateInfo states[2];
+    pos.set(c.fen, states[0]);
+    const Key initial = pos.pawn_key();
+    if (initial != recompute_pawn_key(pos) || !pos.is_legal(c.move))
+      return false;
+    pos.do_move(c.move, states[1]);
+    if (pos.pawn_key() != recompute_pawn_key(pos))
+      return false;
+    pos.undo_move(c.move);
+    if (pos.pawn_key() != initial || pos.pawn_key() != recompute_pawn_key(pos))
+      return false;
+  }
+  return true;
+}
+
 int main() {
   Bitboards::init();
   Zobrist::init();
   Magics::init();
+
+  if (!pawn_key_tests()) {
+    std::cerr << "pawn-key incremental test failed\n";
+    return 1;
+  }
 
   PerftCase cases[] = {
     {"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 1, 20},
