@@ -294,6 +294,7 @@ void Position::do_move(Move m, StateInfo& new_st) {
       remove_piece(to);
       put_piece(promotion, to);
       k ^= Zobrist::psq[pc][to] ^ Zobrist::psq[promotion][to];
+      pk ^= Zobrist::psq[pc][to];
     }
   }
 
