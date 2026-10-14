@@ -52,6 +52,13 @@ const BookEntry kBook[] = {
   {"rnbqkb1r/ppp2ppp/4pn2/3p4/2PP4/5NP1/PP2PP1P/RNBQKB1R b", "f8e7", 40},
   {"rnbqkb1r/ppp2ppp/4pn2/3p4/2PP4/5NP1/PP2PP1P/RNBQKB1R b", "d5c4", 30},
   {"rnbqkb1r/ppp2ppp/4pn2/3p4/2PP4/5NP1/PP2PP1P/RNBQKB1R b", "c7c5", 25},
+  // Catalan after ...Be7 / O-O / Bg2 — prefer ...c5 / ...Nbd7; avoid ...Nc6 (v48 g4)
+  {"rnbqk2r/ppp1bppp/4pn2/3p4/2PP4/5NP1/PP2PPBP/RNBQK2R b", "e8g8", 70},
+  {"rnbqk2r/ppp1bppp/4pn2/3p4/2PP4/5NP1/PP2PPBP/RNBQK2R b", "c7c5", 20},
+  {"rnbq1rk1/ppp1bppp/4pn2/3p4/2PP4/2N2NP1/PP2PPBP/R1BQK2R b", "c7c5", 40},
+  {"rnbq1rk1/ppp1bppp/4pn2/3p4/2PP4/2N2NP1/PP2PPBP/R1BQK2R b", "b8d7", 35},
+  {"rnbq1rk1/ppp1bppp/4pn2/3p4/2PP4/2N2NP1/PP2PPBP/R1BQK2R b", "c7c6", 20},
+  {"rnbq1rk1/ppp1bppp/4pn2/3p4/2PP4/2N2NP1/PP2PPBP/R1BQK2R b", "b8c6", 5},
   {"rnbqkb1r/pp3ppp/4pn2/2pp4/2PP4/2N2N2/PP2PPPP/R1BQKB1R w", "c4d5", 35},
   {"rnbqkb1r/pp3ppp/4pn2/2pp4/2PP4/2N2N2/PP2PPPP/R1BQKB1R w", "e2e3", 40},
   // After ...Be7 in QGD — castle / challenge center
@@ -266,10 +273,11 @@ const BookEntry kBook[] = {
   {"rnbqkbnr/ppp1pppp/8/3p4/2PP4/8/PP2PPPP/RNBQKBNR b", "d5c4", 20},
   {"rnbqkbnr/ppp2ppp/4p3/3p4/2PP4/8/PP2PPPP/RNBQKBNR w", "b1c3", 50},
   {"rnbqkbnr/ppp2ppp/4p3/3p4/2PP4/8/PP2PPPP/RNBQKBNR w", "g1f3", 30},
-  {"rnbqkbnr/pp2pppp/2p5/3p4/2PP4/8/PP2PPPP/RNBQKBNR w", "b1c3", 40},
-  {"rnbqkbnr/pp2pppp/2p5/3p4/2PP4/8/PP2PPPP/RNBQKBNR w", "g1f3", 35},
-  {"rnbqkbnr/pp2pppp/2p5/3p4/2PP4/8/PP2PPPP/RNBQKBNR w", "c4d5", 15},
-  // Exchange Slav: develop solidly (avoid early ...Nh5 / ...f6)
+  {"rnbqkbnr/pp2pppp/2p5/3p4/2PP4/8/PP2PPPP/RNBQKBNR w", "b1c3", 45},
+  {"rnbqkbnr/pp2pppp/2p5/3p4/2PP4/8/PP2PPPP/RNBQKBNR w", "g1f3", 45},
+  // Avoid Exchange Slav as White (v48 g3 mate loss); keep tension
+  {"rnbqkbnr/pp2pppp/2p5/3p4/2PP4/8/PP2PPPP/RNBQKBNR w", "c4d5", 3},
+  // Exchange Slav (if reached): develop solidly — prefer Bg5/e3 over Bf4 vs ...a6
   {"rnbqkbnr/pp2pppp/2p5/3P4/3P4/8/PP2PPPP/RNBQKBNR b", "c6d5", 90},
   {"rnbqkbnr/pp2pppp/8/3p4/3P4/8/PP2PPPP/RNBQKBNR w", "b1c3", 50},
   {"rnbqkbnr/pp2pppp/8/3p4/3P4/8/PP2PPPP/RNBQKBNR w", "g1f3", 40},
@@ -281,6 +289,13 @@ const BookEntry kBook[] = {
   {"r1bqkb1r/pp2pppp/2n2n2/3p4/3P1B2/2N2N2/PP2PPPP/R2QKB1R b", "c8f5", 45},
   {"r1bqkb1r/pp2pppp/2n2n2/3p4/3P1B2/2N2N2/PP2PPPP/R2QKB1R b", "e7e6", 35},
   {"r1bqkb1r/pp2pppp/2n2n2/3p4/3P1B2/2N2N2/PP2PPPP/R2QKB1R b", "c8g4", 20},
+  // Exchange + early ...a6 (v48 g3): avoid Bf4; prefer e3 / Bg5
+  {"rnbqkbnr/1p2pppp/p7/3p4/3P4/5N2/PP2PPPP/RNBQKB1R w", "b1c3", 55},
+  {"rnbqkbnr/1p2pppp/p7/3p4/3P4/5N2/PP2PPPP/RNBQKB1R w", "c1g5", 25},
+  {"rnbqkbnr/1p2pppp/p7/3p4/3P4/5N2/PP2PPPP/RNBQKB1R w", "c1f4", 5},
+  {"rnbqkb1r/1p2pppp/p4n2/3p4/3P4/2N2N2/PP2PPPP/R1BQKB1R w", "c1g5", 40},
+  {"rnbqkb1r/1p2pppp/p4n2/3p4/3P4/2N2N2/PP2PPPP/R1BQKB1R w", "e2e3", 40},
+  {"rnbqkb1r/1p2pppp/p4n2/3p4/3P4/2N2N2/PP2PPPP/R1BQKB1R w", "c1f4", 8},
 
   // 1.d4 Nf6
   {"rnbqkb1r/pppppppp/5n2/8/3P4/8/PPP1PPPP/RNBQKBNR w", "c2c4", 50},
